@@ -14,7 +14,6 @@ import (
 
 var DB *gorm.DB
 
-// Config holds database configuration
 type Config struct {
 	Host     string
 	Port     string
@@ -24,7 +23,6 @@ type Config struct {
 	SSLMode  string
 }
 
-// ConnectDB establishes a connection to the database
 func ConnectDB() error {
 	config := Config{
 		Host:     getEnv("DB_HOST", "localhost"),
@@ -41,6 +39,9 @@ func ConnectDB() error {
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
+		NowFunc: func() time.Time {
+			return time.Now().UTC() // Ensure consistent timezone
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
@@ -51,18 +52,14 @@ func ConnectDB() error {
 		return fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	// Set connection pool settings
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	log.Println("Database connected successfully!")
-
-	// Run migrations
 	return Migrate()
 }
 
-// Migrate function to drop and recreate tables
 func Migrate() error {
 	models := []interface{}{
 		&models.User{},
@@ -70,14 +67,15 @@ func Migrate() error {
 		&models.Booking{},
 	}
 
-	// Drop existing tables
-	for _, model := range models {
-		if err := DB.Migrator().DropTable(model); err != nil {
-			return fmt.Errorf("failed to drop table for %T: %w", model, err)
+	// Only drop tables in development
+	if os.Getenv("ENV") == "development" {
+		for _, model := range models {
+			if err := DB.Migrator().DropTable(model); err != nil {
+				return fmt.Errorf("failed to drop table for %T: %w", model, err)
+			}
 		}
 	}
 
-	// Create tables
 	for _, model := range models {
 		if err := DB.AutoMigrate(model); err != nil {
 			return fmt.Errorf("failed to create table for %T: %w", model, err)

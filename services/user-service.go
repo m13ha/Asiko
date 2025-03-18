@@ -1,17 +1,22 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/m13ha/appointment_master/db"
 	"github.com/m13ha/appointment_master/models"
+	"github.com/m13ha/appointment_master/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// CreateUser creates a new user and saves it to the database.
 func CreateUser(userReq models.UserRequest) (*models.User, error) {
-	// Hash the password
+	if err := utils.Validate(userReq); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userReq.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	user := &models.User{
@@ -21,17 +26,29 @@ func CreateUser(userReq models.UserRequest) (*models.User, error) {
 	}
 
 	if err := db.DB.Create(user).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	return user, nil
 }
 
-// GetRegisteredAppointments retrieves appointments registered by a user.
-func GetRegisteredAppointments(userID string) ([]models.Appointment, error) {
-	var appointments []models.Appointment
-	if err := db.DB.Where("user_id = ?", userID).Find(&appointments).Error; err != nil {
-		return nil, err
+func GetUserBookings(userID string) ([]models.Booking, error) {
+	var bookings []models.Booking
+	if err := db.DB.Where("user_id = ?", userID).Find(&bookings).Error; err != nil {
+		return nil, fmt.Errorf("failed to get bookings: %w", err)
 	}
-	return appointments, nil
+	return bookings, nil
+}
+
+func AuthenticateUser(email, password string) (*models.User, error) {
+	var user models.User
+	if err := db.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	if !user.CheckPassword(password) {
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	return &user, nil
 }

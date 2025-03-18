@@ -1,24 +1,17 @@
 package utils
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"encoding/base64"
 	"time"
 )
 
-const (
-	appCodeLength = 6
-	appCodeChars  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-)
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-// GenerateAppCode creates a 6-digit alphanumeric code
 func GenerateAppCode() string {
-	code := make([]byte, appCodeLength)
-	for i := range code {
-		code[i] = appCodeChars[rand.Intn(len(appCodeChars))]
+	b := make([]byte, 8)
+	_, err := rand.Read(b)
+	if err != nil {
+		// Fallback in case of error
+		return base64.URLEncoding.EncodeToString([]byte(time.Now().String()))[:8]
 	}
-	return string(code)
+	return base64.URLEncoding.EncodeToString(b)[:8]
 }

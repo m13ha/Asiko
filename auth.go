@@ -1,25 +1,31 @@
 package main
 
 import (
+	"context" // Added for context handling
 	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go" // Consider switching to github.com/golang-jwt/jwt/v4
 	"github.com/joho/godotenv"
 )
 
 var (
 	jwtKey          []byte
-	tokenExpiration = time.Minute * 15
+	tokenExpiration = time.Hour * 24 // Changed to 24 hours for better UX
 )
 
 type Claims struct {
 	UserID string `json:"user_id"`
 	jwt.StandardClaims
 }
+
+// Add context key for user ID
+type contextKey string
+
+const userIDKey contextKey = "userID"
 
 func init() {
 	err := godotenv.Load()
@@ -39,6 +45,8 @@ func generateToken(userID string) (string, error) {
 		UserID: userID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "appointment_app",
 		},
 	}
 
@@ -48,36 +56,30 @@ func generateToken(userID string) (string, error) {
 
 func refreshToken(w http.ResponseWriter, r *http.Request) {
 	tokenString := extractToken(r)
-	claims := &Claims{}
+	if tokenString == "" {
+		http.Error(w, "Missing token", http.StatusUnauthorized)
+		return
+	}
 
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+	claims := &Claims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtKey, nil
 	})
 
 	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
-			http.Error(w, "Invalid token signature", http.StatusUnauthorized)
-			return
-		}
-		http.Error(w, "Invalid token", http.StatusBadRequest)
-		return
-	}
-
-	if !token.Valid {
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	// Check if the token is about to expire
-	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
-		http.Error(w, "Token is not expired yet", http.StatusBadRequest)
+	// Allow refresh if token is within 30 minutes of expiring
+	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Minute {
+		http.Error(w, "Token not near expiration", http.StatusBadRequest)
 		return
 	}
 
-	// Generate a new token
 	newToken, err := generateToken(claims.UserID)
 	if err != nil {
-		http.Error(w, "Could not generate a new token", http.StatusInternalServerError)
+		http.Error(w, "Could not generate token", http.StatusInternalServerError)
 		return
 	}
 
@@ -85,8 +87,8 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"token": newToken})
 }
 
-func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := extractToken(r)
 		if tokenString == "" {
 			http.Error(w, "Missing authorization token", http.StatusUnauthorized)
@@ -98,30 +100,33 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return jwtKey, nil
 		})
 
-		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
-				http.Error(w, "Invalid token signature", http.StatusUnauthorized)
-				return
-			}
-			http.Error(w, "Invalid token", http.StatusBadRequest)
-			return
-		}
-
-		if !token.Valid {
+		if err != nil || !token.Valid {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
 
-		// You can now access claims.UserID in your handler
-		next.ServeHTTP(w, r)
-	}
+		// Add userID to context
+		ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func extractToken(r *http.Request) string {
 	bearerToken := r.Header.Get("Authorization")
+	if bearerToken == "" {
+		return ""
+	}
 	strArr := strings.Split(bearerToken, " ")
-	if len(strArr) == 2 {
-		return strArr[1]
+	if len(strArr) != 2 || strArr[0] != "Bearer" {
+		return ""
+	}
+	return strArr[1]
+}
+
+// Helper function to get userID from context
+func GetUserIDFromContext(r *http.Request) string {
+	if userID, ok := r.Context().Value(userIDKey).(string); ok {
+		return userID
 	}
 	return ""
 }

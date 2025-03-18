@@ -4,37 +4,40 @@ import (
 	"fmt"
 
 	"github.com/m13ha/appointment_master/db"
-	models "github.com/m13ha/appointment_master/models"
+	"github.com/m13ha/appointment_master/models"
 	"github.com/m13ha/appointment_master/utils"
 )
 
-// CreateAppointment creates a new appointment and saves it to the database.
 func CreateAppointment(req models.AppointmentRequest) (*models.Appointment, error) {
-	// Validate time range
+	// Validate request
+	if err := utils.Validate(req); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
 	if req.EndTime.Before(req.StartTime) {
 		return nil, fmt.Errorf("end time cannot be before start time")
 	}
 
-	// Check for overlapping appointments
-	var count int64
-	err := db.DB.Model(&models.Appointment{}).
-		Where("user_id = ? AND ((start_time <= ? AND end_time >= ?) OR (start_time <= ? AND end_time >= ?) OR (start_time >= ? AND end_time <= ?))",
-			req.UserID, req.StartTime, req.StartTime, req.EndTime, req.EndTime, req.StartTime, req.EndTime).
-		Count(&count).Error
-	if err != nil {
-		return nil, fmt.Errorf("failed to check for overlapping appointments: %w", err)
+	if req.EndDate.Before(req.StartDate) {
+		return nil, fmt.Errorf("end date cannot be before start date")
 	}
-	if count > 0 {
-		return nil, fmt.Errorf("overlapping appointment exists")
+
+	// Validate booking duration fits within time window
+	duration := req.EndTime.Sub(req.StartTime)
+	if duration.Minutes() < float64(req.BookingDuration) {
+		return nil, fmt.Errorf("booking duration exceeds available time window")
 	}
 
 	appointment := &models.Appointment{
-		Title:     req.Title,
-		StartTime: req.StartTime,
-		EndTime:   req.EndTime,
-		UserID:    req.UserID,
-		AppCode:   utils.GenerateAppCode(),
-		Duration:  req.Duration,
+		Title:           req.Title,
+		StartTime:       req.StartTime,
+		EndTime:         req.EndTime,
+		StartDate:       req.StartDate,
+		EndDate:         req.EndDate,
+		BookingDuration: req.BookingDuration,
+		Type:            req.Type,
+		MaxAttendees:    req.MaxAttendees,
+		OwnerID:         req.UserID,
 	}
 
 	if err := db.DB.Create(appointment).Error; err != nil {
@@ -44,20 +47,73 @@ func CreateAppointment(req models.AppointmentRequest) (*models.Appointment, erro
 	return appointment, nil
 }
 
-// GetUsersForAppointment retrieves users registered for a specific appointment.
-func GetUsersForAppointment(appointmentID string) ([]models.User, error) {
-	var users []models.User
-	if err := db.DB.Where("appointment_id = ?", appointmentID).Find(&users).Error; err != nil {
-		return nil, err
+func BookAppointment(req models.BookingRequest) (*models.Booking, error) {
+	if err := utils.Validate(req); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
 	}
-	return users, nil
+
+	// Check if appointment exists and get its details
+	var appointment models.Appointment
+	if err := db.DB.First(&appointment, req.AppointmentID).Error; err != nil {
+		return nil, fmt.Errorf("appointment not found: %w", err)
+	}
+
+	// Find matching slot
+	var slot models.Booking
+	if err := db.DB.Where("appointment_id = ? AND date = ? AND start_time = ? AND available = true",
+		req.AppointmentID, req.Date, req.StartTime).First(&slot).Error; err != nil {
+		return nil, fmt.Errorf("no available slot found: %w", err)
+	}
+
+	// For group appointments, check capacity
+	if appointment.Type == models.Group {
+		if req.AttendeeCount > appointment.MaxAttendees {
+			return nil, fmt.Errorf("attendee count exceeds maximum allowed")
+		}
+		slot.AttendeeCount = req.AttendeeCount
+	} else {
+		slot.AttendeeCount = 1 // Single appointments always have 1 attendee
+	}
+
+	// Update slot with booking details
+	slot.Available = false
+	if req.GuestName != "" { // Guest booking
+		slot.GuestName = req.GuestName
+		slot.GuestEmail = req.GuestEmail
+		slot.GuestPhone = req.GuestPhone
+	} else { // Registered user booking
+		userID := req.UserID
+		slot.UserID = &userID
+	}
+
+	if err := db.DB.Save(&slot).Error; err != nil {
+		return nil, fmt.Errorf("failed to book appointment: %w", err)
+	}
+
+	return &slot, nil
 }
 
-// GetCreatedAppointments retrieves all appointments created by the user.
-func GetCreatedAppointments(userID string) ([]models.Appointment, error) {
+func GetAllBookingsForAppointment(appointmentID string) ([]models.Booking, error) {
+	var bookings []models.Booking
+	if err := db.DB.Where("appointment_id = ?", appointmentID).Find(&bookings).Error; err != nil {
+		return nil, fmt.Errorf("failed to get bookings: %w", err)
+	}
+	return bookings, nil
+}
+
+func GetAvailableSlots(appointmentID string) ([]models.Booking, error) {
+	var slots []models.Booking
+	if err := db.DB.Where("appointment_id = ? AND available = true", appointmentID).
+		Find(&slots).Error; err != nil {
+		return nil, fmt.Errorf("failed to get available slots: %w", err)
+	}
+	return slots, nil
+}
+
+func GetAllAppointmentsCreatedByUser(userID string) ([]models.Appointment, error) {
 	var appointments []models.Appointment
-	if err := db.DB.Where("user_id = ?", userID).Find(&appointments).Error; err != nil {
-		return nil, err
+	if err := db.DB.Where("owner_id = ?", userID).Find(&appointments).Error; err != nil {
+		return nil, fmt.Errorf("failed to get appointments: %w", err)
 	}
 	return appointments, nil
 }
