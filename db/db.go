@@ -23,14 +23,45 @@ type Config struct {
 	SSLMode  string
 }
 
+func CreateDatabaseIfNotExists(config Config) error {
+	// Connect to the default 'postgres' database first
+	defaultDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=postgres port=%s sslmode=%s",
+		config.Host, config.User, config.Password, config.Port, config.SSLMode)
+
+	tempDB, err := gorm.Open(postgres.Open(defaultDSN), &gorm.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to connect to default database: %w", err)
+	}
+
+	// Check if the database exists
+	var exists bool
+	query := fmt.Sprintf("SELECT EXISTS(SELECT datname FROM pg_catalog.pg_database WHERE datname = '%s');", config.DBName)
+	tempDB.Raw(query).Scan(&exists)
+
+	if !exists {
+		// Create the database
+		createQuery := fmt.Sprintf("CREATE DATABASE %s;", config.DBName)
+		if err := tempDB.Exec(createQuery).Error; err != nil {
+			return fmt.Errorf("failed to create database: %w", err)
+		}
+		log.Printf("Database '%s' created successfully", config.DBName)
+	}
+
+	return nil
+}
+
 func ConnectDB() error {
 	config := Config{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnv("DB_PORT", "5432"),
 		User:     getEnv("DB_USER", "postgres"),
-		Password: getEnv("DB_PASSWORD", ""),
+		Password: getEnv("DB_PASSWORD", "password"),
 		DBName:   getEnv("DB_NAME", "appointmentdb"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
+	}
+
+	if err := CreateDatabaseIfNotExists(config); err != nil {
+		return err
 	}
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
