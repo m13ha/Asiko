@@ -3,10 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/models"
 	"github.com/m13ha/appointment_master/services"
 	"github.com/m13ha/appointment_master/utils"
@@ -29,16 +29,22 @@ func GetUserRegisteredBookings(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(bookings)
 }
 
-func BookAppointmentAsGuest(w http.ResponseWriter, r *http.Request) {
+// BookAppointment handles both registered user and guest bookings
+func BookAppointment(w http.ResponseWriter, r *http.Request) {
+	userIDStr := ExtractUserIDfromContext(r)
+
 	var req models.BookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	if req.GuestName == "" || (req.GuestEmail == "" && req.GuestPhone == "") {
-		http.Error(w, "Guest name and either email or phone are required", http.StatusBadRequest)
-		return
+	log.Printf("USER IS STRING: %s", userIDStr)
+	if userIDStr == "" {
+		if req.Name == "" || (req.Email == "" && req.Phone == "") {
+			http.Error(w, "Name and either email or phone are required for guest bookings", http.StatusBadRequest)
+			return
+		}
 	}
 
 	if err := utils.Validate(req); err != nil {
@@ -47,7 +53,7 @@ func BookAppointmentAsGuest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	booking, err := services.BookAppointment(req)
+	booking, err := services.BookAppointment(req, userIDStr)
 	if err != nil {
 		switch {
 		case err.Error() == "no available slot found":
@@ -63,15 +69,17 @@ func BookAppointmentAsGuest(w http.ResponseWriter, r *http.Request) {
 	response := models.BookingResponse{
 		ID:            booking.ID,
 		AppointmentID: booking.AppointmentID,
-		GuestName:     booking.GuestName,
-		GuestEmail:    booking.GuestEmail,
-		GuestPhone:    booking.GuestPhone,
+		UserID:        booking.UserID,
+		Name:          booking.Name,
+		Email:         booking.Email,
+		Phone:         booking.Phone,
 		Date:          booking.Date,
 		StartTime:     booking.StartTime,
 		EndTime:       booking.EndTime,
 		AttendeeCount: booking.AttendeeCount,
 		CreatedAt:     booking.CreatedAt,
 		UpdatedAt:     booking.UpdatedAt,
+		AppCode:       booking.AppCode,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -80,13 +88,9 @@ func BookAppointmentAsGuest(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAvailableSlots(w http.ResponseWriter, r *http.Request) {
-	appointmentID := chi.URLParam(r, "id")
-	if _, err := uuid.Parse(appointmentID); err != nil {
-		http.Error(w, "Invalid appointment ID", http.StatusBadRequest)
-		return
-	}
+	appcode := chi.URLParam(r, "id")
 
-	slots, err := services.GetAvailableSlots(appointmentID)
+	slots, err := services.GetAvailableSlots(appcode)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get available slots: %v", err), http.StatusInternalServerError)
 		return

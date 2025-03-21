@@ -2,16 +2,35 @@ package utils
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+
+	mathrand "math/rand"
 	"time"
 )
 
 func GenerateAppCode() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 8)
-	_, err := rand.Read(b)
+
+	_, err := rand.Read(b) // Use crypto/rand for secure random bytes
 	if err != nil {
 		// Fallback in case of error
-		return base64.URLEncoding.EncodeToString([]byte(time.Now().String()))[:8]
+		result := make([]byte, 8)
+		seed := time.Now().UnixNano()
+		r := mathrand.NewSource(seed)
+		rng := mathrand.New(r)
+
+		for i := range result {
+			result[i] = charset[rng.Intn(len(charset))]
+		}
+		return string(result)
 	}
-	return base64.URLEncoding.EncodeToString(b)[:8]
+
+	// Convert random bytes to uppercase alphanumeric
+	result := make([]byte, 8)
+	for i := range result {
+		// Use modulo to map byte to charset index
+		result[i] = charset[int(b[i])%len(charset)]
+	}
+
+	return string(result)
 }

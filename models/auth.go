@@ -11,7 +11,8 @@ import (
 type User struct {
 	ID             uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Name           string         `json:"name" gorm:"not null"`
-	Email          string         `json:"email" gorm:"unique;not null"`
+	Email          string         `gorm:"uniqueIndex" json:"email"`
+	PhoneNumber    string         `gorm:"uniqueIndex" json:"phone_number"`
 	HashedPassword string         `json:"-" gorm:"not null"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
@@ -36,18 +37,20 @@ func (u *User) CheckPassword(password string) bool {
 
 // UserRequest represents the request payload for creating or updating a user.
 type UserRequest struct {
-	Name     string `json:"name" validate:"required,min=2"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8,max=64"`
+	Name        string `json:"name" validate:"required,min=2"`
+	Email       string `json:"email" validate:"required,email"`
+	Password    string `json:"password" validate:"required,min=8,max=64"`
+	PhoneNumber string `json:"phone_number" validate:"required"`
 }
 
 // UserResponse represents the response payload for user-related requests.
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	PhoneNumber string    `json:"phone_number"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // LoginRequest represents the request payload for user login.

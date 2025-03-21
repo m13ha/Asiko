@@ -41,14 +41,14 @@ func main() {
 	r.Post("/login", api.Login)
 	r.Post("/logout", api.Logout)
 	r.Post("/users", api.CreateUser)
-	r.Post("/appointments/book", api.BookAppointmentAsGuest)
-	r.Get("/appointments/{id}/slots", api.GetAvailableSlots)
+	r.Post("/appointments/book", api.BookAppointment)
+	r.Get("/appointments/slots/{id}", api.GetAvailableSlots)
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(api.AuthMiddleware)
 		r.Post("/appointments", api.CreateAppointment)
-		r.Get("/appointments/{id}/users", api.GetUsersRegisteredForAppointment)
+		r.Get("/appointments/users/{id}", api.GetUsersRegisteredForAppointment)
 		r.Get("/appointments/my", api.GetAppointmentsCreatedByUser)
 		r.Get("/appointments/registered", api.GetUserRegisteredBookings)
 	})

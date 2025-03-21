@@ -97,13 +97,9 @@ func CreateAppointment(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUsersRegisteredForAppointment(w http.ResponseWriter, r *http.Request) {
-	appointmentID := chi.URLParam(r, "id")
-	if _, err := uuid.Parse(appointmentID); err != nil {
-		http.Error(w, "Invalid appointment ID", http.StatusBadRequest)
-		return
-	}
+	app_code := chi.URLParam(r, "id")
 
-	bookings, err := services.GetAllBookingsForAppointment(appointmentID)
+	bookings, err := services.GetAllBookingsForAppointment(app_code)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to retrieve bookings: %v", err), http.StatusInternalServerError)
 		return

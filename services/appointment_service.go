@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/db"
 	"github.com/m13ha/appointment_master/models"
 	"github.com/m13ha/appointment_master/utils"
@@ -47,45 +48,54 @@ func CreateAppointment(req models.AppointmentRequest) (*models.Appointment, erro
 	return appointment, nil
 }
 
-func BookAppointment(req models.BookingRequest) (*models.Booking, error) {
+func BookAppointment(req models.BookingRequest, userIDStr string) (*models.Booking, error) {
 	if err := utils.Validate(req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Check if appointment exists and get its details
+	// Check if appointment exists
 	var appointment models.Appointment
-	if err := db.DB.First(&appointment, req.AppointmentID).Error; err != nil {
+	if err := db.DB.Where("app_code = ?", req.AppCode).First(&appointment).Error; err != nil {
 		return nil, fmt.Errorf("appointment not found: %w", err)
 	}
 
 	// Find matching slot
 	var slot models.Booking
-	if err := db.DB.Where("appointment_id = ? AND date = ? AND start_time = ? AND available = true",
-		req.AppointmentID, req.Date, req.StartTime).First(&slot).Error; err != nil {
+	if err := db.DB.Where("app_code = ? AND date = ? AND start_time = ? AND available = true",
+		req.AppCode, req.Date, req.StartTime).First(&slot).Error; err != nil {
 		return nil, fmt.Errorf("no available slot found: %w", err)
 	}
 
-	// For group appointments, check capacity
+	// Handle capacity for group appointments
 	if appointment.Type == models.Group {
 		if req.AttendeeCount > appointment.MaxAttendees {
 			return nil, fmt.Errorf("attendee count exceeds maximum allowed")
 		}
 		slot.AttendeeCount = req.AttendeeCount
 	} else {
-		slot.AttendeeCount = 1 // Single appointments always have 1 attendee
+		slot.AttendeeCount = 1
 	}
 
-	// Update slot with booking details
+	// If userID is provided, fetch user details
+	if userIDStr != "" {
+		userID, err := uuid.Parse(userIDStr)
+		if err == nil {
+			var user models.User
+			if err := db.DB.First(&user, userID).Error; err == nil {
+				slot.UserID = &userID
+				slot.Name = user.Name
+				slot.Email = user.Email
+				slot.Phone = user.PhoneNumber
+			}
+		}
+	} else {
+		// Guest booking: use provided details
+		slot.Name = req.Name
+		slot.Email = req.Email
+		slot.Phone = req.Phone
+	}
+
 	slot.Available = false
-	if req.GuestName != "" { // Guest booking
-		slot.GuestName = req.GuestName
-		slot.GuestEmail = req.GuestEmail
-		slot.GuestPhone = req.GuestPhone
-	} else { // Registered user booking
-		userID := req.UserID
-		slot.UserID = &userID
-	}
-
 	if err := db.DB.Save(&slot).Error; err != nil {
 		return nil, fmt.Errorf("failed to book appointment: %w", err)
 	}
@@ -93,17 +103,17 @@ func BookAppointment(req models.BookingRequest) (*models.Booking, error) {
 	return &slot, nil
 }
 
-func GetAllBookingsForAppointment(appointmentID string) ([]models.Booking, error) {
+func GetAllBookingsForAppointment(appcode string) ([]models.Booking, error) {
 	var bookings []models.Booking
-	if err := db.DB.Where("appointment_id = ?", appointmentID).Find(&bookings).Error; err != nil {
+	if err := db.DB.Where("app_code = ? AND available = false", appcode).Find(&bookings).Error; err != nil {
 		return nil, fmt.Errorf("failed to get bookings: %w", err)
 	}
 	return bookings, nil
 }
 
-func GetAvailableSlots(appointmentID string) ([]models.Booking, error) {
+func GetAvailableSlots(appcode string) ([]models.Booking, error) {
 	var slots []models.Booking
-	if err := db.DB.Where("appointment_id = ? AND available = true", appointmentID).
+	if err := db.DB.Where("app_code = ? AND available = true", appcode).
 		Find(&slots).Error; err != nil {
 		return nil, fmt.Errorf("failed to get available slots: %w", err)
 	}

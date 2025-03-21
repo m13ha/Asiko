@@ -70,6 +70,7 @@ func (a *Appointment) generateBookings() []Booking {
 
 			slots = append(slots, Booking{
 				AppointmentID: a.ID,
+				AppCode:       a.AppCode,
 				Date:          currentDate,
 				StartTime:     currentSlotStart,
 				EndTime:       slotEnd,

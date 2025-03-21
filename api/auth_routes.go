@@ -70,7 +70,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := extractToken(r)
 		if tokenString == "" {
-			http.Error(w, "Missing authorization token", http.StatusUnauthorized)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -114,4 +114,28 @@ func generateToken(userID string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtKey)
+}
+
+func ExtractUserIDfromContext(r *http.Request) string {
+	tokenString := extractToken(r)
+	if tokenString == "" {
+		return ""
+	}
+
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return ""
+	}
+
+	ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
+
+	if userID, ok := ctx.Value(userIDKey).(string); ok {
+		return userID
+	}
+
+	return ""
 }

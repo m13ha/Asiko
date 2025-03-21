@@ -22,10 +22,11 @@ func CreateUser(userReq models.UserRequest) (*models.User, error) {
 	user := &models.User{
 		Name:           userReq.Name,
 		Email:          userReq.Email,
+		PhoneNumber:    userReq.PhoneNumber,
 		HashedPassword: string(hashedPassword),
 	}
 
-	if err := db.DB.Create(user).Error; err != nil {
+	if err := db.DB.Create(&user).Error; err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
