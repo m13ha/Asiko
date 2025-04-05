@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -52,6 +53,7 @@ func CreateAppointment(w http.ResponseWriter, r *http.Request) {
 
 	var req models.AppointmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Invalid request payload: %s", r.Body)
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
