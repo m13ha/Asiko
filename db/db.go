@@ -52,8 +52,8 @@ func CreateDatabaseIfNotExists(config Config) error {
 
 func ConnectDB() error {
 	config := Config{
-		Host:     getEnv("DB_HOST", "postgres"),
-		Port:     getEnv("DB_PORT", "5432"),
+		Host:     getEnv("DB_HOST", "localhost"),
+		Port:     getEnv("DB_PORT", "5435"),
 		User:     getEnv("DB_USER", "postgres"),
 		Password: getEnv("DB_PASSWORD", "password"),
 		DBName:   getEnv("DB_NAME", "appointmentdb"),

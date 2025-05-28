@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -51,21 +53,31 @@ func CreateAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read and log raw body for debugging
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	log.Printf("Raw request body: %s", body)
+
+	// Reset body for decoding
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+
 	var req models.AppointmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Invalid request payload: %s", r.Body)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Printf("Decoding error: %v", err) // Log detailed error
+		http.Error(w, fmt.Sprintf("Invalid request payload: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	req.UserID = userID
 	if err := utils.Validate(req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(formatValidationErrors(err))
 		return
 	}
 
-	appointment, err := services.CreateAppointment(req)
+	appointment, err := services.CreateAppointment(req, userID)
 	if err != nil {
 		switch {
 		case err.Error() == "end time cannot be before start time" ||

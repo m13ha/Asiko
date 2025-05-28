@@ -37,11 +37,10 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	// Public routes
 	r.Post("/login", api.Login)
 	r.Post("/logout", api.Logout)
 	r.Post("/users", api.CreateUser)
-	r.Post("/appointments/book", api.BookAppointment)
+	r.Post("/appointments/book", api.BookGuestAppointment) // Guest bookings
 	r.Get("/appointments/slots/{id}", api.GetAvailableSlots)
 
 	// Protected routes
@@ -51,6 +50,7 @@ func main() {
 		r.Get("/appointments/users/{id}", api.GetUsersRegisteredForAppointment)
 		r.Get("/appointments/my", api.GetAppointmentsCreatedByUser)
 		r.Get("/appointments/registered", api.GetUserRegisteredBookings)
+		r.Post("/appointments/book/registered", api.BookRegisteredUserAppointment) // Registered user bookings
 	})
 
 	server := &http.Server{

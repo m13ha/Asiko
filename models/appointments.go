@@ -91,7 +91,6 @@ type AppointmentRequest struct {
 	EndDate         time.Time       `json:"end_date" validate:"required,gtefield=StartDate"`
 	Type            AppointmentType `json:"type" validate:"required,oneof=single group"`
 	MaxAttendees    int             `json:"max_attendees" validate:"gte=1"`
-	UserID          uuid.UUID       `json:"user_id"`
 }
 
 type AppointmentResponse struct {

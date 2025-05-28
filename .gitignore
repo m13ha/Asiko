@@ -25,3 +25,5 @@ go.work.sum
 .env
 tmp/runner-build
 postman.json
+.vscode/settings.json
+appointment-master/expo-go.apk

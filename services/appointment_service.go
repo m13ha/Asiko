@@ -9,7 +9,7 @@ import (
 	"github.com/m13ha/appointment_master/utils"
 )
 
-func CreateAppointment(req models.AppointmentRequest) (*models.Appointment, error) {
+func CreateAppointment(req models.AppointmentRequest, userId uuid.UUID) (*models.Appointment, error) {
 	// Validate request
 	if err := utils.Validate(req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -38,7 +38,7 @@ func CreateAppointment(req models.AppointmentRequest) (*models.Appointment, erro
 		BookingDuration: req.BookingDuration,
 		Type:            req.Type,
 		MaxAttendees:    req.MaxAttendees,
-		OwnerID:         req.UserID,
+		OwnerID:         userId,
 	}
 
 	if err := db.DB.Create(appointment).Error; err != nil {
@@ -48,7 +48,7 @@ func CreateAppointment(req models.AppointmentRequest) (*models.Appointment, erro
 	return appointment, nil
 }
 
-func BookAppointment(req models.BookingRequest, userIDStr string) (*models.Booking, error) {
+func BookRegisteredUserAppointment(req models.BookingRequest, userIDStr string) (*models.Booking, error) {
 	if err := utils.Validate(req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
@@ -76,24 +76,64 @@ func BookAppointment(req models.BookingRequest, userIDStr string) (*models.Booki
 		slot.AttendeeCount = 1
 	}
 
-	// If userID is provided, fetch user details
-	if userIDStr != "" {
-		userID, err := uuid.Parse(userIDStr)
-		if err == nil {
-			var user models.User
-			if err := db.DB.First(&user, userID).Error; err == nil {
-				slot.UserID = &userID
-				slot.Name = user.Name
-				slot.Email = user.Email
-				slot.Phone = user.PhoneNumber
-			}
-		}
-	} else {
-		// Guest booking: use provided details
-		slot.Name = req.Name
-		slot.Email = req.Email
-		slot.Phone = req.Phone
+	// Use user details unless overridden by request
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
+	var user models.User
+	if err := db.DB.First(&user, userID).Error; err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	slot.UserID = &userID
+	slot.Name = user.Name
+	slot.Email = user.Email
+	slot.Phone = user.PhoneNumber
+
+	slot.Available = false
+	if err := db.DB.Save(&slot).Error; err != nil {
+		return nil, fmt.Errorf("failed to book appointment: %w", err)
+	}
+
+	return &slot, nil
+}
+
+// BookGuestAppointment books an appointment for a guest
+func BookGuestAppointment(req models.BookingRequest) (*models.Booking, error) {
+	if err := utils.Validate(req); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Check if appointment exists
+	var appointment models.Appointment
+	if err := db.DB.Where("app_code = ?", req.AppCode).First(&appointment).Error; err != nil {
+		return nil, fmt.Errorf("appointment not found: %w", err)
+	}
+
+	// Find matching slot
+	var slot models.Booking
+	if err := db.DB.Where("app_code = ? AND date = ? AND start_time = ? AND available = true",
+		req.AppCode, req.Date, req.StartTime).First(&slot).Error; err != nil {
+		return nil, fmt.Errorf("no available slot found: %w", err)
+	}
+
+	// Handle capacity for group appointments
+	if appointment.Type == models.Group {
+		if req.AttendeeCount > appointment.MaxAttendees {
+			return nil, fmt.Errorf("attendee count exceeds maximum allowed")
+		}
+		slot.AttendeeCount = req.AttendeeCount
+	} else {
+		slot.AttendeeCount = 1
+	}
+
+	// Guest bookings require name and either email or phone
+	if req.Name == "" || (req.Email == "" && req.Phone == "") {
+		return nil, fmt.Errorf("name and either email or phone are required for guest bookings")
+	}
+	slot.Name = req.Name
+	slot.Email = req.Email
+	slot.Phone = req.Phone
 
 	slot.Available = false
 	if err := db.DB.Save(&slot).Error; err != nil {
