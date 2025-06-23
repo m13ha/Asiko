@@ -1,4 +1,4 @@
-# Appointment Booking App (In Development)
+# Appointment Booking App
 
 ## Overview
 
@@ -30,8 +30,10 @@ This project is written in **Golang** using the **GORM** ORM and **Chi router**,
 
 ### Planned Enhancements
 
+- **Payment Integration**: Add support for processing payments for bookings.
 - **Notifications**: Implement email/SMS notifications for booking confirmations, reminders, and updates.
 - **Booking Approval System**: Allow business owners to approve or reject bookings manually.
+- **Calendar Integration**: Sync appointments with external calendars (e.g., Google Calendar).
 - **Advanced Management Tools**: Add features like booking cancellation, rescheduling, and recurring appointments.
 
 ## Project Structure
@@ -96,11 +98,19 @@ root/
 4. **Run Database Migrations**
    The app automatically migrates the database schema on startup (drops and recreates tables in development mode).
 
-5. **Start the Server**
+5. **Start the Backend Server**
    ```bash
-   go run main.go
+   # Using Docker Compose
+   docker-compose up
    ```
-   The server will start on `http://localhost:8080` (or the port specified in `.env`).
+   The server will start on `http://127.0.0.1:8888`.
+   
+6. **Start the Frontend Application**
+   ```bash
+   # In a separate terminal
+   ./start-frontend.sh
+   ```
+   The frontend will start on `http://127.0.0.1:19006`.
 
 ### API Endpoints
 
