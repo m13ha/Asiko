@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
-	"github.com/m13ha/appointment_master/models"
+	"github.com/m13ha/appointment_master/models/dto"
 	"github.com/m13ha/appointment_master/services"
 	"github.com/m13ha/appointment_master/utils"
 	"github.com/rs/zerolog/log"
@@ -18,7 +17,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read request body")
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Failed to read request body")
 		return
 	}
 
@@ -28,10 +27,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Reset body for decoding
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	var req models.UserRequest
+	var req dto.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error().Err(err).Msg("Failed to decode user registration request")
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -60,47 +59,18 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		req.PhoneNumber = req.Phone
 	}
 
-	user, err := services.CreateUser(req)
+	userResponse, err := services.CreateUser(req)
 	if err != nil {
-		// Check for specific database errors
-		if strings.Contains(err.Error(), "duplicate key") {
-			if strings.Contains(err.Error(), "email") {
-				log.Error().Err(err).Str("email", req.Email).Msg("Email already exists")
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusConflict)
-				json.NewEncoder(w).Encode(models.NewDatabaseErrorResponse("Email already registered", "duplicate_email"))
-				return
-			} else if strings.Contains(err.Error(), "phone") {
-				log.Error().Err(err).Str("phone", req.PhoneNumber).Msg("Phone number already exists")
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusConflict)
-				json.NewEncoder(w).Encode(models.NewDatabaseErrorResponse("Phone number already registered", "duplicate_phone"))
-				return
-			}
-		}
-
-		log.Error().Err(err).Msg("Failed to create user")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(models.NewDatabaseErrorResponse("Failed to create user", "database_error"))
+		HandleServiceError(w, err, http.StatusBadRequest, writeError)
 		return
 	}
 
-	response := models.UserResponse{
-		ID:          user.ID,
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
 	log.Info().
-		Str("user_id", user.ID.String()).
-		Str("email", user.Email).
+		Str("user_id", userResponse.ID.String()).
+		Str("email", userResponse.Email).
 		Msg("User registered successfully")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(userResponse)
 }

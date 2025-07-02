@@ -3,17 +3,31 @@ package services
 import (
 	"fmt"
 
-	"github.com/rs/zerolog/log"
 	"github.com/m13ha/appointment_master/db"
-	"github.com/m13ha/appointment_master/models"
+	myerrors "github.com/m13ha/appointment_master/errors"
+	"github.com/m13ha/appointment_master/models/dto"
+	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/utils"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CreateUser(userReq models.UserRequest) (*models.User, error) {
+// ToUserResponse converts an entities.User to a dto.UserResponse
+func ToUserResponse(user *entities.User) *dto.UserResponse {
+	return &dto.UserResponse{
+		ID:          user.ID,
+		Name:        user.Name,
+		Email:       user.Email,
+		PhoneNumber: user.PhoneNumber,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}
+}
+
+func CreateUser(userReq dto.UserRequest) (*dto.UserResponse, error) {
 	if err := utils.Validate(userReq); err != nil {
 		log.Error().Err(err).Msg("User validation failed")
-		return nil, fmt.Errorf("validation failed: %w", err)
+		return nil, myerrors.NewUserError("Invalid user data. Please check your input.")
 	}
 
 	// Log normalized email for debugging
@@ -24,12 +38,12 @@ func CreateUser(userReq models.UserRequest) (*models.User, error) {
 		Msg("Email normalization")
 
 	// Check if user with email already exists
-	var existingUser models.User
+	var existingUser entities.User
 	if result := db.DB.Where("email = ?", normalizedEmail).First(&existingUser); result.Error == nil {
 		log.Warn().
 			Str("email", normalizedEmail).
 			Msg("Attempted registration with existing email")
-		return nil, fmt.Errorf("failed to create user: duplicate key value violates unique constraint on email")
+		return nil, myerrors.NewUserError("Email already registered.")
 	}
 
 	// Check if user with phone number already exists
@@ -38,17 +52,17 @@ func CreateUser(userReq models.UserRequest) (*models.User, error) {
 			log.Warn().
 				Str("phone", userReq.PhoneNumber).
 				Msg("Attempted registration with existing phone number")
-			return nil, fmt.Errorf("failed to create user: duplicate key value violates unique constraint on phone")
+			return nil, myerrors.NewUserError("Phone number already registered.")
 		}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userReq.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to hash password")
-		return nil, fmt.Errorf("failed to hash password: %w", err)
+		return nil, fmt.Errorf("internal error")
 	}
 
-	user := &models.User{
+	user := &entities.User{
 		Name:           userReq.Name,
 		Email:          normalizedEmail,
 		PhoneNumber:    userReq.PhoneNumber,
@@ -60,7 +74,7 @@ func CreateUser(userReq models.UserRequest) (*models.User, error) {
 			Str("name", user.Name).
 			Str("email", user.Email).
 			Msg("Database error when creating user")
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("internal error")
 	}
 
 	log.Info().
@@ -68,25 +82,17 @@ func CreateUser(userReq models.UserRequest) (*models.User, error) {
 		Str("email", user.Email).
 		Msg("User created successfully")
 
-	return user, nil
+	return ToUserResponse(user), nil
 }
 
-func GetUserBookings(userID string) ([]models.Booking, error) {
-	var bookings []models.Booking
-	if err := db.DB.Where("user_id = ?", userID).Find(&bookings).Error; err != nil {
-		return nil, fmt.Errorf("failed to get bookings: %w", err)
-	}
-	return bookings, nil
-}
-
-func AuthenticateUser(email, password string) (*models.User, error) {
-	var user models.User
+func AuthenticateUser(email, password string) (*entities.User, error) {
+	var user entities.User
 	if err := db.DB.Where("email = ?", utils.NormalizeEmail(email)).First(&user).Error; err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
+		return nil, myerrors.NewUserError("Invalid email or password.")
 	}
 
 	if !user.CheckPassword(password) {
-		return nil, fmt.Errorf("invalid password")
+		return nil, myerrors.NewUserError("Invalid email or password.")
 	}
 
 	return &user, nil

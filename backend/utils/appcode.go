@@ -11,7 +11,7 @@ import (
 
 func GenerateAppCode() string {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, 8)
+	b := make([]byte, 6)
 
 	_, err := rand.Read(b) // Use crypto/rand for secure random bytes
 	if err != nil {
@@ -24,7 +24,7 @@ func GenerateAppCode() string {
 		for i := range result {
 			result[i] = charset[rng.Intn(len(charset))]
 		}
-		return string(result)
+		return "AP" + string(result)
 	}
 
 	// Convert random bytes to uppercase alphanumeric
@@ -34,16 +34,16 @@ func GenerateAppCode() string {
 		result[i] = charset[int(b[i])%len(charset)]
 	}
 
-	return string(result)
+	return "AP" + string(result)
 }
 
 // GenerateBookingCode creates a secure, unique booking code
 func GenerateBookingCode() string {
-	b := make([]byte, 8)
+	b := make([]byte, 6)
 	_, err := rand.Read(b)
 	if err != nil {
 		panic("unable to generate booking code")
 	}
 	code := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b)
-	return strings.ToUpper(code)
+	return "BK" + strings.ToUpper(code)
 }

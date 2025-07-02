@@ -1,4 +1,4 @@
-package models
+package dto
 
 // ValidationError represents an error response for validation issues
 type ValidationError struct {

@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models"
+	"github.com/m13ha/appointment_master/models/dto"
 	"github.com/m13ha/appointment_master/services"
 	"github.com/m13ha/appointment_master/utils"
 )
@@ -63,7 +62,7 @@ func CreateAppointment(w http.ResponseWriter, r *http.Request) {
 	// Reset body for decoding
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	var req models.AppointmentRequest
+	var req dto.AppointmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request payload: "+err.Error())
 		return
@@ -74,7 +73,7 @@ func CreateAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appointment, err := services.CreateAppointment(req, userID)
+	appointmentResponse, err := services.CreateAppointment(req, userID)
 	if err != nil {
 		switch {
 		case err.Error() == "end time cannot be before start time" ||
@@ -87,42 +86,9 @@ func CreateAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := models.AppointmentResponse{
-		ID:              appointment.ID,
-		Title:           appointment.Title,
-		StartTime:       appointment.StartTime,
-		EndTime:         appointment.EndTime,
-		StartDate:       appointment.StartDate,
-		EndDate:         appointment.EndDate,
-		BookingDuration: appointment.BookingDuration,
-		Type:            appointment.Type,
-		MaxAttendees:    appointment.MaxAttendees,
-		AppCode:         appointment.AppCode,
-		CreatedAt:       appointment.CreatedAt,
-		UpdatedAt:       appointment.UpdatedAt,
-		Description:     appointment.Description,
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
-}
-
-func GetUsersRegisteredForAppointment(w http.ResponseWriter, r *http.Request) {
-	app_code := chi.URLParam(r, "id")
-	if app_code == "" {
-		writeError(w, http.StatusBadRequest, "Missing appointment code parameter")
-		return
-	}
-
-	bookings, err := services.GetAllBookingsForAppointment(app_code)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to retrieve bookings: "+err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(bookings)
+	json.NewEncoder(w).Encode(appointmentResponse)
 }
 
 func GetAppointmentsCreatedByUser(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +98,7 @@ func GetAppointmentsCreatedByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appointments, err := services.GetAllAppointmentsCreatedByUser(userIDStr)
+	appointments, err := services.GetAllAppointmentsCreatedByUser(userIDStr, nil)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to retrieve appointments: "+err.Error())
 		return

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/m13ha/appointment_master/models"
+	"github.com/m13ha/appointment_master/models/dto"
 	"github.com/m13ha/appointment_master/services"
 	"github.com/m13ha/appointment_master/utils"
 )
@@ -24,9 +24,9 @@ func GetUserRegisteredBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bookings, err := services.GetUserBookings(userIDStr)
+	bookings, err := services.GetUserBookings(userIDStr, r)
+	HandleServiceError(w, err, http.StatusInternalServerError, writeError)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to retrieve bookings: "+err.Error())
 		return
 	}
 
@@ -36,7 +36,7 @@ func GetUserRegisteredBookings(w http.ResponseWriter, r *http.Request) {
 
 // BookAppointment handles both registered user and guest bookings
 func BookGuestAppointment(w http.ResponseWriter, r *http.Request) {
-	var req models.BookingRequest
+	var req dto.BookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -47,46 +47,15 @@ func BookGuestAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	booking, err := services.BookGuestAppointment(req)
-	// Handle specific errors from the service layer
+	bookingResponse, err := services.BookGuestAppointment(req)
 	if err != nil {
-		switch {
-		case err.Error() == "no available slot found":
-			writeError(w, http.StatusNotFound, "No available slots")
-		case err.Error() == "attendee count exceeds maximum allowed":
-			writeError(w, http.StatusBadRequest, err.Error())
-		case err.Error() == "name and either email or phone are required for guest bookings":
-			writeError(w, http.StatusBadRequest, err.Error())
-		default:
-			writeError(w, http.StatusInternalServerError, "Failed to book appointment: "+err.Error())
-		}
+		HandleServiceError(w, err, http.StatusBadRequest, writeError)
 		return
-	}
-
-	response := map[string]interface{}{
-		"booking_code": booking.BookingCode,
-		"message":      "Booking created successfully",
-		"booking": models.BookingResponse{
-			ID:            booking.ID,
-			AppointmentID: booking.AppointmentID,
-			UserID:        booking.UserID,
-			Name:          booking.Name,
-			Email:         booking.Email,
-			Phone:         booking.Phone,
-			Date:          booking.Date,
-			StartTime:     booking.StartTime,
-			EndTime:       booking.EndTime,
-			AttendeeCount: booking.AttendeeCount,
-			CreatedAt:     booking.CreatedAt,
-			UpdatedAt:     booking.UpdatedAt,
-			AppCode:       booking.AppCode,
-			Description:   booking.Description,
-		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(bookingResponse)
 }
 
 // BookRegisteredUserAppointment handles registered user bookings
@@ -97,7 +66,7 @@ func BookRegisteredUserAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.BookingRequest
+	var req dto.BookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -108,43 +77,15 @@ func BookRegisteredUserAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	booking, err := services.BookRegisteredUserAppointment(req, userIDStr)
+	bookingResponse, err := services.BookRegisteredUserAppointment(req, userIDStr)
 	if err != nil {
-		switch {
-		case err.Error() == "no available slot found":
-			writeError(w, http.StatusNotFound, "No available slots")
-		case err.Error() == "attendee count exceeds maximum allowed":
-			writeError(w, http.StatusBadRequest, err.Error())
-		default:
-			writeError(w, http.StatusInternalServerError, "Failed to book appointment: "+err.Error())
-		}
+		HandleServiceError(w, err, http.StatusBadRequest, writeError)
 		return
-	}
-
-	response := map[string]interface{}{
-		"booking_code": booking.BookingCode,
-		"message":      "Booking created successfully",
-		"booking": models.BookingResponse{
-			ID:            booking.ID,
-			AppointmentID: booking.AppointmentID,
-			UserID:        booking.UserID,
-			Name:          booking.Name,
-			Email:         booking.Email,
-			Phone:         booking.Phone,
-			Date:          booking.Date,
-			StartTime:     booking.StartTime,
-			EndTime:       booking.EndTime,
-			AttendeeCount: booking.AttendeeCount,
-			CreatedAt:     booking.CreatedAt,
-			UpdatedAt:     booking.UpdatedAt,
-			AppCode:       booking.AppCode,
-			Description:   booking.Description,
-		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(bookingResponse)
 }
 
 func GetAvailableSlots(w http.ResponseWriter, r *http.Request) {
@@ -154,14 +95,50 @@ func GetAvailableSlots(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slots, err := services.GetAvailableSlots(appcode)
+	slots, err := services.GetAvailableSlots(appcode, r)
+	HandleServiceError(w, err, http.StatusInternalServerError, writeError)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to get available slots: "+err.Error())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(slots)
+}
+
+// GetAvailableSlotsByDay returns available slots for an appointment on a specific day
+func GetAvailableSlotsByDay(w http.ResponseWriter, r *http.Request) {
+	appcode := chi.URLParam(r, "id")
+	if appcode == "" {
+		writeError(w, http.StatusBadRequest, "Missing appointment code parameter")
+		return
+	}
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		writeError(w, http.StatusBadRequest, "Missing date parameter")
+		return
+	}
+	slots, err := services.GetAvailableSlotsByDay(appcode, dateStr, r)
+	HandleServiceError(w, err, http.StatusInternalServerError, writeError)
+	if err != nil {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(slots)
+}
+
+func GetUsersRegisteredForAppointment(w http.ResponseWriter, r *http.Request) {
+	app_code := chi.URLParam(r, "id")
+	if app_code == "" {
+		writeError(w, http.StatusBadRequest, "Missing appointment code parameter")
+		return
+	}
+	bookings, err := services.GetAllBookingsForAppointment(app_code, r)
+	HandleServiceError(w, err, http.StatusInternalServerError, writeError)
+	if err != nil {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(bookings)
 }
 
 // GetBookingByCodeHandler returns booking details by booking_code
@@ -172,8 +149,8 @@ func GetBookingByCodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	booking, err := services.GetBookingByCode(code)
+	HandleServiceError(w, err, http.StatusNotFound, writeError)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "Booking not found")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -187,7 +164,7 @@ func UpdateBookingByCodeHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Missing booking_code parameter")
 		return
 	}
-	var req models.BookingRequest
+	var req dto.BookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -196,17 +173,13 @@ func UpdateBookingByCodeHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Validation failed: "+err.Error())
 		return
 	}
-	booking, err := services.UpdateBookingByCode(code, req)
+	bookingResponse, err := services.UpdateBookingByCode(code, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		HandleServiceError(w, err, http.StatusBadRequest, writeError)
 		return
 	}
-	resp := map[string]interface{}{
-		"booking_code": booking.BookingCode,
-		"message":      "Booking updated successfully",
-	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(bookingResponse)
 }
 
 // CancelBookingByCodeHandler cancels a booking by booking_code
@@ -216,15 +189,11 @@ func CancelBookingByCodeHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Missing booking_code parameter")
 		return
 	}
-	booking, err := services.CancelBookingByCode(code)
+	bookingResponse, err := services.CancelBookingByCode(code)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		HandleServiceError(w, err, http.StatusBadRequest, writeError)
 		return
 	}
-	resp := map[string]interface{}{
-		"booking_code": booking.BookingCode,
-		"message":      "Booking cancelled successfully",
-	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(bookingResponse)
 }

@@ -9,13 +9,13 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
-	"github.com/m13ha/appointment_master/models"
+	"github.com/m13ha/appointment_master/models/dto"
 	"github.com/m13ha/appointment_master/services"
 	"github.com/m13ha/appointment_master/utils"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	var req models.LoginRequest
+	var req dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -43,7 +43,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"token": token,
-		"user":  user,
+		"user":  services.ToUserResponse(user),
 	})
 }
 
@@ -53,17 +53,17 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
 }
 
-func formatValidationErrors(err error) models.ValidationErrorResponse {
-	var errors []models.ValidationError
+func formatValidationErrors(err error) dto.ValidationErrorResponse {
+	var errors []dto.ValidationError
 	if validationErrs, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range validationErrs {
-			errors = append(errors, models.ValidationError{
+			errors = append(errors, dto.ValidationError{
 				Field:   e.Field(),
 				Message: e.Error(),
 			})
 		}
 	}
-	return models.NewValidationErrorResponse(errors...)
+	return dto.NewValidationErrorResponse(errors...)
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
