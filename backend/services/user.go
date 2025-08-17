@@ -5,16 +5,17 @@ import (
 
 	"github.com/m13ha/appointment_master/db"
 	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/models/dto"
 	"github.com/m13ha/appointment_master/models/entities"
+	"github.com/m13ha/appointment_master/models/requests"
+	"github.com/m13ha/appointment_master/models/responses"
 	"github.com/m13ha/appointment_master/utils"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ToUserResponse converts an entities.User to a dto.UserResponse
-func ToUserResponse(user *entities.User) *dto.UserResponse {
-	return &dto.UserResponse{
+// ToUserResponse converts an entities.User to a responses.UserResponse
+func ToUserResponse(user *entities.User) *responses.UserResponse {
+	return &responses.UserResponse{
 		ID:          user.ID,
 		Name:        user.Name,
 		Email:       user.Email,
@@ -24,7 +25,7 @@ func ToUserResponse(user *entities.User) *dto.UserResponse {
 	}
 }
 
-func CreateUser(userReq dto.UserRequest) (*dto.UserResponse, error) {
+func CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 	if err := utils.Validate(userReq); err != nil {
 		log.Error().Err(err).Msg("User validation failed")
 		return nil, myerrors.NewUserError("Invalid user data. Please check your input.")

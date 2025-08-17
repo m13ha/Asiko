@@ -4,15 +4,17 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CORS middleware to allow cross-origin requests
-func CORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func CORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// Get allowed origins from environment variable or use wildcard as fallback
 		allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
-		origin := r.Header.Get("Origin")
-		
+		origin := c.Request.Header.Get("Origin")
+
 		if allowedOrigins != "" {
 			// Check if the request origin is in the allowed origins list
 			origins := strings.Split(allowedOrigins, ",")
@@ -23,27 +25,27 @@ func CORS(next http.Handler) http.Handler {
 					break
 				}
 			}
-			
+
 			if allowed {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			} else {
 				// If not in the allowed list, use wildcard (less secure but maintains compatibility)
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			}
 		} else {
 			// No specific origins configured, use wildcard
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
-		
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
 			return
 		}
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }

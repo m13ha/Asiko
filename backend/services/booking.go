@@ -9,15 +9,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/db"
 	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/models/dto"
 	"github.com/m13ha/appointment_master/models/entities"
+	"github.com/m13ha/appointment_master/models/requests"
+	"github.com/m13ha/appointment_master/models/responses"
 	"github.com/m13ha/appointment_master/utils"
 	"github.com/morkid/paginate"
 )
 
-// ToBookingResponse converts an entities.Booking to a dto.BookingResponse
-func ToBookingResponse(booking *entities.Booking) *dto.BookingResponse {
-	return &dto.BookingResponse{
+// ToBookingResponse converts an entities.Booking to a responses.BookingResponse
+func ToBookingResponse(booking *entities.Booking) *responses.BookingResponse {
+	return &responses.BookingResponse{
 		AppCode:       booking.AppCode,
 		ID:            booking.ID,
 		AppointmentID: booking.AppointmentID,
@@ -35,7 +36,7 @@ func ToBookingResponse(booking *entities.Booking) *dto.BookingResponse {
 	}
 }
 
-func bookSlot(req dto.BookingRequest, slot *entities.Booking, appointment *entities.Appointment) (*dto.BookingResponse, error) {
+func bookSlot(req requests.BookingRequest, slot *entities.Booking, appointment *entities.Appointment) (*responses.BookingResponse, error) {
 	// Handle capacity for group appointments
 	if appointment.Type == entities.Group {
 		if req.AttendeeCount > appointment.MaxAttendees {
@@ -67,7 +68,7 @@ func bookSlot(req dto.BookingRequest, slot *entities.Booking, appointment *entit
 	return ToBookingResponse(slot), nil
 }
 
-func BookRegisteredUserAppointment(req dto.BookingRequest, userIDStr string) (*dto.BookingResponse, error) {
+func BookRegisteredUserAppointment(req requests.BookingRequest, userIDStr string) (*responses.BookingResponse, error) {
 	if err := utils.Validate(req); err != nil {
 		return nil, myerrors.NewUserError("Invalid booking data. Please check your input.")
 	}
@@ -103,7 +104,7 @@ func BookRegisteredUserAppointment(req dto.BookingRequest, userIDStr string) (*d
 }
 
 // BookGuestAppointment books an appointment for a guest
-func BookGuestAppointment(req dto.BookingRequest) (*dto.BookingResponse, error) {
+func BookGuestAppointment(req requests.BookingRequest) (*responses.BookingResponse, error) {
 	if err := utils.Validate(req); err != nil {
 		return nil, myerrors.NewUserError("Invalid booking data. Please check your input.")
 	}
@@ -143,11 +144,10 @@ func GetAllBookingsForAppointment(appcode string, r *http.Request) (any, error) 
 		return bookings, nil
 	}
 	p := paginate.New()
-	result := p.With(query).Request(r).Response(&[]dto.BookingResponse{})
+	result := p.With(query).Request(r).Response(&[]responses.BookingResponse{})
 	return &result, nil
 }
 
-// GetUserBookings returns all bookings for a user
 func GetUserBookings(userID string, r *http.Request) (any, error) {
 	query := db.DB.Model(&entities.Booking{}).Where("user_id = ?", userID)
 	if r == nil {
@@ -159,7 +159,7 @@ func GetUserBookings(userID string, r *http.Request) (any, error) {
 		return bookings, nil
 	}
 	p := paginate.New()
-	result := p.With(query).Request(r).Response(&[]dto.BookingResponse{})
+	result := p.With(query).Request(r).Response(&[]responses.BookingResponse{})
 	return &result, nil
 }
 
@@ -174,7 +174,7 @@ func GetAvailableSlots(appcode string, r *http.Request) (any, error) {
 		return slots, nil
 	}
 	p := paginate.New()
-	result := p.With(query).Request(r).Response(&[]dto.BookingResponse{})
+	result := p.With(query).Request(r).Response(&[]responses.BookingResponse{})
 	return &result, nil
 }
 
@@ -194,7 +194,7 @@ func GetAvailableSlotsByDay(appcode string, dateStr string, r *http.Request) (an
 		return slots, nil
 	}
 	p := paginate.New()
-	result := p.With(query).Request(r).Response(&[]dto.BookingResponse{})
+	result := p.With(query).Request(r).Response(&[]responses.BookingResponse{})
 	return &result, nil
 }
 
@@ -208,7 +208,7 @@ func GetBookingByCode(bookingCode string) (*entities.Booking, error) {
 }
 
 // UpdateBookingByCode allows rescheduling a booking if the new slot is available
-func UpdateBookingByCode(bookingCode string, req dto.BookingRequest) (*dto.BookingResponse, error) {
+func UpdateBookingByCode(bookingCode string, req requests.BookingRequest) (*responses.BookingResponse, error) {
 	booking, err := GetBookingByCode(bookingCode)
 	if err != nil {
 		return nil, err
@@ -236,7 +236,7 @@ func UpdateBookingByCode(bookingCode string, req dto.BookingRequest) (*dto.Booki
 }
 
 // CancelBookingByCode cancels a booking by booking_code
-func CancelBookingByCode(bookingCode string) (*dto.BookingResponse, error) {
+func CancelBookingByCode(bookingCode string) (*responses.BookingResponse, error) {
 	booking, err := GetBookingByCode(bookingCode)
 	if err != nil {
 		return nil, err

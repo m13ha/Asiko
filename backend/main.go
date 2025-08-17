@@ -9,8 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/m13ha/appointment_master/api"
 	"github.com/m13ha/appointment_master/db"
@@ -33,31 +32,12 @@ func main() {
 	}
 	defer db.CloseDB()
 
-	r := chi.NewRouter()
-	r.Use(customMiddleware.RequestLogger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
-	// Use the custom CORS middleware
-	r.Use(customMiddleware.CORS)
+	r := gin.Default()
+	r.Use(customMiddleware.RequestLogger())
+	r.Use(gin.Recovery())
+	r.Use(customMiddleware.CORS())
 
-	r.Post("/login", api.Login)
-	r.Post("/logout", api.Logout)
-	r.Post("/users", api.CreateUser)
-	r.Post("/appointments/book", api.BookGuestAppointment) // Guest bookings
-	r.Get("/appointments/slots/{id}", api.GetAvailableSlots)
-	r.Get("/bookings/{booking_code}", api.GetBookingByCodeHandler)
-	r.Put("/bookings/{booking_code}", api.UpdateBookingByCodeHandler)
-	r.Delete("/bookings/{booking_code}", api.CancelBookingByCodeHandler)
-
-	// Protected routes
-	r.Group(func(r chi.Router) {
-		r.Use(api.AuthMiddleware)
-		r.Post("/appointments", api.CreateAppointment)
-		r.Get("/appointments/users/{id}", api.GetUsersRegisteredForAppointment)
-		r.Get("/appointments/my", api.GetAppointmentsCreatedByUser)
-		r.Get("/appointments/registered", api.GetUserRegisteredBookings)
-		r.Post("/appointments/book/registered", api.BookRegisteredUserAppointment) // Registered user bookings
-	})
+	api.RegisterRoutes(r)
 
 	server := &http.Server{
 		Addr:         ":" + port,
