@@ -3,15 +3,23 @@ package services
 import (
 	"fmt"
 
-	"github.com/m13ha/appointment_master/db"
 	myerrors "github.com/m13ha/appointment_master/errors"
 	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/models/requests"
 	"github.com/m13ha/appointment_master/models/responses"
+	"github.com/m13ha/appointment_master/repository"
 	"github.com/m13ha/appointment_master/utils"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type userServiceImpl struct {
+	userRepo repository.UserRepository
+}
+
+func NewUserService(userRepo repository.UserRepository) UserService {
+	return &userServiceImpl{userRepo: userRepo}
+}
 
 // ToUserResponse converts an entities.User to a responses.UserResponse
 func ToUserResponse(user *entities.User) *responses.UserResponse {
@@ -25,7 +33,7 @@ func ToUserResponse(user *entities.User) *responses.UserResponse {
 	}
 }
 
-func CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
+func (s *userServiceImpl) CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 	if err := utils.Validate(userReq); err != nil {
 		log.Error().Err(err).Msg("User validation failed")
 		return nil, myerrors.NewUserError("Invalid user data. Please check your input.")
@@ -39,8 +47,8 @@ func CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 		Msg("Email normalization")
 
 	// Check if user with email already exists
-	var existingUser entities.User
-	if result := db.DB.Where("email = ?", normalizedEmail).First(&existingUser); result.Error == nil {
+	_, err := s.userRepo.FindByEmail(normalizedEmail)
+	if err == nil {
 		log.Warn().
 			Str("email", normalizedEmail).
 			Msg("Attempted registration with existing email")
@@ -49,7 +57,8 @@ func CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 
 	// Check if user with phone number already exists
 	if userReq.PhoneNumber != "" {
-		if result := db.DB.Where("phone_number = ?", userReq.PhoneNumber).First(&existingUser); result.Error == nil {
+		_, err = s.userRepo.FindByPhone(userReq.PhoneNumber)
+		if err == nil {
 			log.Warn().
 				Str("phone", userReq.PhoneNumber).
 				Msg("Attempted registration with existing phone number")
@@ -70,7 +79,7 @@ func CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 		HashedPassword: string(hashedPassword),
 	}
 
-	if err := db.DB.Create(&user).Error; err != nil {
+	if err := s.userRepo.Create(user); err != nil {
 		log.Error().Err(err).
 			Str("name", user.Name).
 			Str("email", user.Email).
@@ -86,9 +95,9 @@ func CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 	return ToUserResponse(user), nil
 }
 
-func AuthenticateUser(email, password string) (*entities.User, error) {
-	var user entities.User
-	if err := db.DB.Where("email = ?", utils.NormalizeEmail(email)).First(&user).Error; err != nil {
+func (s *userServiceImpl) AuthenticateUser(email, password string) (*entities.User, error) {
+	user, err := s.userRepo.FindByEmail(utils.NormalizeEmail(email))
+	if err != nil {
 		return nil, myerrors.NewUserError("Invalid email or password.")
 	}
 
@@ -96,5 +105,5 @@ func AuthenticateUser(email, password string) (*entities.User, error) {
 		return nil, myerrors.NewUserError("Invalid email or password.")
 	}
 
-	return &user, nil
+	return user, nil
 }

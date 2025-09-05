@@ -1,4 +1,4 @@
-.PHONY: dev build run docker-dev docker-build docker-up docker-down clean
+.PHONY: dev build run docker-dev docker-build docker-up docker-down clean docs-gen docs-build client-gen
 
 # Development with hot reloading
 dev:
@@ -40,6 +40,23 @@ clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf bin/ tmp/ build-errors.log
 	@docker compose down --volumes --remove-orphans 2>/dev/null || true
+
+# --- Code Generation ---
+
+# Generate OpenAPI spec from code annotations
+docs-gen:
+	@echo "Generating OpenAPI spec..."
+	@swag init -g main.go -o ../docs
+
+# Build static HTML documentation
+docs-build: docs-gen
+	@echo "Building static documentation..."
+	@cd ../docs && npm install && npm run build
+
+# Generate TypeScript API client
+client-gen: docs-gen
+	@echo "Generating TypeScript API client..."
+	@./generate-client.sh
 
 # Install Air for hot reloading
 install-air:

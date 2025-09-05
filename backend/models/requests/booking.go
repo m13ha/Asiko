@@ -2,6 +2,9 @@ package requests
 
 import (
 	"time"
+
+	myerrors "github.com/m13ha/appointment_master/errors"
+	"github.com/m13ha/appointment_master/utils"
 )
 
 type BookingRequest struct {
@@ -14,4 +17,15 @@ type BookingRequest struct {
 	Phone         string    `json:"phone"`
 	AttendeeCount int       `json:"attendee_count" validate:"gte=1"`
 	Description   string    `json:"description"`
+}
+
+func (req *BookingRequest) Validate() error {
+	if err := utils.Validate(req); err != nil {
+		return myerrors.NewUserError("Invalid booking data. Please check your input.")
+	}
+
+	if req.Name == "" || (req.Email == "" && req.Phone == "") {
+		return myerrors.NewUserError("Name and either email or phone are required for guest bookings.")
+	}
+	return nil
 }

@@ -10,6 +10,7 @@ func init() {
 	validate = validator.New(validator.WithRequiredStructEnabled())
 }
 
+// Validate validates a struct using the validator package
 func Validate(i interface{}) error {
 	return validate.Struct(i)
 }

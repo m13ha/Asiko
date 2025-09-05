@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ type AppointmentType string
 const (
 	Single AppointmentType = "single"
 	Group  AppointmentType = "group"
+	Party  AppointmentType = "party"
 )
 
 type Appointment struct {
@@ -31,22 +33,28 @@ type Appointment struct {
 	Bookings        []Booking       `json:"bookings" gorm:"foreignKey:AppointmentID"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt  `json:"deleted_at,omitempty" gorm:"index"`
+	DeletedAt       gorm.DeletedAt  `json:"deleted_at,omitempty" gorm:"index" swaggertype:"string" format:"date-time"`
 	Description     string          `json:"description" gorm:"type:text"` // Additional info for the appointment
+	AttendeesBooked int             `json:"attendees_booked" gorm:"default:0"`
 }
 
 func (a *Appointment) BeforeCreate(tx *gorm.DB) error {
 	// Generate unique appointment code
-	code := utils.GenerateAppCode()
+	code, err := generateUniqueCode(tx, "appointments", "app_code = ?", Appointment{}, "AP")
+	if err != nil {
+		return err
+	}
 	a.AppCode = code
 
-	// Normalize the appointment type to lowercase
 	a.Type = AppointmentType(utils.NormalizeString(string(a.Type)))
 
 	return nil
 }
 
 func (a *Appointment) AfterCreate(tx *gorm.DB) error {
+	if a.Type == Party {
+		return nil
+	}
 	slots := a.generateBookings()
 	return tx.Create(&slots).Error
 }
@@ -79,10 +87,33 @@ func (a *Appointment) generateBookings() []Booking {
 				Date:          currentDate,
 				StartTime:     currentSlotStart,
 				EndTime:       slotEnd,
-				Available:     true, // Changed to true by default
+				Available:     true,
 			})
 			currentSlotStart = slotEnd
 		}
 	}
 	return slots
+}
+
+func isAppCodeAvailable(tx *gorm.DB, code string, table string, query string, entity interface{}) (bool, error) {
+	err := tx.Table(table).Where(query, code).Order("end_date desc").First(&entity).Error
+	if err != nil {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func generateUniqueCode(tx *gorm.DB, table string, query string, entity interface{}, codeType string) (string, error) {
+	for i := 0; i < 10; i++ {
+		code := utils.GenerateCode(codeType)
+		available, err := isAppCodeAvailable(tx, code, table, query, entity)
+		if err != nil {
+			return "", err
+		}
+		if available {
+			return code, nil
+		}
+	}
+	return "", fmt.Errorf("could not generate unique AppCode after 10 attempts")
 }

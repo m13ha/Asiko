@@ -1,0 +1,16 @@
+{
+  "name": "appointment-master-docs",
+  "version": "1.0.0",
+  "description": "API documentation for the Appointment Master backend.",
+  "main": "index.js",
+  "scripts": {
+    "build": "redoc-cli bundle ./swagger.json --output ./dist/index.html",
+    "serve": "redoc-cli serve ./swagger.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "redoc-cli": "^0.13.20"
+  }
+}

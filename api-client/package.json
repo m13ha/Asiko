@@ -1,0 +1,17 @@
+{
+  "name": "appointment-master-api-client",
+  "version": "1.0.0",
+  "description": "Generated API client for the Appointment Master backend.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

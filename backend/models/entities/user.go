@@ -16,7 +16,7 @@ type User struct {
 	HashedPassword string         `json:"-" gorm:"not null"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
-	DeletedAt      gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+	DeletedAt      gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index" swaggertype:"string" format:"date-time"`
 }
 
 // SetPassword hashes and sets the user's password
