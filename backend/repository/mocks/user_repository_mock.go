@@ -60,6 +60,36 @@ func (_m *UserRepository) FindByEmail(email string) (*entities.User, error) {
 	return r0, r1
 }
 
+// FindByID provides a mock function with given fields: id
+func (_m *UserRepository) FindByID(id string) (*entities.User, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByID")
+	}
+
+	var r0 *entities.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (*entities.User, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(string) *entities.User); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.User)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindByPhone provides a mock function with given fields: phone
 func (_m *UserRepository) FindByPhone(phone string) (*entities.User, error) {
 	ret := _m.Called(phone)

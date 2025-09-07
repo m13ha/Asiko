@@ -3,21 +3,10 @@ package requests
 import (
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	myerrors "github.com/m13ha/appointment_master/errors"
 	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/utils"
 )
-
-var validate *validator.Validate
-
-func init() {
-	validate = validator.New(validator.WithRequiredStructEnabled())
-}
-
-func Validate(i interface{}) error {
-	return validate.Struct(i)
-}
 
 type AppointmentRequest struct {
 	Title           string                   `json:"title" validate:"required"`

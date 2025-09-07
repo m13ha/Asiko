@@ -50,8 +50,16 @@ func (s *bookingServiceImpl) bookSlot(req requests.BookingRequest, slot *entitie
 // BookAppointment handles booking for both registered users and guests
 // If userIDStr is provided, it's a registered user booking, otherwise it's a guest booking
 func (s *bookingServiceImpl) BookAppointment(req requests.BookingRequest, userIDStr string) (*entities.Booking, error) {
-	if err := req.Validate(); err != nil {
-		return nil, err
+	// Defer validation for guest-specific fields
+	if userIDStr == "" {
+		if err := req.Validate(); err != nil {
+			return nil, err
+		}
+	} else {
+		// For registered users, we only need to validate the core fields, not name/email
+		if err := utils.Validate(req); err != nil {
+			return nil, myerrors.NewUserError("Invalid booking data. Please check your input.")
+		}
 	}
 
 	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(req.AppCode)
@@ -98,7 +106,7 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 			if err != nil {
 				return myerrors.NewUserError("Invalid user ID.")
 			}
-			user, err := s.userRepo.FindByEmail(userID.String())
+			user, err := s.userRepo.FindByID(userID.String())
 			if err != nil {
 				return myerrors.NewUserError("User not found.")
 			}
@@ -144,7 +152,7 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 			return nil, myerrors.NewUserError("Invalid user ID.")
 		}
 
-		user, err := s.userRepo.FindByEmail(userID.String())
+		user, err := s.userRepo.FindByID(userID.String())
 		if err != nil {
 			return nil, myerrors.NewUserError("User not found.")
 		}

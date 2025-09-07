@@ -8,6 +8,7 @@ import (
 type UserRepository interface {
 	FindByEmail(email string) (*entities.User, error)
 	FindByPhone(phone string) (*entities.User, error)
+	FindByID(id string) (*entities.User, error)
 	Create(user *entities.User) error
 }
 
@@ -30,6 +31,14 @@ func (r *gormUserRepository) FindByEmail(email string) (*entities.User, error) {
 func (r *gormUserRepository) FindByPhone(phone string) (*entities.User, error) {
 	var user entities.User
 	if err := r.db.Where("phone_number = ?", phone).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *gormUserRepository) FindByID(id string) (*entities.User, error) {
+	var user entities.User
+	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
