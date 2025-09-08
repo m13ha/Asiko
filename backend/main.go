@@ -42,9 +42,10 @@ import (
 // @name Authorization
 // @description Type 'Bearer' followed by a space and a JWT token.
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Printf("Warning: Could not load .env file: %v", err)
+	if os.Getenv("ENV") != "production" {
+		if err := godotenv.Load(".env"); err != nil {
+			log.Printf("Warning: Could not load .env file: %v", err)
+		}
 	}
 
 	port := os.Getenv("PORT")

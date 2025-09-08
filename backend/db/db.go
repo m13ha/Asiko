@@ -28,11 +28,11 @@ type Config struct {
 	User            string
 	Password        string
 	DBName          string
-	SSLMode         string
 	MaxIdleConns    int
 	MaxOpenConns    int
 	ConnMaxLifetime time.Duration
 	ConnMaxIdleTime time.Duration
+	DBURL           string
 }
 
 func (c *Config) Validate() error {
@@ -50,12 +50,6 @@ func (c *Config) Validate() error {
 	}
 	if !isValidDBName(c.DBName) {
 		return fmt.Errorf("invalid database name: %s", c.DBName)
-	}
-	validSSLModes := map[string]bool{
-		"disable": true, "require": true, "verify-ca": true, "verify-full": true,
-	}
-	if !validSSLModes[c.SSLMode] {
-		return fmt.Errorf("invalid SSL mode: %s", c.SSLMode)
 	}
 	return nil
 }
@@ -127,19 +121,20 @@ func ConnectDB() error {
 		User:            getEnv("DB_USERNAME", "postgres"),
 		Password:        getEnv("DB_PASSWORD", ""),
 		DBName:          getEnv("DB_NAME", "appointmentdb"),
-		SSLMode:         getEnv("DB_SSLMODE", "disable"),
 		MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
 		MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),
 		ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", time.Hour),
 		ConnMaxIdleTime: getEnvDuration("DB_CONN_MAX_IDLE_TIME", 30*time.Minute),
+		DBURL:           getEnv("DB_URL", ""),
 	}
 
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("database configuration validation failed: %w", err)
 	}
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		config.Host, config.User, config.Password, config.DBName, config.Port, config.SSLMode)
+	if config.DBURL == "" {
+		config.DBURL = fmt.Sprintf("host=%suser=%spassword=%sdbname=%sport=%s", config.Host, config.User, config.Password, config.DBName, config.Port)
+	}
 
 	logLevel := logger.Error
 	env := getEnv("ENV", "production")
@@ -159,7 +154,7 @@ func ConnectDB() error {
 	}
 
 	var err error
-	DB, err = connectWithRetry(dsn, gormConfig)
+	DB, err = connectWithRetry(config.DBURL, gormConfig)
 	if err != nil {
 		return err
 	}
