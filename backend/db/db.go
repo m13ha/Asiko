@@ -66,7 +66,8 @@ func isValidDBName(name string) bool {
 func connectWithRetry(dsn string, config *gorm.Config) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
-
+	log.Printf("Attempting to connect to the database...")
+	log.Printf("Using DSN: %s", dsn)
 	for i := 0; i < maxRetries; i++ {
 		db, err = gorm.Open(postgres.Open(dsn), config)
 		if err != nil {
@@ -120,7 +121,7 @@ func ConnectDB() error {
 		Port:            getEnv("DB_PORT", "5432"),
 		User:            getEnv("DB_USERNAME", "postgres"),
 		Password:        getEnv("DB_PASSWORD", ""),
-		DBName:          getEnv("DB_NAME", "appointmentdb"),
+		DBName:          getEnv("DB_DATABASE", "appointmentdb"),
 		MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
 		MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),
 		ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", time.Hour),
@@ -133,7 +134,8 @@ func ConnectDB() error {
 	}
 
 	if config.DBURL == "" {
-		config.DBURL = fmt.Sprintf("host=%suser=%spassword=%sdbname=%sport=%s", config.Host, config.User, config.Password, config.DBName, config.Port)
+		log.Printf("Attempting to connect with DSN: %s", config.DBURL)
+		config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disabled", config.Host, config.User, config.Password, config.DBName, config.Port)
 	}
 
 	logLevel := logger.Error
