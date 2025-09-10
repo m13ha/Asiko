@@ -10,18 +10,20 @@ type Handler struct {
 	userService        services.UserService
 	appointmentService services.AppointmentService
 	bookingService     services.BookingService
+	analyticsService   services.AnalyticsService
 }
 
-func NewHandler(userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService) *Handler {
+func NewHandler(userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService, analyticsService services.AnalyticsService) *Handler {
 	return &Handler{
 		userService:        userService,
 		appointmentService: appointmentService,
 		bookingService:     bookingService,
+		analyticsService:   analyticsService,
 	}
 }
 
-func RegisterRoutes(r *gin.Engine, userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService) {
-	h := NewHandler(userService, appointmentService, bookingService)
+func RegisterRoutes(r *gin.Engine, userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService, analyticsService services.AnalyticsService) {
+	h := NewHandler(userService, appointmentService, bookingService, analyticsService)
 
 	r.POST("/login", h.Login)
 	r.POST("/logout", h.Logout)
@@ -33,13 +35,11 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 	r.PUT("/bookings/:booking_code", h.UpdateBookingByCodeHandler)
 	r.DELETE("/bookings/:booking_code", h.CancelBookingByCodeHandler)
 
-	protected := r.Group("/")
-	protected.Use(middleware.AuthMiddleware())
-	{
-		protected.POST("/appointments", h.CreateAppointment)
-		protected.GET("/appointments/users/:id", h.GetUsersRegisteredForAppointment)
-		protected.GET("/appointments/my", h.GetAppointmentsCreatedByUser)
-		protected.GET("/appointments/registered", h.GetUserRegisteredBookings)
-		protected.POST("/appointments/book/registered", h.BookRegisteredUserAppointment)
-	}
+	// Protected routes with authentication middleware
+	r.POST("/appointments", middleware.AuthMiddleware(), h.CreateAppointment)
+	r.GET("/appointments/my", middleware.AuthMiddleware(), h.GetAppointmentsCreatedByUser)
+	r.GET("/appointments/registered", middleware.AuthMiddleware(), h.GetUserRegisteredBookings)
+	r.GET("/appointments/users/:id", middleware.AuthMiddleware(), h.GetUsersRegisteredForAppointment)
+	r.POST("/appointments/book/registered", middleware.AuthMiddleware(), h.BookRegisteredUserAppointment)
+	r.GET("/analytics", middleware.AuthMiddleware(), h.GetUserAnalytics)
 }

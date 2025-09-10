@@ -1,4 +1,5 @@
 .openapi-generator-ignore
+apis/AnalyticsApi.ts
 apis/AppointmentsApi.ts
 apis/AuthenticationApi.ts
 apis/BookingsApi.ts
@@ -14,6 +15,7 @@ models/RequestsAppointmentRequest.ts
 models/RequestsBookingRequest.ts
 models/RequestsLoginRequest.ts
 models/RequestsUserRequest.ts
+models/ResponsesAnalyticsResponse.ts
 models/ResponsesAppointmentResponse.ts
 models/ResponsesLoginResponse.ts
 models/ResponsesPaginatedResponse.ts

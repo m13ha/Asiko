@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/m13ha/appointment_master/docs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -62,19 +63,34 @@ func main() {
 	userRepo := repository.NewGormUserRepository(db.DB)
 	appointmentRepo := repository.NewGormAppointmentRepository(db.DB)
 	bookingRepo := repository.NewGormBookingRepository(db.DB)
+	analyticsRepo := repository.NewGormAnalyticsRepository(db.DB)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	appointmentService := services.NewAppointmentService(appointmentRepo)
 	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, db.DB)
+	analyticsService := services.NewAnalyticsService(analyticsRepo)
 
 	r := gin.Default()
 	r.Use(customMiddleware.RequestLogger())
 	r.Use(gin.Recovery())
 	r.Use(customMiddleware.CORS())
 
+	// Basic endpoints for testing
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "Appointment Master API", "version": "1.0"})
+	})
+
+	r.GET("/health", func(c *gin.Context) {
+		if err := db.HealthCheck(); err != nil {
+			c.JSON(500, gin.H{"status": "unhealthy", "error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"status": "healthy"})
+	})
+
 	// Register API routes
-	api.RegisterRoutes(r, userService, appointmentService, bookingService)
+	api.RegisterRoutes(r, userService, appointmentService, bookingService, analyticsService)
 
 	// Register Swagger documentation route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

@@ -10,10 +10,8 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -v -o /usr/local/bin/app .
-
 EXPOSE 8080
 
 # Use Reflex to watch for changes and restart the app
-CMD ["/usr/local/bin/app"]
+CMD ["reflex", "-v", "-r", "\\.(go)$", "-s", "--", "go", "run", "main.go"]
 

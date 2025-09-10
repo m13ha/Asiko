@@ -135,7 +135,8 @@ func ConnectDB() error {
 
 	if config.DBURL == "" {
 		log.Printf("Attempting to connect with DSN: %s", config.DBURL)
-		config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disabled", config.Host, config.User, config.Password, config.DBName, config.Port)
+		sslMode := getEnv("DB_SSLMODE", "disable")
+		config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", config.Host, config.User, config.Password, config.DBName, config.Port, sslMode)
 	}
 
 	logLevel := logger.Error

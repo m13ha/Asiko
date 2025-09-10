@@ -1,0 +1,22 @@
+{
+  "name": "appointment-master-backend",
+  "version": "1.0.0",
+  "description": "Appointment Master Backend API",
+  "main": "main.go",
+  "scripts": {
+    "client-gen": "swag init -g main.go && bash generate-client.sh",
+    "docs": "swag init -g main.go",
+    "dev": "reflex -r '\\.go$' -s -- go run main.go"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.7.0"
+  },
+  "keywords": [
+    "golang",
+    "api",
+    "appointments",
+    "booking"
+  ],
+  "author": "Appointment Master Team",
+  "license": "MIT"
+}

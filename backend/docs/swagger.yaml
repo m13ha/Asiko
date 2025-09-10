@@ -201,6 +201,17 @@ definitions:
     - name
     - password
     type: object
+  responses.AnalyticsResponse:
+    properties:
+      end_date:
+        type: string
+      start_date:
+        type: string
+      total_appointments:
+        type: integer
+      total_bookings:
+        type: integer
+    type: object
   responses.AppointmentResponse:
     properties:
       app_code:
@@ -286,6 +297,46 @@ info:
   title: Appointment Master API
   version: "1.0"
 paths:
+  /analytics:
+    get:
+      description: Get analytics data for the authenticated user including total appointments
+        created and total bookings received
+      operationId: getUserAnalytics
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.AnalyticsResponse'
+        "400":
+          description: Invalid date format or missing parameters
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user analytics
+      tags:
+      - Analytics
   /appointments:
     post:
       consumes:

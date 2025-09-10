@@ -6,7 +6,7 @@
 # npm install @openapitools/openapi-generator-cli -g
 
 # Set the input spec file and output directory
-INPUT_SPEC="../docs/swagger.json"
+INPUT_SPEC="./docs/swagger.json"
 OUTPUT_DIR="../api-client/src"
 
 # Remove the old client to ensure a clean build

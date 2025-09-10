@@ -10,6 +10,7 @@ export * from './RequestsAppointmentRequest';
 export * from './RequestsBookingRequest';
 export * from './RequestsLoginRequest';
 export * from './RequestsUserRequest';
+export * from './ResponsesAnalyticsResponse';
 export * from './ResponsesAppointmentResponse';
 export * from './ResponsesLoginResponse';
 export * from './ResponsesPaginatedResponse';

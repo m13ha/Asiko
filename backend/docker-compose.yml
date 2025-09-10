@@ -1,21 +1,6 @@
 version: "3.8"
 
 services:
-  api:
-    build: .
-    container_name: go_api
-    depends_on:
-      - postgres
-    ports:
-      - "8888:8080"
-    env_file:
-      - .env
-    environment:
-      - CORS_ALLOWED_ORIGINS=http://localhost:8081
-    networks:
-      - app_network
-    restart: always
-
   postgres:
     image: postgres:17-alpine
     container_name: postgres_db
@@ -33,6 +18,23 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  api:
+    build: .
+    container_name: go_api
+    depends_on:
+      - postgres
+    ports:
+      - "8888:8080"
+    env_file:
+      - .env
+    environment:
+      - CORS_ALLOWED_ORIGINS=http://localhost:8081
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/tmp
+    networks:
+      - app_network
+    restart: "no"
 networks:
   app_network:
     driver: bridge
