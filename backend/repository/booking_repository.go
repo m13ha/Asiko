@@ -19,6 +19,8 @@ type BookingRepository interface {
 	GetAvailableSlots(ctx context.Context, appCode string) paginate.Page
 	GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
+	FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error)
+	FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error)
 	WithTx(tx *gorm.DB) BookingRepository
 }
 
@@ -85,6 +87,24 @@ func (r *gormBookingRepository) GetAvailableSlotsByDay(ctx context.Context, appC
 func (r *gormBookingRepository) GetBookingByCode(bookingCode string) (*entities.Booking, error) {
 	var booking entities.Booking
 	err := r.db.Where("booking_code = ?", bookingCode).First(&booking).Error
+	if err != nil {
+		return nil, err
+	}
+	return &booking, nil
+}
+
+func (r *gormBookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error) {
+	var booking entities.Booking
+	err := r.db.Where("appointment_id = ? AND email = ? AND status = ?", appointmentID, email, "active").First(&booking).Error
+	if err != nil {
+		return nil, err
+	}
+	return &booking, nil
+}
+
+func (r *gormBookingRepository) FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error) {
+	var booking entities.Booking
+	err := r.db.Where("appointment_id = ? AND device_id = ? AND status = ?", appointmentID, deviceID, "active").First(&booking).Error
 	if err != nil {
 		return nil, err
 	}

@@ -17,17 +17,26 @@ const (
 	Party  AppointmentType = "party"
 )
 
+type AntiScalpingLevel string
+
+const (
+	ScalpingNone     AntiScalpingLevel = "none"
+	ScalpingStandard AntiScalpingLevel = "standard"
+	ScalpingStrict   AntiScalpingLevel = "strict"
+)
+
 type Appointment struct {
-	ID              uuid.UUID       `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Title           string          `json:"title" gorm:"not null"`
-	StartTime       time.Time       `json:"start_time" gorm:"not null"`
-	EndTime         time.Time       `json:"end_time" gorm:"not null"`
-	StartDate       time.Time       `json:"start_date" gorm:"not null"`
-	EndDate         time.Time       `json:"end_date" gorm:"not null"`
-	BookingDuration int             `json:"booking_duration" gorm:"not null"` // in minutes
-	MaxAttendees    int             `json:"max_attendees" gorm:"default:1"`   // for group appointments
-	Type            AppointmentType `json:"type" gorm:"not null;default:'single'"`
-	OwnerID         uuid.UUID       `json:"owner_id" gorm:"type:uuid;not null"`
+	ID                uuid.UUID         `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Title             string            `json:"title" gorm:"not null"`
+	StartTime         time.Time         `json:"start_time" gorm:"not null"`
+	EndTime           time.Time         `json:"end_time" gorm:"not null"`
+	StartDate         time.Time         `json:"start_date" gorm:"not null"`
+	EndDate           time.Time         `json:"end_date" gorm:"not null"`
+	BookingDuration   int               `json:"booking_duration" gorm:"not null"` // in minutes
+	MaxAttendees      int               `json:"max_attendees" gorm:"default:1"`   // for group appointments
+	Type              AppointmentType   `json:"type" gorm:"not null;default:'single'"`
+	AntiScalpingLevel AntiScalpingLevel `json:"anti_scalping_level" gorm:"type:anti_scalping_level;not null;default:'none'"`
+	OwnerID           uuid.UUID         `json:"owner_id" gorm:"type:uuid;not null"`
 	User            User            `json:"-" gorm:"foreignKey:OwnerID"`
 	AppCode         string          `json:"app_code" gorm:"unique;not null"`
 	Bookings        []Booking       `json:"bookings" gorm:"foreignKey:AppointmentID"`

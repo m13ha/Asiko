@@ -5,6 +5,7 @@ package mocks
 import (
 	context "context"
 
+	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/models/requests"
 	"github.com/morkid/paginate"
@@ -261,6 +262,32 @@ func (_m *BookingService) UpdateBookingByCode(bookingCode string, req requests.B
 
 	if rf, ok := ret.Get(1).(func(string, requests.BookingRequest) error); ok {
 		r1 = rf(bookingCode, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// RejectBooking provides a mock function with given fields: bookingCode, ownerID
+func (_m *BookingService) RejectBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error) {
+	ret := _m.Called(bookingCode, ownerID)
+
+	var r0 *entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, uuid.UUID) (*entities.Booking, error)); ok {
+		return rf(bookingCode, ownerID)
+	}
+	if rf, ok := ret.Get(0).(func(string, uuid.UUID) *entities.Booking); ok {
+		r0 = rf(bookingCode, ownerID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, uuid.UUID) error); ok {
+		r1 = rf(bookingCode, ownerID)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -30,6 +30,7 @@ type Booking struct {
 	NotificationChannel string         `json:"notification_channel" gorm:"default:''"`
 	Status              string         `json:"status" gorm:"default:'active'"` // Booking status: active, cancelled, etc.
 	Description         string         `json:"description" gorm:"type:text"`   // Additional info from the booker
+	DeviceID            string         `json:"-"`
 }
 
 func (a *Booking) BeforeCreate(tx *gorm.DB) error {

@@ -64,12 +64,14 @@ func main() {
 	appointmentRepo := repository.NewGormAppointmentRepository(db.DB)
 	bookingRepo := repository.NewGormBookingRepository(db.DB)
 	analyticsRepo := repository.NewGormAnalyticsRepository(db.DB)
+	banListRepo := repository.NewGormBanListRepository(db.DB)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	appointmentService := services.NewAppointmentService(appointmentRepo)
-	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, db.DB)
+	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, db.DB)
 	analyticsService := services.NewAnalyticsService(analyticsRepo)
+	banListService := services.NewBanListService(banListRepo)
 
 	r := gin.Default()
 	r.Use(customMiddleware.RequestLogger())
@@ -90,7 +92,7 @@ func main() {
 	})
 
 	// Register API routes
-	api.RegisterRoutes(r, userService, appointmentService, bookingService, analyticsService)
+	api.RegisterRoutes(r, userService, appointmentService, bookingService, analyticsService, banListService)
 
 	// Register Swagger documentation route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

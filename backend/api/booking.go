@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/errors"
 	"github.com/m13ha/appointment_master/middleware"
 	"github.com/m13ha/appointment_master/models/requests"
@@ -270,6 +271,46 @@ func (h *Handler) CancelBookingByCodeHandler(c *gin.Context) {
 	}
 
 	booking, err := h.bookingService.CancelBookingByCode(code)
+	if err != nil {
+		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+		return
+	}
+
+	c.JSON(http.StatusOK, booking)
+}
+
+// @Summary Reject a booking
+// @Description Rejects a booking by its unique booking_code. This is a soft delete.
+// @Tags Bookings
+// @Produce  json
+// @Param   booking_code  path   string  true  "Unique Booking Code"
+// @Security BearerAuth
+// @Success 200 {object} entities.Booking
+// @Failure 400 {object} errors.ApiErrorResponse "Error while rejecting booking"
+// @Failure 401 {object} errors.ApiErrorResponse "Unauthorized"
+// @Failure 404 {object} errors.ApiErrorResponse "Booking not found"
+// @Router /bookings/{booking_code}/reject [post]
+// @ID rejectBookingByCode
+func (h *Handler) RejectBookingHandler(c *gin.Context) {
+	code := c.Param("booking_code")
+	if code == "" {
+		errors.BadRequest(c.Writer, "Missing booking_code parameter")
+		return
+	}
+
+	userIDStr := middleware.GetUserIDFromContext(c)
+	if userIDStr == "" {
+		errors.Unauthorized(c.Writer, "Unauthorized")
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		errors.BadRequest(c.Writer, "Invalid user ID")
+		return
+	}
+
+	booking, err := h.bookingService.RejectBooking(code, userID)
 	if err != nil {
 		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
 		return

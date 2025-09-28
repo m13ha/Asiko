@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -111,4 +112,58 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": newToken})
+}
+
+// --- Device Token Logic ---
+
+var (
+	deviceTokenExpiration = time.Minute * 10
+)
+
+type DeviceClaims struct {
+	DeviceID string `json:"device_id"`
+	jwt.StandardClaims
+}
+
+func GenerateDeviceToken(deviceID string) (string, error) {
+	expirationTime := time.Now().Add(deviceTokenExpiration)
+	claims := &DeviceClaims{
+		DeviceID: deviceID,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "appointment_app_device",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtKey)
+}
+
+func ValidateDeviceToken(tokenString string) (string, error) {
+	claims := &DeviceClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+
+	if err != nil {
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return "", fmt.Errorf("malformed token")
+			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+				return "", fmt.Errorf("token is expired or not yet valid")
+			}
+		}
+		return "", fmt.Errorf("invalid token")
+	}
+
+	if !token.Valid {
+		return "", fmt.Errorf("invalid token")
+	}
+
+	if claims.DeviceID == "" {
+		return "", fmt.Errorf("token missing device_id")
+	}
+
+	return claims.DeviceID, nil
 }

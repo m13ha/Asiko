@@ -28,16 +28,17 @@ func (s *appointmentServiceImpl) CreateAppointment(req requests.AppointmentReque
 	}
 
 	appointment := &entities.Appointment{
-		Title:           req.Title,
-		StartTime:       req.StartTime,
-		EndTime:         req.EndTime,
-		StartDate:       req.StartDate,
-		EndDate:         req.EndDate,
-		BookingDuration: req.BookingDuration,
-		Type:            entities.AppointmentType(utils.NormalizeString(fmt.Sprintf("%v", req.Type))),
-		MaxAttendees:    req.MaxAttendees,
-		OwnerID:         userId,
-		Description:     req.Description,
+		Title:             req.Title,
+		StartTime:         req.StartTime,
+		EndTime:           req.EndTime,
+		StartDate:         req.StartDate,
+		EndDate:           req.EndDate,
+		BookingDuration:   req.BookingDuration,
+		Type:              entities.AppointmentType(utils.NormalizeString(fmt.Sprintf("%v", req.Type))),
+		MaxAttendees:      req.MaxAttendees,
+		OwnerID:           userId,
+		Description:       req.Description,
+		AntiScalpingLevel: req.AntiScalpingLevel,
 	}
 
 	if err := s.appointmentRepo.Create(appointment); err != nil {

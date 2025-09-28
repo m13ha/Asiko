@@ -4,14 +4,17 @@ package mocks
 
 import (
 	context "context"
-	"time"
 
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/repository"
-	"github.com/morkid/paginate"
+	entities "github.com/m13ha/appointment_master/models/entities"
 	gorm "gorm.io/gorm"
 
 	mock "github.com/stretchr/testify/mock"
+
+	paginate "github.com/morkid/paginate"
+
+	repository "github.com/m13ha/appointment_master/repository"
+
+	time "time"
 
 	uuid "github.com/google/uuid"
 )
@@ -25,6 +28,10 @@ type BookingRepository struct {
 func (_m *BookingRepository) Create(booking *entities.Booking) error {
 	ret := _m.Called(booking)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*entities.Booking) error); ok {
 		r0 = rf(booking)
@@ -35,9 +42,73 @@ func (_m *BookingRepository) Create(booking *entities.Booking) error {
 	return r0
 }
 
+// FindActiveBookingByDevice provides a mock function with given fields: appointmentID, deviceID
+func (_m *BookingRepository) FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error) {
+	ret := _m.Called(appointmentID, deviceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindActiveBookingByDevice")
+	}
+
+	var r0 *entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string) (*entities.Booking, error)); ok {
+		return rf(appointmentID, deviceID)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string) *entities.Booking); ok {
+		r0 = rf(appointmentID, deviceID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID, string) error); ok {
+		r1 = rf(appointmentID, deviceID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindActiveBookingByEmail provides a mock function with given fields: appointmentID, email
+func (_m *BookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error) {
+	ret := _m.Called(appointmentID, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindActiveBookingByEmail")
+	}
+
+	var r0 *entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string) (*entities.Booking, error)); ok {
+		return rf(appointmentID, email)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string) *entities.Booking); ok {
+		r0 = rf(appointmentID, email)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID, string) error); ok {
+		r1 = rf(appointmentID, email)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindAvailableSlot provides a mock function with given fields: appCode, date, startTime
 func (_m *BookingRepository) FindAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
 	ret := _m.Called(appCode, date, startTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindAvailableSlot")
+	}
 
 	var r0 *entities.Booking
 	var r1 error
@@ -65,6 +136,10 @@ func (_m *BookingRepository) FindAvailableSlot(appCode string, date time.Time, s
 func (_m *BookingRepository) GetAvailableSlots(ctx context.Context, appCode string) paginate.Page {
 	ret := _m.Called(ctx, appCode)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvailableSlots")
+	}
+
 	var r0 paginate.Page
 	if rf, ok := ret.Get(0).(func(context.Context, string) paginate.Page); ok {
 		r0 = rf(ctx, appCode)
@@ -79,6 +154,10 @@ func (_m *BookingRepository) GetAvailableSlots(ctx context.Context, appCode stri
 func (_m *BookingRepository) GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page {
 	ret := _m.Called(ctx, appCode, date)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvailableSlotsByDay")
+	}
+
 	var r0 paginate.Page
 	if rf, ok := ret.Get(0).(func(context.Context, string, time.Time) paginate.Page); ok {
 		r0 = rf(ctx, appCode, date)
@@ -92,6 +171,10 @@ func (_m *BookingRepository) GetAvailableSlotsByDay(ctx context.Context, appCode
 // GetBookingByCode provides a mock function with given fields: bookingCode
 func (_m *BookingRepository) GetBookingByCode(bookingCode string) (*entities.Booking, error) {
 	ret := _m.Called(bookingCode)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBookingByCode")
+	}
 
 	var r0 *entities.Booking
 	var r1 error
@@ -119,6 +202,10 @@ func (_m *BookingRepository) GetBookingByCode(bookingCode string) (*entities.Boo
 func (_m *BookingRepository) GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page {
 	ret := _m.Called(ctx, appCode, available)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetBookingsByAppCode")
+	}
+
 	var r0 paginate.Page
 	if rf, ok := ret.Get(0).(func(context.Context, string, bool) paginate.Page); ok {
 		r0 = rf(ctx, appCode, available)
@@ -132,6 +219,10 @@ func (_m *BookingRepository) GetBookingsByAppCode(ctx context.Context, appCode s
 // GetBookingsByUserID provides a mock function with given fields: ctx, userID
 func (_m *BookingRepository) GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page {
 	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBookingsByUserID")
+	}
 
 	var r0 paginate.Page
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) paginate.Page); ok {
@@ -147,6 +238,10 @@ func (_m *BookingRepository) GetBookingsByUserID(ctx context.Context, userID uui
 func (_m *BookingRepository) Update(booking *entities.Booking) error {
 	ret := _m.Called(booking)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*entities.Booking) error); ok {
 		r0 = rf(booking)
@@ -161,12 +256,32 @@ func (_m *BookingRepository) Update(booking *entities.Booking) error {
 func (_m *BookingRepository) WithTx(tx *gorm.DB) repository.BookingRepository {
 	ret := _m.Called(tx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for WithTx")
+	}
+
 	var r0 repository.BookingRepository
 	if rf, ok := ret.Get(0).(func(*gorm.DB) repository.BookingRepository); ok {
 		r0 = rf(tx)
 	} else {
-		r0 = ret.Get(0).(repository.BookingRepository)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(repository.BookingRepository)
+		}
 	}
 
 	return r0
+}
+
+// NewBookingRepository creates a new instance of BookingRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewBookingRepository(t interface {
+	mock.TestingT
+	Cleanup(func())
+}) *BookingRepository {
+	mock := &BookingRepository{}
+	mock.Mock.Test(t)
+
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+
+	return mock
 }

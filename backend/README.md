@@ -46,41 +46,76 @@ Core benefits:
 
 ### Project Structure
 ```
-
 backend/
 ├── api/                    # HTTP handlers and routing
+│   ├── analytics.go        # Analytics endpoints
 │   ├── appointment.go      # Appointment endpoints
 │   ├── auth.go             # Authentication endpoints
+│   ├── ban_list_handler.go # Ban list management endpoints
 │   ├── booking.go          # Booking endpoints
 │   ├── handlers.go         # Route registration
 │   └── user.go             # User management endpoints
 ├── db/                     # Database configuration
+│   ├── migrations/         # SQL migration files
 │   └── db.go               # Connection, migration, pooling
+├── docs/                   # Swagger/OpenAPI documentation
+│   ├── docs.go             # Generated swagger docs
+│   ├── swagger.json        # OpenAPI JSON spec
+│   └── swagger.yaml        # OpenAPI YAML spec
+├── errors/                 # Error handling utilities
+│   ├── http_errors.go      # HTTP error responses
+│   └── user.go             # User-specific errors
 ├── middleware/             # HTTP middleware
 │   ├── auth.go             # JWT authentication
 │   ├── cors.go             # Cross-origin resource sharing
 │   └── logger.go           # Request logging
 ├── models/                 # Data models
 │   ├── entities/           # Database entities
+│   │   ├── appointment.go  # Appointment entity
+│   │   ├── ban_list.go     # Ban list entity
+│   │   ├── booking.go      # Booking entity
+│   │   └── user.go         # User entity
 │   ├── requests/           # API request models
+│   │   ├── appointment.go  # Appointment requests
+│   │   ├── ban_list.go     # Ban list requests
+│   │   ├── booking.go      # Booking requests
+│   │   ├── device.go       # Device token requests
+│   │   └── login.go        # Login requests
 │   └── responses/          # API response models
+│       ├── analytics.go    # Analytics responses
+│       ├── appointment.go  # Appointment responses
+│       ├── auth.go         # Authentication responses
+│       ├── booking.go      # Booking responses
+│       ├── general.go      # General responses
+│       ├── pagination.go   # Pagination responses
+│       └── user.go         # User responses
 ├── repository/             # Data access layer
-│   ├── appointment\_repository.go
-│   ├── booking\_repository.go
-│   └── user\_repository.go
+│   ├── mocks/              # Repository mocks for testing
+│   ├── analytics_repository.go
+│   ├── appointment_repository.go
+│   ├── ban_list_repository.go
+│   ├── booking_repository.go
+│   └── user_repository.go
 ├── services/               # Business logic layer
+│   ├── mocks/              # Service mocks for testing
+│   ├── analytics.go        # Analytics business logic
 │   ├── appointment.go      # Appointment business logic
+│   ├── ban_list_service.go # Ban list business logic
 │   ├── booking.go          # Booking business logic
+│   ├── interfaces.go       # Service interfaces
 │   └── user.go             # User business logic
 ├── utils/                  # Utility functions
 │   ├── appcode.go          # Code generation
 │   ├── email.go            # Email utilities
 │   ├── string.go           # String utilities
 │   ├── time.go             # Time utilities
+│   ├── timerange.go        # Time range utilities
 │   └── validate.go         # Input validation
+├── docker-compose.yml      # Docker compose configuration
+├── Dockerfile              # Docker build configuration
+├── Makefile                # Build and development commands
 └── main.go                 # Application entry point
-
-````
+```
 
 ---
 
@@ -98,9 +133,11 @@ backend/
   - **Single**: One-on-one appointments with automatic slot generation  
   - **Group**: Multiple attendees with configurable capacity limits  
   - **Party**: Event-style bookings with shared capacity management  
+- **Anti-Scalping Protection**: Three levels (None, Standard, Strict) with device token validation
 - **Smart Slot Generation**: Automatic time slot creation based on booking duration  
 - **Date Range Support**: Multi-day appointment scheduling  
-- **Unique App Codes**: Auto-generated appointment codes (AP-XXXXX format)  
+- **Unique App Codes**: Auto-generated appointment codes (AP-XXXXX format)
+- **Ban List Management**: Personal ban lists for appointment owners  
 
 ### Booking System
 - **Dual Booking Support**: Both registered users and guest bookings  
@@ -114,8 +151,49 @@ backend/
 - **PostgreSQL Database**: Robust relational database with ACID compliance  
 - **Soft Deletes**: Data recovery capability with GORM soft delete implementation  
 - **UUID Primary Keys**: Distributed-system-friendly unique identifiers  
-- **Database Migrations**: Automatic schema management and updates  
+- **Database Migrations**: SQL-based schema management with `golang-migrate/migrate`  
 - **Connection Pooling**: Optimized database connection management  
+
+### Database Migrations
+
+This project uses `golang-migrate/migrate` to manage database schema changes.
+Migrations are located in the `db/migrations` directory.
+
+**Creating a new migration:**
+
+To create a new migration, run the following command:
+
+```bash
+make migrate-create name=<migration_name>
+```
+
+This will create two new files in the `db/migrations` directory:
+- `<timestamp>_<migration_name>.up.sql`
+- `<timestamp>_<migration_name>.down.sql`
+
+**Applying migrations:**
+
+To apply all pending "up" migrations, run:
+
+```bash
+make migrate-up
+```
+
+**Rolling back migrations:**
+
+To roll back all "down" migrations, run:
+
+```bash
+make migrate-down
+```
+
+**Migrating to a specific version:**
+
+To migrate to a specific version, run:
+
+```bash
+make migrate-to version=<version_number>
+```  
 
 ---
 
@@ -160,7 +238,19 @@ backend/
 
 #### User Bookings
 - `GET /appointments/registered` – Get user's booked appointments  
-- `POST /appointments/book/registered` – Book appointment as registered user  
+- `POST /appointments/book/registered` – Book appointment as registered user
+- `POST /bookings/:booking_code/reject` – Reject booking (appointment owner only)
+
+#### Analytics
+- `GET /analytics` – Get user analytics and booking statistics
+
+#### Ban List Management
+- `POST /ban-list` – Add email to personal ban list
+- `DELETE /ban-list` – Remove email from ban list
+- `GET /ban-list` – Get personal ban list
+
+#### Device Token Management
+- `POST /auth/device-token` – Generate device token for anti-scalping  
 
 ---
 
@@ -184,22 +274,23 @@ type User struct {
 
 ```go
 type Appointment struct {
-    ID              uuid.UUID       `json:"id"`
-    Title           string          `json:"title"`
-    StartTime       time.Time       `json:"start_time"`
-    EndTime         time.Time       `json:"end_time"`
-    StartDate       time.Time       `json:"start_date"`
-    EndDate         time.Time       `json:"end_date"`
-    BookingDuration int             `json:"booking_duration"` // minutes
-    MaxAttendees    int             `json:"max_attendees"`
-    Type            AppointmentType `json:"type"` // single, group, party
-    OwnerID         uuid.UUID       `json:"owner_id"`
-    AppCode         string          `json:"app_code"`
-    Description     string          `json:"description"`
-    AttendeesBooked int             `json:"attendees_booked"`
-    CreatedAt       time.Time       `json:"created_at"`
-    UpdatedAt       time.Time       `json:"updated_at"`
-    DeletedAt       gorm.DeletedAt  `json:"deleted_at,omitempty"`
+    ID                uuid.UUID         `json:"id"`
+    Title             string            `json:"title"`
+    StartTime         time.Time         `json:"start_time"`
+    EndTime           time.Time         `json:"end_time"`
+    StartDate         time.Time         `json:"start_date"`
+    EndDate           time.Time         `json:"end_date"`
+    BookingDuration   int               `json:"booking_duration"` // minutes
+    MaxAttendees      int               `json:"max_attendees"`
+    Type              AppointmentType   `json:"type"` // single, group, party
+    AntiScalpingLevel AntiScalpingLevel `json:"anti_scalping_level"` // none, standard, strict
+    OwnerID           uuid.UUID         `json:"owner_id"`
+    AppCode           string            `json:"app_code"`
+    Description       string            `json:"description"`
+    AttendeesBooked   int               `json:"attendees_booked"`
+    CreatedAt         time.Time         `json:"created_at"`
+    UpdatedAt         time.Time         `json:"updated_at"`
+    DeletedAt         gorm.DeletedAt    `json:"deleted_at,omitempty"`
 }
 ```
 
@@ -220,11 +311,25 @@ type Booking struct {
     Available           bool           `json:"available"`
     AttendeeCount       int            `json:"attendee_count"`
     BookingCode         string         `json:"booking_code"`
-    Status              string         `json:"status"` // active, cancelled
+    Status              string         `json:"status"` // active, cancelled, rejected
     Description         string         `json:"description"`
+    NotificationStatus  string         `json:"notification_status"`
+    NotificationChannel string         `json:"notification_channel"`
+    DeviceID            string         `json:"-"` // Hidden for anti-scalping
     CreatedAt           time.Time      `json:"created_at"`
     UpdatedAt           time.Time      `json:"updated_at"`
     DeletedAt           gorm.DeletedAt `json:"deleted_at,omitempty"`
+}
+```
+
+### BanList Entity
+
+```go
+type BanListEntry struct {
+    ID          uuid.UUID `json:"id"`
+    UserID      uuid.UUID `json:"user_id"`
+    BannedEmail string    `json:"banned_email"`
+    CreatedAt   time.Time `json:"created_at"`
 }
 ```
 
@@ -303,16 +408,17 @@ ENV=development
 # Database Configuration
 DB_HOST=postgres
 DB_PORT=5432
-DB_USERNAME=postgres
+DB_USER=postgres
 DB_PASSWORD=password
 DB_NAME=appointmentdb
+DB_SSLMODE=disable
 
 # Authentication
 JWT_SECRET_KEY=your_secret_key_here
 
 # PostgreSQL Docker Configuration
 POSTGRES_PASSWORD=password
-POSTGRES_DB=postgres
+POSTGRES_DB=appointmentdb
 ```
 
 ---
@@ -326,8 +432,14 @@ POSTGRES_DB=postgres
 git clone <repository-url>
 cd appointment-master/backend
 
-# Start services
-docker-compose up --build
+# Start services with hot reloading
+make docker-dev
+
+# Or start services in background
+make docker-up
+
+# Stop services
+make docker-down
 
 # API available at http://localhost:8888
 # Swagger docs at http://localhost:8888/swagger/index.html
@@ -338,6 +450,9 @@ docker-compose up --build
 ```bash
 # Install dependencies
 go mod tidy
+
+# Install Air for hot reloading (if not installed)
+make install-air
 
 # Set up PostgreSQL database
 createdb appointmentdb
@@ -350,6 +465,9 @@ make test
 
 # Build for production
 make build
+
+# Run built application
+make run
 ```
 
 ---
@@ -365,8 +483,12 @@ make build
 
 ### Running Tests
 
+#### Unit and Integration Tests
 ```bash
 # Run all tests
+make test
+
+# Or run directly with Go
 go test ./... -v
 
 # Run with coverage
@@ -374,6 +496,49 @@ go test ./... -cover
 
 # Run specific package tests
 go test ./services -v
+```
+
+#### API Testing with Postman
+```bash
+# Complete API test suite available in Postman format
+# Files: postman_collection_comprehensive.json, postman_environment.json
+# See POSTMAN_TESTING.md for detailed instructions
+
+# Or run with Newman CLI
+npm install -g newman
+newman run postman_collection_comprehensive.json -e postman_environment.json
+```
+
+### Available Make Commands
+
+```bash
+# Development
+make dev              # Start development server with hot reloading
+make build            # Build the application
+make run              # Run the built application
+make test             # Run all tests
+make clean            # Clean build artifacts
+
+# Docker
+make docker-dev       # Start Docker development with hot reloading
+make docker-build     # Build Docker image
+make docker-up        # Start Docker services in background
+make docker-down      # Stop Docker services
+
+# Code Generation
+make docs-gen         # Generate OpenAPI spec from code annotations
+make docs-build       # Build static HTML documentation
+make client-gen       # Generate TypeScript API client
+make mocks            # Regenerate repository mocks
+
+# Database Migrations
+make migrate-create name=<name>    # Create new migration
+make migrate-up                    # Apply all up migrations
+make migrate-down                  # Apply all down migrations
+make migrate-to version=<version>  # Migrate to specific version
+
+# Utilities
+make install-air      # Install Air for hot reloading
 ```
 
 ---
@@ -455,6 +620,38 @@ curl -X DELETE http://localhost:8888/bookings/BK-XYZ789 \
   -H "Content-Type: application/json"
 ```
 
+### 7. Generate Device Token (Anti-Scalping)
+
+```bash
+curl -X POST http://localhost:8888/auth/device-token \
+  -H "Content-Type: application/json" \
+  -d '{"device_id": "unique-device-identifier"}'
+```
+
+### 8. Add Email to Ban List
+
+```bash
+curl -X POST http://localhost:8888/ban-list \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -d '{"email": "banned@example.com"}'
+```
+
+### 9. Get Analytics
+
+```bash
+curl -X GET "http://localhost:8888/analytics?start_date=2025-01-01&end_date=2025-01-31" \
+  -H "Authorization: Bearer <jwt_token>"
+```
+
+### 10. Reject Booking (Appointment Owner)
+
+```bash
+curl -X POST http://localhost:8888/bookings/BK-XYZ789/reject \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>"
+```
+
 ---
 
 ## Production Deployment
@@ -528,8 +725,8 @@ Appointment Master is designed with **scalability and extensibility** in mind. T
 
 * 💳 **Payment Processing** – Stripe/PayPal integration for paid bookings
 * 🔁 **Recurring Appointments** – repeat booking patterns for ongoing services
-* ✅ **Approval Workflow** – manual booking approval for businesses that need control
-* 📊 **Analytics Dashboard** – insights into booking trends and utilization
+* ✅ **Enhanced Approval Workflow** – manual booking approval with notifications
+* 📊 **Advanced Analytics Dashboard** – insights into booking trends and utilization
 
 ### Technical Improvements
 
@@ -538,6 +735,14 @@ Appointment Master is designed with **scalability and extensibility** in mind. T
 * 📈 **Metrics & Monitoring** – Prometheus and Grafana integration
 * 🔎 **Distributed Tracing** – full request lifecycle tracking across services
 * 🗄 **Database Optimization** – indexing and query tuning for scale
+
+### Current Advanced Features
+
+* ✅ **Anti-Scalping Protection** – Device token validation and email tracking
+* ✅ **Ban List Management** – Personal ban lists for appointment owners
+* ✅ **Analytics Service** – Basic booking analytics and statistics
+* ✅ **Booking Rejection** – Appointment owners can reject bookings
+* ✅ **Comprehensive Testing** – Unit tests, integration tests, and mocks
 
 ---
 

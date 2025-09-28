@@ -1,0 +1,857 @@
+basePath: /
+definitions:
+  entities.AntiScalpingLevel:
+    enum:
+    - none
+    - standard
+    - strict
+    type: string
+    x-enum-varnames:
+    - ScalpingNone
+    - ScalpingStandard
+    - ScalpingStrict
+  entities.Appointment:
+    properties:
+      anti_scalping_level:
+        $ref: '#/definitions/entities.AntiScalpingLevel'
+      app_code:
+        type: string
+      attendees_booked:
+        type: integer
+      booking_duration:
+        description: in minutes
+        type: integer
+      bookings:
+        items:
+          $ref: '#/definitions/entities.Booking'
+        type: array
+      created_at:
+        type: string
+      deleted_at:
+        format: date-time
+        type: string
+      description:
+        description: Additional info for the appointment
+        type: string
+      end_date:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      max_attendees:
+        description: for group appointments
+        type: integer
+      owner_id:
+        type: string
+      start_date:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/entities.AppointmentType'
+      updated_at:
+        type: string
+    type: object
+  entities.AppointmentType:
+    enum:
+    - single
+    - group
+    - party
+    type: string
+    x-enum-varnames:
+    - Single
+    - Group
+    - Party
+  entities.Booking:
+    properties:
+      app_code:
+        type: string
+      appointment_id:
+        type: string
+      attendee_count:
+        type: integer
+      available:
+        type: boolean
+      booking_code:
+        description: Permanent booking code for all bookings
+        type: string
+      created_at:
+        type: string
+      date:
+        type: string
+      deleted_at:
+        format: date-time
+        type: string
+      description:
+        description: Additional info from the booker
+        type: string
+      email:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      notification_channel:
+        type: string
+      notification_status:
+        type: string
+      phone:
+        type: string
+      start_time:
+        type: string
+      status:
+        description: 'Booking status: active, cancelled, etc.'
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  errors.ApiErrorResponse:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  requests.AppointmentRequest:
+    properties:
+      anti_scalping_level:
+        allOf:
+        - $ref: '#/definitions/entities.AntiScalpingLevel'
+        enum:
+        - none
+        - standard
+        - strict
+      booking_duration:
+        type: integer
+      description:
+        type: string
+      end_date:
+        type: string
+      end_time:
+        type: string
+      max_attendees:
+        minimum: 1
+        type: integer
+      start_date:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/entities.AppointmentType'
+        enum:
+        - single
+        - group
+        - party
+    required:
+    - booking_duration
+    - end_date
+    - end_time
+    - start_date
+    - start_time
+    - title
+    - type
+    type: object
+  requests.BookingRequest:
+    properties:
+      app_code:
+        type: string
+      attendee_count:
+        minimum: 1
+        type: integer
+      date:
+        type: string
+      description:
+        type: string
+      device_token:
+        type: string
+      email:
+        type: string
+      end_time:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      start_time:
+        type: string
+    required:
+    - app_code
+    - date
+    - end_time
+    - start_time
+    type: object
+  requests.DeviceTokenRequest:
+    properties:
+      device_id:
+        type: string
+    required:
+    - device_id
+    type: object
+  requests.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  requests.UserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 2
+        type: string
+      password:
+        maxLength: 64
+        minLength: 8
+        type: string
+      phone:
+        type: string
+      phone_number:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  responses.AnalyticsResponse:
+    properties:
+      end_date:
+        type: string
+      start_date:
+        type: string
+      total_appointments:
+        type: integer
+      total_bookings:
+        type: integer
+    type: object
+  responses.AppointmentResponse:
+    properties:
+      app_code:
+        type: string
+      booking_duration:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      end_date:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      max_attendees:
+        type: integer
+      start_date:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/entities.AppointmentType'
+      updated_at:
+        type: string
+    type: object
+  responses.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/responses.UserResponse'
+    type: object
+  responses.PaginatedResponse:
+    properties:
+      items:
+        items: {}
+        type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  responses.SimpleMessageResponse:
+    properties:
+      message:
+        example: Action completed successfully
+        type: string
+    type: object
+  responses.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone_number:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8888
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a comprehensive API for creating and managing appointments.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Appointment Master API
+  version: "1.0"
+paths:
+  /analytics:
+    get:
+      description: Get analytics data for the authenticated user including total appointments
+        created and total bookings received
+      operationId: getUserAnalytics
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.AnalyticsResponse'
+        "400":
+          description: Invalid date format or missing parameters
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user analytics
+      tags:
+      - Analytics
+  /appointments:
+    post:
+      consumes:
+      - application/json
+      description: Create a new appointment. Type can be single, group, or party.
+      operationId: createAppointment
+      parameters:
+      - description: Appointment Details
+        in: body
+        name: appointment
+        required: true
+        schema:
+          $ref: '#/definitions/requests.AppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.Appointment'
+        "400":
+          description: Invalid request payload or validation error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Failed to create appointment
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new appointment
+      tags:
+      - Appointments
+  /appointments/book:
+    post:
+      consumes:
+      - application/json
+      description: Creates a booking for an appointment as a guest user. Name and
+        email/phone are required.
+      operationId: bookGuestAppointment
+      parameters:
+      - description: Booking Details
+        in: body
+        name: booking
+        required: true
+        schema:
+          $ref: '#/definitions/requests.BookingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.Booking'
+        "400":
+          description: Invalid request payload, validation error, or capacity exceeded
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Book an appointment (Guest)
+      tags:
+      - Bookings
+  /appointments/book/registered:
+    post:
+      consumes:
+      - application/json
+      description: Creates a booking for an appointment as a registered user.
+      operationId: bookRegisteredUserAppointment
+      parameters:
+      - description: Booking Details
+        in: body
+        name: booking
+        required: true
+        schema:
+          $ref: '#/definitions/requests.BookingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.Booking'
+        "400":
+          description: Invalid request payload, validation error, or capacity exceeded
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Book an appointment (Registered User)
+      tags:
+      - Bookings
+  /appointments/my:
+    get:
+      description: Retrieves a paginated list of appointments created by the currently
+        authenticated user.
+      operationId: getMyAppointments
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.PaginatedResponse'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/responses.AppointmentResponse'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get appointments created by the user
+      tags:
+      - Appointments
+  /appointments/registered:
+    get:
+      description: Retrieves a paginated list of all bookings made by the currently
+        authenticated user.
+      operationId: getUserRegisteredBookings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.PaginatedResponse'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/entities.Booking'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user's registered bookings
+      tags:
+      - Bookings
+  /appointments/slots/{id}:
+    get:
+      description: Retrieves a paginated list of all available booking slots for a
+        given appointment.
+      operationId: getAvailableSlots
+      parameters:
+      - description: Appointment Code (app_code)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.PaginatedResponse'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/entities.Booking'
+                  type: array
+              type: object
+        "400":
+          description: Missing appointment code parameter
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Get available slots for an appointment
+      tags:
+      - Bookings
+  /appointments/slots/{id}/by-day:
+    get:
+      description: Retrieves a paginated list of available slots for an appointment
+        on a specific day.
+      operationId: getAvailableSlotsByDay
+      parameters:
+      - description: Appointment Code (app_code)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Date in YYYY-MM-DD format
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.PaginatedResponse'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/entities.Booking'
+                  type: array
+              type: object
+        "400":
+          description: Missing or invalid parameters
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Get available slots for a specific day
+      tags:
+      - Bookings
+  /appointments/users/{id}:
+    get:
+      description: Retrieves a paginated list of all users/bookings for a specific
+        appointment.
+      operationId: getUsersRegisteredForAppointment
+      parameters:
+      - description: Appointment Code (app_code)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.PaginatedResponse'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/entities.Booking'
+                  type: array
+              type: object
+        "400":
+          description: Missing appointment code parameter
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all bookings for an appointment
+      tags:
+      - Appointments
+  /auth/device-token:
+    post:
+      consumes:
+      - application/json
+      description: Generate a short-lived token for a given device ID to be used in
+        booking requests.
+      operationId: generateDeviceToken
+      parameters:
+      - description: Device ID
+        in: body
+        name: device
+        required: true
+        schema:
+          $ref: '#/definitions/requests.DeviceTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Could not generate token
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Generate Device Token
+      tags:
+      - Authentication
+  /bookings/{booking_code}:
+    delete:
+      description: Cancels a booking by its unique booking_code. This is a soft delete.
+      operationId: cancelBookingByCode
+      parameters:
+      - description: Unique Booking Code
+        in: path
+        name: booking_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Booking'
+        "400":
+          description: Error while cancelling booking
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "404":
+          description: Booking not found
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Cancel a booking
+      tags:
+      - Bookings
+    get:
+      description: Retrieves booking details by its unique booking_code.
+      operationId: getBookingByCode
+      parameters:
+      - description: Unique Booking Code
+        in: path
+        name: booking_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Booking'
+        "400":
+          description: Missing booking_code parameter
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "404":
+          description: Booking not found
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Get booking by code
+      tags:
+      - Bookings
+    put:
+      consumes:
+      - application/json
+      description: Updates a booking by its unique booking_code. Can be used to reschedule.
+      operationId: updateBookingByCode
+      parameters:
+      - description: Unique Booking Code
+        in: path
+        name: booking_code
+        required: true
+        type: string
+      - description: New Booking Details
+        in: body
+        name: booking
+        required: true
+        schema:
+          $ref: '#/definitions/requests.BookingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Booking'
+        "400":
+          description: Invalid request, validation error, or slot not available
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "404":
+          description: Booking not found
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Update/Reschedule a booking
+      tags:
+      - Bookings
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user and receive a JWT token.
+      operationId: loginUser
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/requests.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.LoginResponse'
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Could not generate token
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: User Login
+      tags:
+      - Authentication
+  /logout:
+    post:
+      description: Invalidate the user's session.
+      operationId: logoutUser
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SimpleMessageResponse'
+      summary: User Logout
+      tags:
+      - Authentication
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user in the system.
+      operationId: createUser
+      parameters:
+      - description: User Registration Details
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.UserResponse'
+        "400":
+          description: Invalid request payload or validation error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.ApiErrorResponse'
+      summary: Create a new user
+      tags:
+      - Authentication
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: Type 'Bearer' followed by a space and a JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

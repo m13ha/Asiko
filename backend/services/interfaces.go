@@ -20,7 +20,6 @@ type BookingService interface {
 	BookAppointment(req requests.BookingRequest, userIDStr string) (*entities.Booking, error)
 	BookRegisteredUserAppointment(req requests.BookingRequest, userIDStr string) (*entities.Booking, error)
 	BookGuestAppointment(req requests.BookingRequest) (*entities.Booking, error)
-
 	GetAllBookingsForAppointment(ctx context.Context, appcode string) (paginate.Page, error)
 	GetUserBookings(ctx context.Context, userID string) (paginate.Page, error)
 	GetAvailableSlots(ctx context.Context, appcode string) (paginate.Page, error)
@@ -28,6 +27,7 @@ type BookingService interface {
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	UpdateBookingByCode(bookingCode string, req requests.BookingRequest) (*entities.Booking, error)
 	CancelBookingByCode(bookingCode string) (*entities.Booking, error)
+	RejectBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error)
 }
 
 type AppointmentService interface {

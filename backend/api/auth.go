@@ -63,3 +63,35 @@ func (h *Handler) Login(c *gin.Context) {
 func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
+
+// @Summary Generate Device Token
+// @Description Generate a short-lived token for a given device ID to be used in booking requests.
+// @Tags Authentication
+// @Accept  json
+// @Produce  json
+// @Param   device   body   requests.DeviceTokenRequest  true  "Device ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errors.ApiErrorResponse "Invalid request body or validation error"
+// @Failure 500 {object} errors.ApiErrorResponse "Could not generate token"
+// @Router /auth/device-token [post]
+// @ID generateDeviceToken
+func (h *Handler) GenerateDeviceTokenHandler(c *gin.Context) {
+	var req requests.DeviceTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		errors.BadRequest(c.Writer, "Invalid request body")
+		return
+	}
+
+	if err := utils.Validate(req); err != nil {
+		errors.FormatValidationErrors(c.Writer, err)
+		return
+	}
+
+	token, err := middleware.GenerateDeviceToken(req.DeviceID)
+	if err != nil {
+		errors.InternalServerError(c.Writer, "Could not generate device token")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"device_token": token})
+}

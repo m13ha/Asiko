@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	myerrors "github.com/m13ha/appointment_master/errors"
+	"github.com/m13ha/appointment_master/middleware"
 	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/models/requests"
 	"github.com/m13ha/appointment_master/repository"
@@ -20,61 +21,97 @@ type bookingServiceImpl struct {
 	bookingRepo     repository.BookingRepository
 	appointmentRepo repository.AppointmentRepository
 	userRepo        repository.UserRepository
+	banListRepo     repository.BanListRepository
 	db              *gorm.DB
 }
 
-func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo repository.AppointmentRepository, userRepo repository.UserRepository, db *gorm.DB) BookingService {
-	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, db: db}
+func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo repository.AppointmentRepository, userRepo repository.UserRepository, banListRepo repository.BanListRepository, db *gorm.DB) BookingService {
+	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, banListRepo: banListRepo, db: db}
 }
 
-func (s *bookingServiceImpl) bookSlot(req requests.BookingRequest, slot *entities.Booking, appointment *entities.Appointment) (*entities.Booking, error) {
-	if appointment.Type == entities.Group {
-		if req.AttendeeCount > appointment.MaxAttendees {
-			return nil, myerrors.NewUserError("Attendee count exceeds maximum allowed.")
+// performAntiScalpingChecks runs validation based on the appointment's settings.
+// It returns the trusted device ID (if applicable) or an error if a check fails.
+func (s *bookingServiceImpl) performAntiScalpingChecks(appointment *entities.Appointment, req requests.BookingRequest, bookingEmail string) (string, error) {
+	level := appointment.AntiScalpingLevel
+	if level == entities.ScalpingNone {
+		return "", nil // No checks needed
+	}
+
+	var trustedDeviceID string
+
+	// Strict check (Device ID)
+	if level == entities.ScalpingStrict {
+		if req.DeviceToken == "" {
+			return "", myerrors.NewUserError("device token is required for this appointment")
 		}
-		slot.AttendeeCount = req.AttendeeCount
-	} else {
-		slot.AttendeeCount = 1
-	}
-	slot.Description = req.Description
+		validatedDeviceID, err := middleware.ValidateDeviceToken(req.DeviceToken)
+		if err != nil {
+			return "", myerrors.NewUserError(fmt.Sprintf("invalid device token: %v", err))
+		}
+		trustedDeviceID = validatedDeviceID
 
-	slot.Available = false
-	if err := s.bookingRepo.Update(slot); err != nil {
-		log.Printf("[bookSlot] DB error: %v", err)
-		return nil, fmt.Errorf("internal error")
+		// Check if device has already booked
+		if _, err := s.bookingRepo.FindActiveBookingByDevice(appointment.ID, trustedDeviceID); err == nil {
+			return "", myerrors.NewUserError("a booking has already been made from this device")
+		}
 	}
 
-	return slot, nil
+	// Standard check (Email) - runs for both 'standard' and 'strict'
+	if level == entities.ScalpingStandard || level == entities.ScalpingStrict {
+		if _, err := s.bookingRepo.FindActiveBookingByEmail(appointment.ID, bookingEmail); err == nil {
+			return "", myerrors.NewUserError("this email has already been used to book for this appointment")
+		}
+	}
+
+	return trustedDeviceID, nil
 }
 
 // BookAppointment handles booking for both registered users and guests
-// If userIDStr is provided, it's a registered user booking, otherwise it's a guest booking
 func (s *bookingServiceImpl) BookAppointment(req requests.BookingRequest, userIDStr string) (*entities.Booking, error) {
-	// Defer validation for guest-specific fields
+	// --- 1. Basic Validation ---
 	if userIDStr == "" {
 		if err := req.Validate(); err != nil {
 			return nil, err
 		}
 	} else {
-		// For registered users, we only need to validate the core fields, not name/email
 		if err := utils.Validate(req); err != nil {
-			return nil, myerrors.NewUserError("Invalid booking data. Please check your input.")
+			return nil, myerrors.NewUserError("invalid booking data: " + err.Error())
 		}
 	}
 
+	// --- 2. Fetch Appointment ---
 	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(req.AppCode)
 	if err != nil {
-		return nil, myerrors.NewUserError("Appointment not found.")
+		return nil, myerrors.NewUserError("appointment not found")
 	}
 
+	// --- 3. Get Booker's Info ---
+	var user *entities.User
+	var bookingEmail string
+	if userIDStr != "" {
+		user, err = s.userRepo.FindByID(userIDStr)
+		if err != nil {
+			return nil, myerrors.NewUserError("user not found")
+		}
+		bookingEmail = user.Email
+	} else {
+		bookingEmail = utils.NormalizeEmail(req.Email)
+	}
+
+	// --- 4. Anti-Scalping Checks ---
+	trustedDeviceID, err := s.performAntiScalpingChecks(appointment, req, bookingEmail)
+	if err != nil {
+		return nil, err
+	}
+
+	// --- 5. Proceed with Booking ---
 	if appointment.Type == entities.Party {
-		return s.bookPartyAppointment(req, userIDStr, appointment)
+		return s.bookPartyAppointment(req, user, appointment, trustedDeviceID)
 	}
-
-	return s.bookSlotAppointment(req, userIDStr, appointment)
+	return s.bookSlotAppointment(req, user, appointment, trustedDeviceID)
 }
 
-func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, userIDStr string, appointment *entities.Appointment) (*entities.Booking, error) {
+func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, user *entities.User, appointment *entities.Appointment, deviceID string) (*entities.Booking, error) {
 	var booking *entities.Booking
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		appRepo := s.appointmentRepo.WithTx(tx)
@@ -82,11 +119,11 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 
 		lockedAppointment, err := appRepo.FindAndLock(req.AppCode, tx)
 		if err != nil {
-			return myerrors.NewUserError("Appointment not found.")
+			return myerrors.NewUserError("appointment not found")
 		}
 
 		if lockedAppointment.AttendeesBooked+req.AttendeeCount > lockedAppointment.MaxAttendees {
-			return myerrors.NewUserError("Not enough capacity for this party.")
+			return myerrors.NewUserError("not enough capacity for this party")
 		}
 
 		booking = &entities.Booking{
@@ -95,22 +132,15 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 			Date:          req.Date,
 			StartTime:     req.StartTime,
 			EndTime:       req.EndTime,
-			Available:     false, // Not relevant for party tickets
+			Available:     false,
 			AttendeeCount: req.AttendeeCount,
 			Description:   req.Description,
 			Status:        "active",
+			DeviceID:      deviceID,
 		}
 
-		if userIDStr != "" {
-			userID, err := uuid.Parse(userIDStr)
-			if err != nil {
-				return myerrors.NewUserError("Invalid user ID.")
-			}
-			user, err := s.userRepo.FindByID(userID.String())
-			if err != nil {
-				return myerrors.NewUserError("User not found.")
-			}
-			booking.UserID = &userID
+		if user != nil {
+			booking.UserID = &user.ID
 			booking.Name = user.Name
 			booking.Email = user.Email
 			booking.Phone = user.PhoneNumber
@@ -125,39 +155,21 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 		}
 
 		lockedAppointment.AttendeesBooked += req.AttendeeCount
-		if err := appRepo.Update(lockedAppointment); err != nil {
-			return err
-		}
-
-		return nil
+		return appRepo.Update(lockedAppointment)
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	return booking, nil
+	return booking, err
 }
 
-func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, userIDStr string, appointment *entities.Appointment) (*entities.Booking, error) {
-
+func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, user *entities.User, appointment *entities.Appointment, deviceID string) (*entities.Booking, error) {
 	slot, err := s.bookingRepo.FindAvailableSlot(req.AppCode, req.Date, req.StartTime)
 	if err != nil {
-		return nil, myerrors.NewUserError("No available slot found.")
+		return nil, myerrors.NewUserError("no available slot found")
 	}
 
-	if userIDStr != "" {
-		userID, err := uuid.Parse(userIDStr)
-		if err != nil {
-			return nil, myerrors.NewUserError("Invalid user ID.")
-		}
-
-		user, err := s.userRepo.FindByID(userID.String())
-		if err != nil {
-			return nil, myerrors.NewUserError("User not found.")
-		}
-
-		slot.UserID = &userID
+	// Populate user info
+	if user != nil {
+		slot.UserID = &user.ID
 		slot.Name = user.Name
 		slot.Email = user.Email
 		slot.Phone = user.PhoneNumber
@@ -167,7 +179,25 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 		slot.Phone = req.Phone
 	}
 
-	return s.bookSlot(req, slot, appointment)
+	// Populate booking details
+	if appointment.Type == entities.Group {
+		if req.AttendeeCount > appointment.MaxAttendees {
+			return nil, myerrors.NewUserError("attendee count exceeds maximum allowed")
+		}
+		slot.AttendeeCount = req.AttendeeCount
+	} else {
+		slot.AttendeeCount = 1
+	}
+	slot.Description = req.Description
+	slot.DeviceID = deviceID
+	slot.Available = false
+
+	if err := s.bookingRepo.Update(slot); err != nil {
+		log.Printf("[bookSlot] DB error: %v", err)
+		return nil, fmt.Errorf("internal error")
+	}
+
+	return slot, nil
 }
 
 // BookRegisteredUserAppointment is a wrapper for backward compatibility
@@ -287,6 +317,60 @@ func (s *bookingServiceImpl) CancelBookingByCode(bookingCode string) (*entities.
 		booking.Status = "cancelled"
 		if err := s.bookingRepo.Update(booking); err != nil {
 			log.Printf("[CancelBookingByCode] DB error: %v", err)
+			return nil, fmt.Errorf("internal error")
+		}
+	}
+
+	return booking, nil
+}
+
+func (s *bookingServiceImpl) RejectBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error) {
+	booking, err := s.GetBookingByCode(bookingCode)
+	if err != nil {
+		return nil, err
+	}
+
+	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(booking.AppCode)
+	if err != nil {
+		return nil, myerrors.NewUserError("Appointment not found.")
+	}
+
+	if appointment.OwnerID != ownerID {
+		return nil, myerrors.NewUserError("you are not the owner of this appointment")
+	}
+
+	if appointment.Type == entities.Party {
+		err := s.db.Transaction(func(tx *gorm.DB) error {
+			appRepo := s.appointmentRepo.WithTx(tx)
+			bookRepo := s.bookingRepo.WithTx(tx)
+
+			lockedAppointment, err := appRepo.FindAndLock(appointment.AppCode, tx)
+			if err != nil {
+				return err
+			}
+
+			lockedAppointment.AttendeesBooked -= booking.AttendeeCount
+			if err := appRepo.Update(lockedAppointment); err != nil {
+				return err
+			}
+
+			booking.Status = "rejected"
+			if err := bookRepo.Update(booking); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			log.Printf("[RejectBooking] DB error: %v", err)
+			return nil, fmt.Errorf("internal error")
+		}
+	} else {
+		booking.Available = true
+		booking.Status = "rejected"
+		if err := s.bookingRepo.Update(booking); err != nil {
+			log.Printf("[RejectBooking] DB error: %v", err)
 			return nil, fmt.Errorf("internal error")
 		}
 	}

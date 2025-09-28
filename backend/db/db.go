@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -9,7 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/m13ha/appointment_master/models/entities"
+	"github.com/golang-migrate/migrate/v4"
+	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -173,30 +176,34 @@ func ConnectDB() error {
 	sqlDB.SetConnMaxIdleTime(config.ConnMaxIdleTime)
 
 	log.Println("Database connected successfully!")
-	return Migrate()
-}
 
-// Migrate handles the database schema migration.
-func Migrate() error {
-	// --- SAFETY IMPROVEMENT: Removed automatic table dropping ---
-	// The highly dangerous practice of dropping tables based on an environment variable has been removed.
-	// Database resets should be handled by explicit, separate scripts or commands, not by the application startup logic.
-
-	// GORM's AutoMigrate will create tables, add missing columns, and create missing indexes.
-	// It WILL NOT delete unused columns or change the type of existing columns to protect your data.
-	// For production environments, it is highly recommended to use a dedicated migration library
-	// like golang-migrate/migrate or pressly/goose for full control over the schema lifecycle.
-	err := DB.AutoMigrate(
-		&entities.User{},
-		&entities.Appointment{},
-		&entities.Booking{},
-	)
-
-	if err != nil {
-		return fmt.Errorf("database migration failed: %w", err)
+	// Run migrations
+	if err := runMigrations(sqlDB); err != nil {
+		return err
 	}
 
-	log.Println("Database migrated successfully")
+	return nil
+}
+
+// runMigrations applies the database migrations
+func runMigrations(sqlDB *sql.DB) error {
+	driver, err := migratepostgres.WithInstance(sqlDB, &migratepostgres.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://db/migrations",
+		"postgres", driver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to apply migrations: %w", err)
+	}
+
+	log.Println("Database migrations applied successfully")
 	return nil
 }
 

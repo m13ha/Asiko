@@ -66,7 +66,7 @@ func TestCreateAppointmentAPI(t *testing.T) {
 			}
 
 			// Act
-			h := NewHandler(nil, mockAppointmentService, nil, nil)
+			h := NewHandler(nil, mockAppointmentService, nil, nil, nil)
 			h.CreateAppointment(ctx)
 
 			// Assert

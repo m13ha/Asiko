@@ -13,9 +13,10 @@ func setupTestRouter() (*gin.Engine, *mocks.UserService, *mocks.AppointmentServi
 	mockAppointmentService := new(mocks.AppointmentService)
 	mockBookingService := new(mocks.BookingService)
 	mockAnalyticsService := new(mocks.AnalyticsService)
+	mockBanListService := new(mocks.BanListService)
 
 	// We pass the real NewHandler function but with our mocked services.
-	h := NewHandler(mockUserService, mockAppointmentService, mockBookingService, mockAnalyticsService)
+	h := NewHandler(mockUserService, mockAppointmentService, mockBookingService, mockAnalyticsService, mockBanListService)
 
 	router := gin.Default()
 	// We are only testing the handlers, so we register routes for a specific handler.

@@ -17,6 +17,7 @@ type BookingRequest struct {
 	Phone         string    `json:"phone"`
 	AttendeeCount int       `json:"attendee_count" validate:"gte=1"`
 	Description   string    `json:"description"`
+	DeviceToken   string    `json:"device_token,omitempty"`
 }
 
 func (req *BookingRequest) Validate() error {
