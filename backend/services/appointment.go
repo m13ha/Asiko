@@ -15,11 +15,12 @@ import (
 )
 
 type appointmentServiceImpl struct {
-	appointmentRepo repository.AppointmentRepository
+	appointmentRepo        repository.AppointmentRepository
+	eventNotificationService EventNotificationService
 }
 
-func NewAppointmentService(appointmentRepo repository.AppointmentRepository) AppointmentService {
-	return &appointmentServiceImpl{appointmentRepo: appointmentRepo}
+func NewAppointmentService(appointmentRepo repository.AppointmentRepository, eventNotificationService EventNotificationService) AppointmentService {
+	return &appointmentServiceImpl{appointmentRepo: appointmentRepo, eventNotificationService: eventNotificationService}
 }
 
 func (s *appointmentServiceImpl) CreateAppointment(req requests.AppointmentRequest, userId uuid.UUID) (*entities.Appointment, error) {
@@ -45,6 +46,9 @@ func (s *appointmentServiceImpl) CreateAppointment(req requests.AppointmentReque
 		log.Printf("[CreateAppointment] DB error: %v", err)
 		return nil, fmt.Errorf("internal error")
 	}
+
+	message := fmt.Sprintf("New appointment '%s' created.", appointment.Title)
+	s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "APPOINTMENT_CREATED", message, appointment.ID)
 
 	return appointment, nil
 }

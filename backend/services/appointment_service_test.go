@@ -8,7 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/repository/mocks"
+	repomocks "github.com/m13ha/appointment_master/repository/mocks"
+	servicemocks "github.com/m13ha/appointment_master/services/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -19,7 +20,7 @@ func TestCreateAppointment(t *testing.T) {
 	testCases := []struct {
 		name          string
 		request       requests.AppointmentRequest
-		setupMock     func(mockRepo *mocks.AppointmentRepository)
+		setupMock     func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService)
 		expectedError string
 	}{
 		{
@@ -34,8 +35,9 @@ func TestCreateAppointment(t *testing.T) {
 				Type:            entities.Single,
 				MaxAttendees:    1,
 			},
-			setupMock: func(mockRepo *mocks.AppointmentRepository) {
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
 				mockRepo.On("Create", mock.AnythingOfType("*entities.Appointment")).Return(nil).Once()
+				mockEventNotificationService.On("CreateEventNotification", mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("uuid.UUID")).Return(nil).Once()
 			},
 			expectedError: "",
 		},
@@ -44,7 +46,8 @@ func TestCreateAppointment(t *testing.T) {
 			request: requests.AppointmentRequest{
 				Title: "", // Invalid title
 			},
-			setupMock:     func(mockRepo *mocks.AppointmentRepository) {},
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
+			},
 			expectedError: "Invalid appointment data. Please check your input.",
 		},
 		{
@@ -59,7 +62,7 @@ func TestCreateAppointment(t *testing.T) {
 				Type:            entities.Single,
 				MaxAttendees:    1,
 			},
-			setupMock: func(mockRepo *mocks.AppointmentRepository) {
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
 				mockRepo.On("Create", mock.AnythingOfType("*entities.Appointment")).Return(fmt.Errorf("db error")).Once()
 			},
 			expectedError: "internal error",
@@ -69,9 +72,10 @@ func TestCreateAppointment(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Arrange
-			mockAppointmentRepo := new(mocks.AppointmentRepository)
-			tc.setupMock(mockAppointmentRepo)
-			appointmentService := NewAppointmentService(mockAppointmentRepo)
+			mockAppointmentRepo := new(repomocks.AppointmentRepository)
+			mockEventNotificationService := new(servicemocks.EventNotificationService)
+			tc.setupMock(mockAppointmentRepo, mockEventNotificationService)
+			appointmentService := NewAppointmentService(mockAppointmentRepo, mockEventNotificationService)
 
 			// Act
 			appointment, err := appointmentService.CreateAppointment(tc.request, userID)
@@ -86,6 +90,7 @@ func TestCreateAppointment(t *testing.T) {
 				assert.Equal(t, tc.expectedError, err.Error())
 			}
 			mockAppointmentRepo.AssertExpectations(t)
+			mockEventNotificationService.AssertExpectations(t)
 		})
 	}
 }

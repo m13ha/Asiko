@@ -5,12 +5,14 @@ package mocks
 import (
 	context "context"
 
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/repository"
-	"github.com/morkid/paginate"
+	entities "github.com/m13ha/appointment_master/models/entities"
 	gorm "gorm.io/gorm"
 
 	mock "github.com/stretchr/testify/mock"
+
+	paginate "github.com/morkid/paginate"
+
+	repository "github.com/m13ha/appointment_master/repository"
 
 	uuid "github.com/google/uuid"
 )
@@ -23,6 +25,10 @@ type AppointmentRepository struct {
 // Create provides a mock function with given fields: appointment
 func (_m *AppointmentRepository) Create(appointment *entities.Appointment) error {
 	ret := _m.Called(appointment)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*entities.Appointment) error); ok {
@@ -37,6 +43,10 @@ func (_m *AppointmentRepository) Create(appointment *entities.Appointment) error
 // FindAndLock provides a mock function with given fields: appCode, tx
 func (_m *AppointmentRepository) FindAndLock(appCode string, tx *gorm.DB) (*entities.Appointment, error) {
 	ret := _m.Called(appCode, tx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindAndLock")
+	}
 
 	var r0 *entities.Appointment
 	var r1 error
@@ -64,6 +74,10 @@ func (_m *AppointmentRepository) FindAndLock(appCode string, tx *gorm.DB) (*enti
 func (_m *AppointmentRepository) FindAppointmentByAppCode(appCode string) (*entities.Appointment, error) {
 	ret := _m.Called(appCode)
 
+	if len(ret) == 0 {
+		panic("no return value specified for FindAppointmentByAppCode")
+	}
+
 	var r0 *entities.Appointment
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string) (*entities.Appointment, error)); ok {
@@ -90,6 +104,10 @@ func (_m *AppointmentRepository) FindAppointmentByAppCode(appCode string) (*enti
 func (_m *AppointmentRepository) GetAppointmentsByOwnerIDQuery(ctx context.Context, ownerID uuid.UUID) paginate.Page {
 	ret := _m.Called(ctx, ownerID)
 
+	if len(ret) == 0 {
+		panic("no return value specified for GetAppointmentsByOwnerIDQuery")
+	}
+
 	var r0 paginate.Page
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) paginate.Page); ok {
 		r0 = rf(ctx, ownerID)
@@ -103,6 +121,10 @@ func (_m *AppointmentRepository) GetAppointmentsByOwnerIDQuery(ctx context.Conte
 // Update provides a mock function with given fields: appointment
 func (_m *AppointmentRepository) Update(appointment *entities.Appointment) error {
 	ret := _m.Called(appointment)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*entities.Appointment) error); ok {
@@ -118,6 +140,10 @@ func (_m *AppointmentRepository) Update(appointment *entities.Appointment) error
 func (_m *AppointmentRepository) WithTx(tx *gorm.DB) repository.AppointmentRepository {
 	ret := _m.Called(tx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for WithTx")
+	}
+
 	var r0 repository.AppointmentRepository
 	if rf, ok := ret.Get(0).(func(*gorm.DB) repository.AppointmentRepository); ok {
 		r0 = rf(tx)
@@ -128,4 +154,18 @@ func (_m *AppointmentRepository) WithTx(tx *gorm.DB) repository.AppointmentRepos
 	}
 
 	return r0
+}
+
+// NewAppointmentRepository creates a new instance of AppointmentRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewAppointmentRepository(t interface {
+	mock.TestingT
+	Cleanup(func())
+}) *AppointmentRepository {
+	mock := &AppointmentRepository{}
+	mock.Mock.Test(t)
+
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+
+	return mock
 }

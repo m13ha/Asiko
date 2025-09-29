@@ -18,6 +18,7 @@ import (
 	"github.com/m13ha/appointment_master/api"
 	"github.com/m13ha/appointment_master/db"
 	customMiddleware "github.com/m13ha/appointment_master/middleware"
+	"github.com/m13ha/appointment_master/notifications"
 	"github.com/m13ha/appointment_master/repository"
 	"github.com/m13ha/appointment_master/services"
 )
@@ -65,11 +66,15 @@ func main() {
 	bookingRepo := repository.NewGormBookingRepository(db.DB)
 	analyticsRepo := repository.NewGormAnalyticsRepository(db.DB)
 	banListRepo := repository.NewGormBanListRepository(db.DB)
+	notificationRepo := repository.NewGormNotificationRepository(db.DB)
+	pendingUserRepo := repository.NewGormPendingUserRepository(db.DB)
 
 	// Initialize services
-	userService := services.NewUserService(userRepo)
-	appointmentService := services.NewAppointmentService(appointmentRepo)
-	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, db.DB)
+	notificationService := notifications.NewSendGridService()
+	eventNotificationService := services.NewEventNotificationService(notificationRepo)
+	userService := services.NewUserService(userRepo, pendingUserRepo, notificationService)
+	appointmentService := services.NewAppointmentService(appointmentRepo, eventNotificationService)
+	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, notificationService, eventNotificationService, db.DB)
 	analyticsService := services.NewAnalyticsService(analyticsRepo)
 	banListService := services.NewBanListService(banListRepo)
 
@@ -92,7 +97,7 @@ func main() {
 	})
 
 	// Register API routes
-	api.RegisterRoutes(r, userService, appointmentService, bookingService, analyticsService, banListService)
+	api.RegisterRoutes(r, userService, appointmentService, bookingService, analyticsService, banListService, eventNotificationService)
 
 	// Register Swagger documentation route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

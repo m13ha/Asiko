@@ -14,6 +14,7 @@ import (
 type UserService interface {
 	CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error)
 	AuthenticateUser(email, password string) (*entities.User, error)
+	VerifyRegistration(email, code string) (string, error)
 }
 
 type BookingService interface {

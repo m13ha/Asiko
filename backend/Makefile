@@ -63,9 +63,15 @@ client-gen: docs-gen
 # Regenerate repository mocks
 mocks:
 	@echo "Deleting old mocks..."
-	@rm -f ./mocks/repository/BookingRepository.go
+	@rm -rf ./repository/mocks ./services/mocks
+	@echo "Removing deprecated repository mocks directory if it exists..."
+	@rm -rf ./mocks
 	@echo "Regenerating repository mocks..."
-	@mockery --all --dir=./repository --output=./mocks/repository
+	@mockery --all --dir=./repository --output=./repository/mocks
+	@echo "Regenerating service mocks..."
+	@mockery --all --dir=./services --output=./services/mocks
+	@echo "Regenerating notification mocks..."
+	@mockery --all --dir=./notifications --output=./notifications/mocks
 
 # Install Air for hot reloading
 install-air:

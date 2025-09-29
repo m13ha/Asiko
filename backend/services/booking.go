@@ -11,6 +11,7 @@ import (
 	"github.com/m13ha/appointment_master/middleware"
 	"github.com/m13ha/appointment_master/models/entities"
 	"github.com/m13ha/appointment_master/models/requests"
+	"github.com/m13ha/appointment_master/notifications"
 	"github.com/m13ha/appointment_master/repository"
 	"github.com/m13ha/appointment_master/utils"
 	"github.com/morkid/paginate"
@@ -18,15 +19,17 @@ import (
 )
 
 type bookingServiceImpl struct {
-	bookingRepo     repository.BookingRepository
-	appointmentRepo repository.AppointmentRepository
-	userRepo        repository.UserRepository
-	banListRepo     repository.BanListRepository
-	db              *gorm.DB
+	bookingRepo              repository.BookingRepository
+	appointmentRepo          repository.AppointmentRepository
+	userRepo                 repository.UserRepository
+	banListRepo              repository.BanListRepository
+	notificationService      notifications.NotificationService
+	eventNotificationService EventNotificationService
+	db                       *gorm.DB
 }
 
-func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo repository.AppointmentRepository, userRepo repository.UserRepository, banListRepo repository.BanListRepository, db *gorm.DB) BookingService {
-	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, banListRepo: banListRepo, db: db}
+func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo repository.AppointmentRepository, userRepo repository.UserRepository, banListRepo repository.BanListRepository, notificationService notifications.NotificationService, eventNotificationService EventNotificationService, db *gorm.DB) BookingService {
+	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, banListRepo: banListRepo, notificationService: notificationService, eventNotificationService: eventNotificationService, db: db}
 }
 
 // performAntiScalpingChecks runs validation based on the appointment's settings.
@@ -158,6 +161,17 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 		return appRepo.Update(lockedAppointment)
 	})
 
+	if err == nil {
+		if err := s.notificationService.SendBookingConfirmation(booking); err != nil {
+			s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
+		} else {
+			s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
+		}
+
+		message := fmt.Sprintf("New booking by %s for your appointment %s.", booking.Name, appointment.Title)
+		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, booking.ID)
+	}
+
 	return booking, err
 }
 
@@ -195,6 +209,17 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 	if err := s.bookingRepo.Update(slot); err != nil {
 		log.Printf("[bookSlot] DB error: %v", err)
 		return nil, fmt.Errorf("internal error")
+	}
+
+	if err == nil {
+		if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
+			s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
+		} else {
+			s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
+		}
+
+		message := fmt.Sprintf("New booking by %s for your appointment %s.", slot.Name, appointment.Title)
+		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, slot.ID)
 	}
 
 	return slot, nil
@@ -270,6 +295,13 @@ func (s *bookingServiceImpl) UpdateBookingByCode(bookingCode string, req request
 		log.Printf("[UpdateBookingByCode] DB error: %v", err)
 		return nil, fmt.Errorf("internal error")
 	}
+
+	appointment, _ := s.appointmentRepo.FindAppointmentByAppCode(booking.AppCode)
+	if appointment != nil {
+		message := fmt.Sprintf("Booking %s was updated.", booking.BookingCode)
+		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_UPDATED", message, booking.ID)
+	}
+
 	return booking, nil
 }
 
@@ -319,6 +351,17 @@ func (s *bookingServiceImpl) CancelBookingByCode(bookingCode string) (*entities.
 			log.Printf("[CancelBookingByCode] DB error: %v", err)
 			return nil, fmt.Errorf("internal error")
 		}
+	}
+
+	if err == nil {
+		if err := s.notificationService.SendBookingCancellation(booking); err != nil {
+			s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
+		} else {
+			s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
+		}
+
+		message := fmt.Sprintf("Booking %s was cancelled.", booking.BookingCode)
+		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CANCELLED", message, booking.ID)
 	}
 
 	return booking, nil
@@ -373,6 +416,17 @@ func (s *bookingServiceImpl) RejectBooking(bookingCode string, ownerID uuid.UUID
 			log.Printf("[RejectBooking] DB error: %v", err)
 			return nil, fmt.Errorf("internal error")
 		}
+	}
+
+	if err == nil {
+		if err := s.notificationService.SendBookingRejection(booking); err != nil {
+			s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
+		} else {
+			s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
+		}
+
+		message := fmt.Sprintf("Booking %s was rejected.", booking.BookingCode)
+		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_REJECTED", message, booking.ID)
 	}
 
 	return booking, nil

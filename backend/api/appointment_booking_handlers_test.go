@@ -51,7 +51,7 @@ func TestCreateAppointmentAPI(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Arrange
-			_, _, mockAppointmentService, _ := setupTestRouter()
+			_, _, mockAppointmentService, _, _, _, _ := setupTestRouter()
 			tc.setupMock(mockAppointmentService)
 
 			req, _ := http.NewRequest("POST", "/appointments", strings.NewReader(tc.body))
@@ -66,7 +66,7 @@ func TestCreateAppointmentAPI(t *testing.T) {
 			}
 
 			// Act
-			h := NewHandler(nil, mockAppointmentService, nil, nil, nil)
+			h := NewHandler(nil, mockAppointmentService, nil, nil, nil, nil)
 			h.CreateAppointment(ctx)
 
 			// Assert
@@ -104,7 +104,7 @@ func TestCancelBookingAPI(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Arrange
-			router, _, _, mockBookingService := setupTestRouter()
+			router, _, _, mockBookingService, _, _, _ := setupTestRouter()
 			tc.setupMock(mockBookingService)
 
 			req, _ := http.NewRequest("DELETE", "/bookings/"+tc.bookingCode, nil)

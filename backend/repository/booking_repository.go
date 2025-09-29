@@ -21,6 +21,7 @@ type BookingRepository interface {
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error)
 	FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error)
+	UpdateNotificationStatus(id uuid.UUID, status string, channel string) error
 	WithTx(tx *gorm.DB) BookingRepository
 }
 
@@ -109,4 +110,11 @@ func (r *gormBookingRepository) FindActiveBookingByDevice(appointmentID uuid.UUI
 		return nil, err
 	}
 	return &booking, nil
+}
+
+func (r *gormBookingRepository) UpdateNotificationStatus(id uuid.UUID, status string, channel string) error {
+	return r.db.Model(&entities.Booking{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"notification_status":  status,
+		"notification_channel": channel,
+	}).Error
 }

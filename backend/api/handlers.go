@@ -7,29 +7,32 @@ import (
 )
 
 type Handler struct {
-	userService        services.UserService
-	appointmentService services.AppointmentService
-	bookingService     services.BookingService
-	analyticsService   services.AnalyticsService
-	banService         services.BanListService
+	userService              services.UserService
+	appointmentService       services.AppointmentService
+	bookingService           services.BookingService
+	analyticsService         services.AnalyticsService
+	banService               services.BanListService
+	eventNotificationService services.EventNotificationService
 }
 
-func NewHandler(userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService, analyticsService services.AnalyticsService, banServices services.BanListService) *Handler {
+func NewHandler(userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService, analyticsService services.AnalyticsService, banServices services.BanListService, eventNotificationService services.EventNotificationService) *Handler {
 	return &Handler{
-		userService:        userService,
-		appointmentService: appointmentService,
-		bookingService:     bookingService,
-		analyticsService:   analyticsService,
-		banService:         banServices,
+		userService:              userService,
+		appointmentService:       appointmentService,
+		bookingService:           bookingService,
+		analyticsService:         analyticsService,
+		banService:               banServices,
+		eventNotificationService: eventNotificationService,
 	}
 }
 
-func RegisterRoutes(r *gin.Engine, userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService, analyticsService services.AnalyticsService, banServices services.BanListService) {
-	h := NewHandler(userService, appointmentService, bookingService, analyticsService, banServices)
+func RegisterRoutes(r *gin.Engine, userService services.UserService, appointmentService services.AppointmentService, bookingService services.BookingService, analyticsService services.AnalyticsService, banServices services.BanListService, eventNotificationService services.EventNotificationService) {
+	h := NewHandler(userService, appointmentService, bookingService, analyticsService, banServices, eventNotificationService)
 
 	r.POST("/login", h.Login)
 	r.POST("/logout", h.Logout)
 	r.POST("/users", h.CreateUser)
+	r.POST("/auth/verify-registration", h.VerifyRegistrationHandler)
 	r.POST("/auth/device-token", h.GenerateDeviceTokenHandler)
 	r.POST("/appointments/book", h.BookGuestAppointment)
 	r.GET("/appointments/slots/:id", h.GetAvailableSlots)
@@ -52,5 +55,11 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 		banList.POST("", h.AddToBanList)
 		banList.DELETE("", h.RemoveFromBanList)
 		banList.GET("", h.GetBanList)
+	}
+
+	notifications := r.Group("/notifications", middleware.AuthMiddleware())
+	{
+		notifications.GET("", h.GetNotificationsHandler)
+		notifications.PUT("/read-all", h.MarkAllNotificationsAsReadHandler)
 	}
 }

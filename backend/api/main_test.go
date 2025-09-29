@@ -6,7 +6,7 @@ import (
 )
 
 // setupTestRouter initializes a gin router with mocked services for testing.
-func setupTestRouter() (*gin.Engine, *mocks.UserService, *mocks.AppointmentService, *mocks.BookingService) {
+func setupTestRouter() (*gin.Engine, *mocks.UserService, *mocks.AppointmentService, *mocks.BookingService, *mocks.AnalyticsService, *mocks.BanListService, *mocks.EventNotificationService) {
 	gin.SetMode(gin.TestMode)
 
 	mockUserService := new(mocks.UserService)
@@ -14,18 +14,17 @@ func setupTestRouter() (*gin.Engine, *mocks.UserService, *mocks.AppointmentServi
 	mockBookingService := new(mocks.BookingService)
 	mockAnalyticsService := new(mocks.AnalyticsService)
 	mockBanListService := new(mocks.BanListService)
+	mockEventNotificationService := new(mocks.EventNotificationService)
 
-	// We pass the real NewHandler function but with our mocked services.
-	h := NewHandler(mockUserService, mockAppointmentService, mockBookingService, mockAnalyticsService, mockBanListService)
+	h := NewHandler(mockUserService, mockAppointmentService, mockBookingService, mockAnalyticsService, mockBanListService, mockEventNotificationService)
 
 	router := gin.Default()
-	// We are only testing the handlers, so we register routes for a specific handler.
-	// This could be expanded to register all routes if needed for broader tests.
 	router.POST("/login", h.Login)
 	router.POST("/users", h.CreateUser)
+	router.POST("/auth/verify-registration", h.VerifyRegistrationHandler)
 	router.POST("/appointments", h.CreateAppointment)
 	router.DELETE("/bookings/:booking_code", h.CancelBookingByCodeHandler)
 	router.GET("/analytics", h.GetUserAnalytics)
 
-	return router, mockUserService, mockAppointmentService, mockBookingService
+	return router, mockUserService, mockAppointmentService, mockBookingService, mockAnalyticsService, mockBanListService, mockEventNotificationService
 }

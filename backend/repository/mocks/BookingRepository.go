@@ -252,6 +252,24 @@ func (_m *BookingRepository) Update(booking *entities.Booking) error {
 	return r0
 }
 
+// UpdateNotificationStatus provides a mock function with given fields: id, status, channel
+func (_m *BookingRepository) UpdateNotificationStatus(id uuid.UUID, status string, channel string) error {
+	ret := _m.Called(id, status, channel)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateNotificationStatus")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string, string) error); ok {
+		r0 = rf(id, status, channel)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // WithTx provides a mock function with given fields: tx
 func (_m *BookingRepository) WithTx(tx *gorm.DB) repository.BookingRepository {
 	ret := _m.Called(tx)
