@@ -7,7 +7,7 @@ import (
 	"github.com/m13ha/appointment_master/errors"
 	"github.com/m13ha/appointment_master/middleware"
 	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/services"
+	"github.com/m13ha/appointment_master/models/responses"
 	"github.com/m13ha/appointment_master/utils"
 )
 
@@ -47,9 +47,13 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": token,
-		"user":  services.ToUserResponse(userEntity),
+	c.JSON(http.StatusOK, responses.LoginResponse{
+		Token: token,
+		User: responses.UserResponse{
+			ID:    userEntity.ID,
+			Name:  userEntity.Name,
+			Email: userEntity.Email,
+		},
 	})
 }
 
@@ -57,11 +61,11 @@ func (h *Handler) Login(c *gin.Context) {
 // @Description Invalidate the user's session.
 // @Tags Authentication
 // @Produce  json
-// @Success 200 {object} responses.SimpleMessageResponse
+// @Success 200 {object} responses.SimpleMessage
 // @Router /logout [post]
 // @ID logoutUser
 func (h *Handler) Logout(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "Logged out successfully"})
 }
 
 // @Summary Generate Device Token

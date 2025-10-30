@@ -1,4 +1,4 @@
-FROM golang:1.24
+FROM golang:1.23
 
 WORKDIR /usr/src/app
 
@@ -14,4 +14,3 @@ EXPOSE 8080
 
 # Use Reflex to watch for changes and restart the app
 CMD ["reflex", "-v", "-r", "\\.(go)$", "-s", "--", "go", "run", "main.go"]
-

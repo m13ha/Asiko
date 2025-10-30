@@ -119,28 +119,30 @@ func HealthCheck() error {
 }
 
 func ConnectDB() error {
-	config := Config{
-		Host:            getEnv("DB_HOST", "localhost"),
-		Port:            getEnv("DB_PORT", "5432"),
-		User:            getEnv("DB_USERNAME", "postgres"),
-		Password:        getEnv("DB_PASSWORD", ""),
-		DBName:          getEnv("DB_DATABASE", "appointmentdb"),
-		MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
-		MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),
-		ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", time.Hour),
-		ConnMaxIdleTime: getEnvDuration("DB_CONN_MAX_IDLE_TIME", 30*time.Minute),
-		DBURL:           getEnv("DB_URL", ""),
-	}
+    config := Config{
+        Host:            getEnv("DB_HOST", "localhost"),
+        Port:            getEnv("DB_PORT", "5432"),
+        // Support both DB_USER and DB_USERNAME for compatibility
+        User:            func() string { u := getEnv("DB_USER", ""); if u != "" { return u }; return getEnv("DB_USERNAME", "postgres") }(),
+        Password:        getEnv("DB_PASSWORD", ""),
+        // Support both DB_NAME and DB_DATABASE for compatibility
+        DBName:          func() string { n := getEnv("DB_NAME", ""); if n != "" { return n }; return getEnv("DB_DATABASE", "appointmentdb") }(),
+        MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
+        MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),
+        ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", time.Hour),
+        ConnMaxIdleTime: getEnvDuration("DB_CONN_MAX_IDLE_TIME", 30*time.Minute),
+        DBURL:           getEnv("DB_URL", ""),
+    }
 
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("database configuration validation failed: %w", err)
 	}
 
-	if config.DBURL == "" {
-		log.Printf("Attempting to connect with DSN: %s", config.DBURL)
-		sslMode := getEnv("DB_SSLMODE", "disable")
-		config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", config.Host, config.User, config.Password, config.DBName, config.Port, sslMode)
-	}
+    if config.DBURL == "" {
+        sslMode := getEnv("DB_SSLMODE", "disable")
+        config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", config.Host, config.User, config.Password, config.DBName, config.Port, sslMode)
+        log.Printf("Attempting to connect with DSN: host=%s user=%s dbname=%s port=%s sslmode=%s", config.Host, "***", config.DBName, config.Port, sslMode)
+    }
 
 	logLevel := logger.Error
 	env := getEnv("ENV", "production")

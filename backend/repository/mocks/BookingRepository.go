@@ -102,6 +102,36 @@ func (_m *BookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID, e
 	return r0, r1
 }
 
+// FindAndLockAvailableSlot provides a mock function with given fields: appCode, date, startTime
+func (_m *BookingRepository) FindAndLockAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
+	ret := _m.Called(appCode, date, startTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindAndLockAvailableSlot")
+	}
+
+	var r0 *entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, time.Time, time.Time) (*entities.Booking, error)); ok {
+		return rf(appCode, date, startTime)
+	}
+	if rf, ok := ret.Get(0).(func(string, time.Time, time.Time) *entities.Booking); ok {
+		r0 = rf(appCode, date, startTime)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, time.Time, time.Time) error); ok {
+		r1 = rf(appCode, date, startTime)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindAvailableSlot provides a mock function with given fields: appCode, date, startTime
 func (_m *BookingRepository) FindAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
 	ret := _m.Called(appCode, date, startTime)

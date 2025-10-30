@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/m13ha/appointment_master/errors"
 	"github.com/m13ha/appointment_master/middleware"
 	"github.com/m13ha/appointment_master/models/requests"
+	"github.com/m13ha/appointment_master/models/responses"
 )
 
 // @Summary Add email to ban list
@@ -23,10 +23,9 @@ import (
 // @Router /ban-list [post]
 // @ID addToBanList
 func (h *Handler) AddToBanList(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		errors.BadRequest(c.Writer, "Invalid user ID")
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		errors.Unauthorized(c.Writer, "Unauthorized")
 		return
 	}
 
@@ -52,16 +51,15 @@ func (h *Handler) AddToBanList(c *gin.Context) {
 // @Produce  json
 // @Param   ban_request  body   requests.BanRequest  true  "Email to unban"
 // @Security BearerAuth
-// @Success 200 {object} responses.SimpleMessageResponse
+// @Success 200 {object} responses.SimpleMessage
 // @Failure 400 {object} errors.ApiErrorResponse "Invalid request"
 // @Failure 401 {object} errors.ApiErrorResponse "Unauthorized"
 // @Router /ban-list [delete]
 // @ID removeFromBanList
 func (h *Handler) RemoveFromBanList(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		errors.BadRequest(c.Writer, "Invalid user ID")
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		errors.Unauthorized(c.Writer, "Unauthorized")
 		return
 	}
 
@@ -76,7 +74,7 @@ func (h *Handler) RemoveFromBanList(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Email removed from ban list"})
+	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "Email removed from ban list"})
 }
 
 // @Summary Get user's ban list
@@ -89,10 +87,9 @@ func (h *Handler) RemoveFromBanList(c *gin.Context) {
 // @Router /ban-list [get]
 // @ID getBanList
 func (h *Handler) GetBanList(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		errors.BadRequest(c.Writer, "Invalid user ID")
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		errors.Unauthorized(c.Writer, "Unauthorized")
 		return
 	}
 

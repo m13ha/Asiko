@@ -2,10 +2,18 @@ include .env
 
 .PHONY: dev build run docker-dev docker-build docker-up docker-down clean docs-gen docs-build client-gen install-air mocks migrate-create migrate-up migrate-down migrate-to
 
+# Tool versions (override via environment if needed)
+AIR_VERSION ?= latest
+
 # Development with hot reloading
 dev:
 	@echo "Starting development server with hot reloading..."
-	@./dev.sh
+	@if ! command -v air >/dev/null 2>&1; then \
+		echo "Installing Air ($(AIR_VERSION)) for hot reloading..."; \
+		go install github.com/air-verse/air@$(AIR_VERSION); \
+	fi
+	@mkdir -p tmp
+	@air -c .air.toml
 
 # Build the application
 build:
@@ -58,7 +66,14 @@ docs-build: docs-gen
 # Generate TypeScript API client
 client-gen: docs-gen
 	@echo "Generating TypeScript API client..."
-	@./generate-client.sh
+	@INPUT_SPEC=./docs/swagger.json OUTPUT_DIR=../api-client/src ; \
+		rm -rf $$OUTPUT_DIR ; \
+		openapi-generator-cli generate \
+			-i $$INPUT_SPEC \
+			-g typescript-fetch \
+			-o $$OUTPUT_DIR \
+			--additional-properties=typescriptThreePlus=true,usePromises=true ; \
+		echo "✅ API client generated successfully in $$OUTPUT_DIR"
 
 # Regenerate repository mocks
 mocks:

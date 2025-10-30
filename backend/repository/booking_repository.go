@@ -1,23 +1,25 @@
 package repository
 
 import (
-	"context"
-	"time"
+    "context"
+    "time"
 
-	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/morkid/paginate"
-	"gorm.io/gorm"
+    "github.com/google/uuid"
+    "github.com/m13ha/appointment_master/models/entities"
+    "github.com/morkid/paginate"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
 )
 
 type BookingRepository interface {
-	Create(booking *entities.Booking) error
-	FindAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error)
-	Update(booking *entities.Booking) error
-	GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page
-	GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page
-	GetAvailableSlots(ctx context.Context, appCode string) paginate.Page
-	GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page
+    Create(booking *entities.Booking) error
+    FindAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error)
+    FindAndLockAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error)
+    Update(booking *entities.Booking) error
+    GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page
+    GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page
+    GetAvailableSlots(ctx context.Context, appCode string) paginate.Page
+    GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error)
 	FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error)
@@ -42,11 +44,23 @@ func (r *gormBookingRepository) Create(booking *entities.Booking) error {
 }
 
 func (r *gormBookingRepository) FindAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
-	var slot entities.Booking
-	if err := r.db.Where("app_code = ? AND date = ? AND start_time = ? AND available = true", appCode, date, startTime).First(&slot).Error; err != nil {
-		return nil, err
-	}
-	return &slot, nil
+    var slot entities.Booking
+    if err := r.db.Where("app_code = ? AND date = ? AND start_time = ? AND available = true", appCode, date, startTime).First(&slot).Error; err != nil {
+        return nil, err
+    }
+    return &slot, nil
+}
+
+// FindAndLockAvailableSlot locks the row to prevent concurrent updates when reserving a slot
+func (r *gormBookingRepository) FindAndLockAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
+    var slot entities.Booking
+    if err := r.db.
+        Clauses(clause.Locking{Strength: "UPDATE"}).
+        Where("app_code = ? AND date = ? AND start_time = ? AND available = true", appCode, date, startTime).
+        First(&slot).Error; err != nil {
+        return nil, err
+    }
+    return &slot, nil
 }
 
 func (r *gormBookingRepository) Update(booking *entities.Booking) error {

@@ -1,15 +1,16 @@
 package middleware
 
 import (
-	"fmt"
-	"net/http"
-	"os"
-	"strings"
-	"time"
+    "fmt"
+    "net/http"
+    "os"
+    "strings"
+    "time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	"github.com/m13ha/appointment_master/errors"
+    "github.com/golang-jwt/jwt/v4"
+    "github.com/gin-gonic/gin"
+    "github.com/m13ha/appointment_master/errors"
+    "github.com/google/uuid"
 )
 
 var (
@@ -18,17 +19,37 @@ var (
 )
 
 type Claims struct {
-	UserID string `json:"user_id"`
-	jwt.StandardClaims
+    UserID string `json:"user_id"`
+    jwt.RegisteredClaims
 }
 
 func GetUserIDFromContext(c *gin.Context) string {
-	if userID, exists := c.Get("userID"); exists {
-		if id, ok := userID.(string); ok {
-			return id
-		}
-	}
-	return ""
+    if userID, exists := c.Get("userID"); exists {
+        if id, ok := userID.(string); ok {
+            return id
+        }
+    }
+    return ""
+}
+
+// GetUUIDFromContext returns the authenticated user's UUID from context.
+// It supports both the new strongly-typed key ("userUUID") and falls back to parsing
+// the legacy string key ("userID") for backward compatibility.
+func GetUUIDFromContext(c *gin.Context) (uuid.UUID, bool) {
+    if v, ok := c.Get("userUUID"); ok {
+        if id, ok2 := v.(uuid.UUID); ok2 {
+            return id, true
+        }
+    }
+    // Fallback: parse legacy string if present
+    if s := GetUserIDFromContext(c); s != "" {
+        if id, err := uuid.Parse(s); err == nil {
+            // Cache it for subsequent reads in this request
+            c.Set("userUUID", id)
+            return id, true
+        }
+    }
+    return uuid.UUID{}, false
 }
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -41,19 +62,29 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        return jwtKey, nil
+    })
 
-		if err != nil || !token.Valid {
-			errors.Unauthorized(c.Writer, "Invalid token")
-			c.Abort()
-			return
-		}
+        if err != nil || !token.Valid {
+            errors.Unauthorized(c.Writer, "Invalid token")
+            c.Abort()
+            return
+        }
 
-		c.Set("userID", claims.UserID)
-		c.Next()
-	}
+        // Parse and store strongly-typed UUID; if invalid, treat as unauthorized
+        uid, err := uuid.Parse(claims.UserID)
+        if err != nil {
+            errors.Unauthorized(c.Writer, "Invalid token")
+            c.Abort()
+            return
+        }
+
+        // Set both for compatibility during transition
+        c.Set("userUUID", uid)
+        c.Set("userID", claims.UserID)
+        c.Next()
+    }
 }
 
 func extractToken(r *http.Request) string {
@@ -69,18 +100,19 @@ func extractToken(r *http.Request) string {
 }
 
 func GenerateToken(userID string) (string, error) {
-	expirationTime := time.Now().Add(tokenExpiration)
-	claims := &Claims{
-		UserID: userID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-			IssuedAt:  time.Now().Unix(),
-			Issuer:    "appointment_app",
-		},
-	}
+    expirationTime := time.Now().Add(tokenExpiration)
+    claims := &Claims{
+        UserID: userID,
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(expirationTime),
+            IssuedAt:  jwt.NewNumericDate(time.Now()),
+            Issuer:    "appointment_app",
+            Subject:   userID,
+        },
+    }
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(jwtKey)
 }
 
 func RefreshToken(c *gin.Context) {
@@ -91,19 +123,19 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	claims := &Claims{}
-	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
+    _, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        return jwtKey, nil
+    })
 
 	if err != nil {
 		errors.Unauthorized(c.Writer, "Invalid token")
 		return
 	}
 
-	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Minute {
-		errors.BadRequest(c.Writer, "Token not near expiration")
-		return
-	}
+    if claims.ExpiresAt != nil && time.Until(claims.ExpiresAt.Time) > 30*time.Minute {
+        errors.BadRequest(c.Writer, "Token not near expiration")
+        return
+    }
 
 	newToken, err := GenerateToken(claims.UserID)
 	if err != nil {
@@ -121,41 +153,42 @@ var (
 )
 
 type DeviceClaims struct {
-	DeviceID string `json:"device_id"`
-	jwt.StandardClaims
+    DeviceID string `json:"device_id"`
+    jwt.RegisteredClaims
 }
 
 func GenerateDeviceToken(deviceID string) (string, error) {
-	expirationTime := time.Now().Add(deviceTokenExpiration)
-	claims := &DeviceClaims{
-		DeviceID: deviceID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-			IssuedAt:  time.Now().Unix(),
-			Issuer:    "appointment_app_device",
-		},
-	}
+    expirationTime := time.Now().Add(deviceTokenExpiration)
+    claims := &DeviceClaims{
+        DeviceID: deviceID,
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(expirationTime),
+            IssuedAt:  jwt.NewNumericDate(time.Now()),
+            Issuer:    "appointment_app_device",
+            Subject:   deviceID,
+        },
+    }
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(jwtKey)
 }
 
 func ValidateDeviceToken(tokenString string) (string, error) {
-	claims := &DeviceClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
+    claims := &DeviceClaims{}
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        return jwtKey, nil
+    })
 
-	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				return "", fmt.Errorf("malformed token")
-			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				return "", fmt.Errorf("token is expired or not yet valid")
-			}
-		}
-		return "", fmt.Errorf("invalid token")
-	}
+    if err != nil {
+        if ve, ok := err.(*jwt.ValidationError); ok {
+            if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+                return "", fmt.Errorf("malformed token")
+            } else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+                return "", fmt.Errorf("token is expired or not yet valid")
+            }
+        }
+        return "", fmt.Errorf("invalid token")
+    }
 
 	if !token.Valid {
 		return "", fmt.Errorf("invalid token")

@@ -10,13 +10,13 @@ docker compose up
 
 
 # Change to the frontend directory
-cd ../frontend/
+cd ../web/
 
 # Install dependencies if needed
 npm install
 
 # Set environment variables for development
-export REACT_APP_API_URL=http://127.0.0.1:8888
+export VITE_API_BASE_URL=http://127.0.0.1:8888
 
 # Start the frontend application
-npm start
+npm run dev

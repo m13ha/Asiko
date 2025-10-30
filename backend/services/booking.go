@@ -176,53 +176,65 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 }
 
 func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, user *entities.User, appointment *entities.Appointment, deviceID string) (*entities.Booking, error) {
-	slot, err := s.bookingRepo.FindAvailableSlot(req.AppCode, req.Date, req.StartTime)
-	if err != nil {
-		return nil, myerrors.NewUserError("no available slot found")
-	}
+    var slot *entities.Booking
+    // Use transaction + row lock to prevent concurrent booking of the same slot
+    err := s.db.Transaction(func(tx *gorm.DB) error {
+        bookRepo := s.bookingRepo.WithTx(tx)
 
-	// Populate user info
-	if user != nil {
-		slot.UserID = &user.ID
-		slot.Name = user.Name
-		slot.Email = user.Email
-		slot.Phone = user.PhoneNumber
-	} else {
-		slot.Name = req.Name
-		slot.Email = utils.NormalizeEmail(req.Email)
-		slot.Phone = req.Phone
-	}
+        lockedSlot, err := bookRepo.FindAndLockAvailableSlot(req.AppCode, req.Date, req.StartTime)
+        if err != nil {
+            return myerrors.NewUserError("no available slot found")
+        }
 
-	// Populate booking details
-	if appointment.Type == entities.Group {
-		if req.AttendeeCount > appointment.MaxAttendees {
-			return nil, myerrors.NewUserError("attendee count exceeds maximum allowed")
-		}
-		slot.AttendeeCount = req.AttendeeCount
-	} else {
-		slot.AttendeeCount = 1
-	}
-	slot.Description = req.Description
-	slot.DeviceID = deviceID
-	slot.Available = false
+        // Populate user info
+        if user != nil {
+            lockedSlot.UserID = &user.ID
+            lockedSlot.Name = user.Name
+            lockedSlot.Email = user.Email
+            lockedSlot.Phone = user.PhoneNumber
+        } else {
+            lockedSlot.Name = req.Name
+            lockedSlot.Email = utils.NormalizeEmail(req.Email)
+            lockedSlot.Phone = req.Phone
+        }
 
-	if err := s.bookingRepo.Update(slot); err != nil {
-		log.Printf("[bookSlot] DB error: %v", err)
-		return nil, fmt.Errorf("internal error")
-	}
+        // Populate booking details
+        if appointment.Type == entities.Group {
+            if req.AttendeeCount > appointment.MaxAttendees {
+                return myerrors.NewUserError("attendee count exceeds maximum allowed")
+            }
+            lockedSlot.AttendeeCount = req.AttendeeCount
+        } else {
+            lockedSlot.AttendeeCount = 1
+        }
+        lockedSlot.Description = req.Description
+        lockedSlot.DeviceID = deviceID
+        lockedSlot.Available = false
 
-	if err == nil {
-		if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
-			s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
-		} else {
-			s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
-		}
+        if err := bookRepo.Update(lockedSlot); err != nil {
+            log.Printf("[bookSlot] DB error: %v", err)
+            return fmt.Errorf("internal error")
+        }
 
-		message := fmt.Sprintf("New booking by %s for your appointment %s.", slot.Name, appointment.Title)
-		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, slot.ID)
-	}
+        slot = lockedSlot
+        return nil
+    })
 
-	return slot, nil
+    if err != nil {
+        return nil, err
+    }
+
+    // Out-of-transaction side effects
+    if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
+        s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
+    } else {
+        s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
+    }
+
+    message := fmt.Sprintf("New booking by %s for your appointment %s.", slot.Name, appointment.Title)
+    s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, slot.ID)
+
+    return slot, nil
 }
 
 // BookRegisteredUserAppointment is a wrapper for backward compatibility

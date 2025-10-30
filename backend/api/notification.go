@@ -20,13 +20,13 @@ import (
 // @Router /notifications [get]
 // @ID getNotifications
 func (h *Handler) GetNotificationsHandler(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
 		errors.Unauthorized(c.Writer, "Unauthorized")
 		return
 	}
 
-	notifications, err := h.eventNotificationService.GetUserNotifications(c.Request.Context(), userIDStr)
+	notifications, err := h.eventNotificationService.GetUserNotifications(c.Request.Context(), userID.String())
 	if err != nil {
 		errors.HandleServiceError(c.Writer, err, http.StatusInternalServerError)
 		return
@@ -40,22 +40,22 @@ func (h *Handler) GetNotificationsHandler(c *gin.Context) {
 // @Tags Notifications
 // @Produce  json
 // @Security BearerAuth
-// @Success 200 {object} responses.ResponsesSimpleMessageResponse
+// @Success 200 {object} responses.SimpleMessage
 // @Failure 401 {object} errors.ApiErrorResponse "Unauthorized"
 // @Failure 500 {object} errors.ApiErrorResponse "Internal server error"
 // @Router /notifications/read-all [put]
 // @ID markAllNotificationsAsRead
 func (h *Handler) MarkAllNotificationsAsReadHandler(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
 		errors.Unauthorized(c.Writer, "Unauthorized")
 		return
 	}
 
-	if err := h.eventNotificationService.MarkAllNotificationsAsRead(userIDStr); err != nil {
+	if err := h.eventNotificationService.MarkAllNotificationsAsRead(userID.String()); err != nil {
 		errors.HandleServiceError(c.Writer, err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, responses.ResponsesSimpleMessageResponse{Message: "All notifications marked as read."})
+	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "All notifications marked as read."})
 }

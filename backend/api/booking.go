@@ -1,13 +1,13 @@
 package api
 
 import (
-	"net/http"
+    "net/http"
+    "strings"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/middleware"
-	"github.com/m13ha/appointment_master/models/requests"
+    "github.com/gin-gonic/gin"
+    "github.com/m13ha/appointment_master/errors"
+    "github.com/m13ha/appointment_master/middleware"
+    "github.com/m13ha/appointment_master/models/requests"
 )
 
 // @Summary Get user's registered bookings
@@ -21,18 +21,18 @@ import (
 // @Router /appointments/registered [get]
 // @ID getUserRegisteredBookings
 func (h *Handler) GetUserRegisteredBookings(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
-		errors.Unauthorized(c.Writer, "Unauthorized")
-		return
-	}
+    userID, ok := middleware.GetUUIDFromContext(c)
+    if !ok {
+        errors.Unauthorized(c.Writer, "Unauthorized")
+        return
+    }
 
-	ctx := c.Request.Context()
-	bookings, err := h.bookingService.GetUserBookings(ctx, userIDStr)
-	if err != nil {
-		errors.HandleServiceError(c.Writer, err, http.StatusInternalServerError)
-		return
-	}
+    ctx := c.Request.Context()
+    bookings, err := h.bookingService.GetUserBookings(ctx, userID.String())
+    if err != nil {
+        errors.HandleServiceError(c.Writer, err, http.StatusInternalServerError)
+        return
+    }
 
 	c.JSON(http.StatusOK, bookings)
 }
@@ -76,11 +76,11 @@ func (h *Handler) BookGuestAppointment(c *gin.Context) {
 // @Router /appointments/book/registered [post]
 // @ID bookRegisteredUserAppointment
 func (h *Handler) BookRegisteredUserAppointment(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
-		errors.Unauthorized(c.Writer, "Unauthorized")
-		return
-	}
+    userID, ok := middleware.GetUUIDFromContext(c)
+    if !ok {
+        errors.Unauthorized(c.Writer, "Unauthorized")
+        return
+    }
 
 	var req requests.BookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -88,11 +88,11 @@ func (h *Handler) BookRegisteredUserAppointment(c *gin.Context) {
 		return
 	}
 
-	booking, err := h.bookingService.BookAppointment(req, userIDStr)
-	if err != nil {
-		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
-		return
-	}
+    booking, err := h.bookingService.BookAppointment(req, userID.String())
+    if err != nil {
+        errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+        return
+    }
 
 	c.JSON(http.StatusCreated, booking)
 }
@@ -244,11 +244,16 @@ func (h *Handler) UpdateBookingByCodeHandler(c *gin.Context) {
 		return
 	}
 
-	booking, err := h.bookingService.UpdateBookingByCode(code, req)
-	if err != nil {
-		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
-		return
-	}
+    booking, err := h.bookingService.UpdateBookingByCode(code, req)
+    if err != nil {
+        // Map booking not found to 404 per Swagger; else 400
+        if ue, ok := err.(*errors.UserError); ok && strings.Contains(ue.Error(), "Booking not found") {
+            errors.HandleServiceError(c.Writer, err, http.StatusNotFound)
+        } else {
+            errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+        }
+        return
+    }
 
 	c.JSON(http.StatusOK, booking)
 }
@@ -270,11 +275,15 @@ func (h *Handler) CancelBookingByCodeHandler(c *gin.Context) {
 		return
 	}
 
-	booking, err := h.bookingService.CancelBookingByCode(code)
-	if err != nil {
-		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
-		return
-	}
+    booking, err := h.bookingService.CancelBookingByCode(code)
+    if err != nil {
+        if ue, ok := err.(*errors.UserError); ok && strings.Contains(ue.Error(), "Booking not found") {
+            errors.HandleServiceError(c.Writer, err, http.StatusNotFound)
+        } else {
+            errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+        }
+        return
+    }
 
 	c.JSON(http.StatusOK, booking)
 }
@@ -298,23 +307,21 @@ func (h *Handler) RejectBookingHandler(c *gin.Context) {
 		return
 	}
 
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
-		errors.Unauthorized(c.Writer, "Unauthorized")
-		return
-	}
+    userID, ok := middleware.GetUUIDFromContext(c)
+    if !ok {
+        errors.Unauthorized(c.Writer, "Unauthorized")
+        return
+    }
 
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		errors.BadRequest(c.Writer, "Invalid user ID")
-		return
-	}
-
-	booking, err := h.bookingService.RejectBooking(code, userID)
-	if err != nil {
-		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
-		return
-	}
+    booking, err := h.bookingService.RejectBooking(code, userID)
+    if err != nil {
+        if ue, ok := err.(*errors.UserError); ok && strings.Contains(ue.Error(), "Booking not found") {
+            errors.HandleServiceError(c.Writer, err, http.StatusNotFound)
+        } else {
+            errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+        }
+        return
+    }
 
 	c.JSON(http.StatusOK, booking)
 }

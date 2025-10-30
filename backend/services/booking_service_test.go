@@ -25,30 +25,35 @@ func TestBookAppointment(t *testing.T) {
 	appSlot := &entities.Appointment{ID: uuid.New(), AppCode: "SLOT123", Type: entities.Group, MaxAttendees: 5, AntiScalpingLevel: entities.ScalpingNone}
 	slot := &entities.Booking{ID: uuid.New(), AppCode: "SLOT123", Available: true, Date: time.Now(), StartTime: time.Now().Add(time.Hour), EndTime: time.Now().Add(90 * time.Minute)}
 
-	t.Run("Success - Book Slot", func(t *testing.T) {
-		// Arrange
-		mockAppointmentRepo := new(repomocks.AppointmentRepository)
-		mockBookingRepo := new(repomocks.BookingRepository)
-		mockUserRepo := new(repomocks.UserRepository)
-		mockBanListRepo := new(repomocks.BanListRepository)
-		mockNotificationService := new(notificationmocks.NotificationService)
-		mockEventNotificationService := new(servicemocks.EventNotificationService)
-		db, _, _ := sqlmock.New()
-		gormDB, _ := gorm.Open(postgres.New(postgres.Config{
-			Conn: db,
-		}), &gorm.Config{})
+    t.Run("Success - Book Slot", func(t *testing.T) {
+        // Arrange
+        mockAppointmentRepo := new(repomocks.AppointmentRepository)
+        mockBookingRepo := new(repomocks.BookingRepository)
+        mockUserRepo := new(repomocks.UserRepository)
+        mockBanListRepo := new(repomocks.BanListRepository)
+        mockNotificationService := new(notificationmocks.NotificationService)
+        mockEventNotificationService := new(servicemocks.EventNotificationService)
+        db, sqlMock, _ := sqlmock.New()
+        gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+            Conn: db,
+        }), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+        bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		req := requests.BookingRequest{AppCode: "SLOT123", Name: "Test", Email: "test@test.com", Date: slot.Date, StartTime: slot.StartTime, EndTime: slot.EndTime, AttendeeCount: 2}
 
-		mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
-		mockUserRepo.On("FindByID", userID.String()).Return(user, nil).Once()
-		mockBookingRepo.On("FindAvailableSlot", "SLOT123", slot.Date, slot.StartTime).Return(slot, nil).Once()
-		mockBookingRepo.On("Update", mock.AnythingOfType("*entities.Booking")).Return(nil).Once()
-		mockNotificationService.On("SendBookingConfirmation", mock.AnythingOfType("*entities.Booking")).Return(nil).Once()
-		mockEventNotificationService.On("CreateEventNotification", mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("uuid.UUID")).Return(nil).Once()
-		mockBookingRepo.On("UpdateNotificationStatus", mock.AnythingOfType("uuid.UUID"), "sent", "email").Return(nil).Once()
+        mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
+        mockUserRepo.On("FindByID", userID.String()).Return(user, nil).Once()
+        // Transaction expectations
+        sqlMock.ExpectBegin()
+        // Repository uses WithTx + FindAndLockAvailableSlot in transaction
+        mockBookingRepo.On("WithTx", mock.AnythingOfType("*gorm.DB")).Return(mockBookingRepo).Once()
+        mockBookingRepo.On("FindAndLockAvailableSlot", "SLOT123", slot.Date, slot.StartTime).Return(slot, nil).Once()
+        mockBookingRepo.On("Update", mock.AnythingOfType("*entities.Booking")).Return(nil).Once()
+        sqlMock.ExpectCommit()
+        mockNotificationService.On("SendBookingConfirmation", mock.AnythingOfType("*entities.Booking")).Return(nil).Once()
+        mockEventNotificationService.On("CreateEventNotification", mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("uuid.UUID")).Return(nil).Once()
+        mockBookingRepo.On("UpdateNotificationStatus", mock.AnythingOfType("uuid.UUID"), "sent", "email").Return(nil).Once()
 
 		// Act
 		booking, err := bookingService.BookAppointment(req, userID.String())
@@ -89,23 +94,27 @@ func TestBookAppointment(t *testing.T) {
 		mockAppointmentRepo.AssertExpectations(t)
 	})
 
-	t.Run("Failure - Slot not available", func(t *testing.T) {
-		// Arrange
-		mockAppointmentRepo := new(repomocks.AppointmentRepository)
-		mockBookingRepo := new(repomocks.BookingRepository)
-		mockUserRepo := new(repomocks.UserRepository)
-		mockBanListRepo := new(repomocks.BanListRepository)
-		mockNotificationService := new(notificationmocks.NotificationService)
-		mockEventNotificationService := new(servicemocks.EventNotificationService)
-		db, _, _ := sqlmock.New()
-		gormDB, _ := gorm.Open(postgres.New(postgres.Config{
-			Conn: db,
-		}), &gorm.Config{})
+    t.Run("Failure - Slot not available", func(t *testing.T) {
+        // Arrange
+        mockAppointmentRepo := new(repomocks.AppointmentRepository)
+        mockBookingRepo := new(repomocks.BookingRepository)
+        mockUserRepo := new(repomocks.UserRepository)
+        mockBanListRepo := new(repomocks.BanListRepository)
+        mockNotificationService := new(notificationmocks.NotificationService)
+        mockEventNotificationService := new(servicemocks.EventNotificationService)
+        db, sqlMock, _ := sqlmock.New()
+        gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+            Conn: db,
+        }), &gorm.Config{})
 
 		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 		validReq := requests.BookingRequest{AppCode: "SLOT123", Name: "Guest User", Email: "guest@example.com", Date: slot.Date, StartTime: slot.StartTime, EndTime: slot.EndTime, AttendeeCount: 1}
-		mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
-		mockBookingRepo.On("FindAvailableSlot", "SLOT123", slot.Date, slot.StartTime).Return(nil, fmt.Errorf("not found")).Once()
+        mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
+        // Transaction expectations
+        sqlMock.ExpectBegin()
+        mockBookingRepo.On("WithTx", mock.AnythingOfType("*gorm.DB")).Return(mockBookingRepo).Once()
+        mockBookingRepo.On("FindAndLockAvailableSlot", "SLOT123", slot.Date, slot.StartTime).Return(nil, fmt.Errorf("not found")).Once()
+        sqlMock.ExpectRollback()
 
 		// Act
 		_, err := bookingService.BookAppointment(validReq, "")

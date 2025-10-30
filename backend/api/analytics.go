@@ -1,16 +1,17 @@
 package api
 
 import (
-	"net/http"
+    "net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/middleware"
+    "github.com/gin-gonic/gin"
+    "github.com/m13ha/appointment_master/errors"
+    "github.com/m13ha/appointment_master/middleware"
 )
 
 // @Summary Get user analytics
-// @Description Get analytics data for the authenticated user including total appointments created and total bookings received
+// @Description Get analytics for the authenticated user over a date window.
+// @Description Includes totals, breakdowns (by type/status, guest vs registered), utilization,
+// @Description lead-time stats, daily series, peak hours/days, and top appointments.
 // @Tags Analytics
 // @Produce json
 // @Security BearerAuth
@@ -23,17 +24,11 @@ import (
 // @Router /analytics [get]
 // @ID getUserAnalytics
 func (h *Handler) GetUserAnalytics(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
-		errors.Unauthorized(c.Writer, "Unauthorized")
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		errors.BadRequest(c.Writer, "Invalid user ID")
-		return
-	}
+    userID, ok := middleware.GetUUIDFromContext(c)
+    if !ok {
+        errors.Unauthorized(c.Writer, "Unauthorized")
+        return
+    }
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
@@ -43,11 +38,11 @@ func (h *Handler) GetUserAnalytics(c *gin.Context) {
 		return
 	}
 
-	analytics, err := h.analyticsService.GetUserAnalytics(userID, startDate, endDate)
-	if err != nil {
-		errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
-		return
-	}
+    analytics, err := h.analyticsService.GetUserAnalytics(userID, startDate, endDate)
+    if err != nil {
+        errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+        return
+    }
 
 	c.JSON(http.StatusOK, analytics)
 }

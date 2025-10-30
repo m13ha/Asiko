@@ -18,7 +18,7 @@ import (
 // @Accept  json
 // @Produce  json
 // @Param   user  body   requests.UserRequest  true  "User Registration Details"
-// @Success 202 {object} responses.ResponsesSimpleMessageResponse
+// @Success 202 {object} responses.SimpleMessage
 // @Failure 400 {object} errors.ApiErrorResponse "Invalid request payload or validation error"
 // @Failure 500 {object} errors.ApiErrorResponse "Internal server error"
 // @Router /users [post]
@@ -48,7 +48,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, responses.ResponsesSimpleMessageResponse{Message: "Registration pending. Please check your email for a verification code."})
+	c.JSON(http.StatusAccepted, responses.SimpleMessage{Message: "Registration pending. Please check your email for a verification code."})
 }
 
 // @Summary Verify user registration
@@ -57,7 +57,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param   verification  body   requests.VerificationRequest  true  "Email and Verification Code"
-// @Success 201 {object} responses.ResponsesLoginResponse
+// @Success 201 {object} responses.LoginResponse
 // @Failure 400 {object} errors.ApiErrorResponse "Invalid request payload or verification error"
 // @Failure 500 {object} errors.ApiErrorResponse "Internal server error"
 // @Router /auth/verify-registration [post]
@@ -75,5 +75,5 @@ func (h *Handler) VerifyRegistrationHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, responses.ResponsesLoginResponse{Token: token})
+	c.JSON(http.StatusCreated, responses.LoginResponse{Token: token})
 }

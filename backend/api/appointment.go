@@ -1,14 +1,13 @@
 package api
 
 import (
-	"net/http"
+    "net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/middleware"
-	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/utils"
+    "github.com/gin-gonic/gin"
+    "github.com/m13ha/appointment_master/errors"
+    "github.com/m13ha/appointment_master/middleware"
+    "github.com/m13ha/appointment_master/models/requests"
+    "github.com/m13ha/appointment_master/utils"
 )
 
 // parseAndValidateRequest parses and validates the appointment request from the HTTP request
@@ -39,17 +38,11 @@ func parseAndValidateRequest(c *gin.Context) (requests.AppointmentRequest, error
 // @Router /appointments [post]
 // @ID createAppointment
 func (h *Handler) CreateAppointment(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
-		errors.Unauthorized(c.Writer, "authentication required")
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		errors.BadRequest(c.Writer, "invalid user ID")
-		return
-	}
+    userID, ok := middleware.GetUUIDFromContext(c)
+    if !ok {
+        errors.Unauthorized(c.Writer, "authentication required")
+        return
+    }
 
 	req, err := parseAndValidateRequest(c)
 	if err != nil {
@@ -57,16 +50,16 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 		return
 	}
 
-	appointment, err := h.appointmentService.CreateAppointment(req, userID)
-	if err != nil {
-		switch err.(type) {
-		case *errors.UserError:
-			errors.BadRequest(c.Writer, err.Error())
-		default:
-			errors.InternalServerError(c.Writer, "failed to create appointment")
-		}
-		return
-	}
+    appointment, err := h.appointmentService.CreateAppointment(req, userID)
+    if err != nil {
+        switch err.(type) {
+        case *errors.UserError:
+            errors.BadRequest(c.Writer, err.Error())
+        default:
+            errors.InternalServerError(c.Writer, "failed to create appointment")
+        }
+        return
+    }
 
 	c.JSON(http.StatusCreated, appointment)
 }
@@ -81,13 +74,13 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 // @Router /appointments/my [get]
 // @ID getMyAppointments
 func (h *Handler) GetAppointmentsCreatedByUser(c *gin.Context) {
-	userIDStr := middleware.GetUserIDFromContext(c)
-	if userIDStr == "" {
-		errors.Unauthorized(c.Writer, "")
-		return
-	}
+    uid, ok := middleware.GetUUIDFromContext(c)
+    if !ok {
+        errors.Unauthorized(c.Writer, "")
+        return
+    }
 
-	appointments := h.appointmentService.GetAllAppointmentsCreatedByUser(userIDStr, nil)
+    appointments := h.appointmentService.GetAllAppointmentsCreatedByUser(uid.String(), nil)
 
 	c.JSON(http.StatusOK, appointments)
 }
