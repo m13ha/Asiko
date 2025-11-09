@@ -10,20 +10,20 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/m13ha/appointment_master/docs"
+	_ "github.com/m13ha/asiko/docs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/joho/godotenv"
-	"github.com/m13ha/appointment_master/api"
-	"github.com/m13ha/appointment_master/db"
-	customMiddleware "github.com/m13ha/appointment_master/middleware"
-	"github.com/m13ha/appointment_master/notifications"
-	"github.com/m13ha/appointment_master/repository"
-	"github.com/m13ha/appointment_master/services"
+	"github.com/m13ha/asiko/api"
+	"github.com/m13ha/asiko/db"
+	customMiddleware "github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/notifications"
+	"github.com/m13ha/asiko/repository"
+	"github.com/m13ha/asiko/services"
 )
 
-// @title Appointment Master API
+// @title Asiko API
 // @version 1.0
 // @description This is a comprehensive API for creating and managing appointments.
 // @termsOfService http://swagger.io/terms/
@@ -35,7 +35,6 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 
-// @host localhost:8888
 // @BasePath /
 // @schemes http
 
@@ -79,13 +78,15 @@ func main() {
 	banListService := services.NewBanListService(banListRepo)
 
 	r := gin.Default()
+	r.Use(customMiddleware.RequestID())
 	r.Use(customMiddleware.RequestLogger())
 	r.Use(gin.Recovery())
 	r.Use(customMiddleware.CORS())
+	r.Use(customMiddleware.ErrorHandler())
 
 	// Basic endpoints for testing
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "Appointment Master API", "version": "1.0"})
+		c.JSON(200, gin.H{"message": "Asiko API", "version": "1.0"})
 	})
 
 	r.GET("/health", func(c *gin.Context) {

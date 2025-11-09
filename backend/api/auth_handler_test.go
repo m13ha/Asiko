@@ -1,17 +1,19 @@
 package api
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/services/mocks"
+	apperrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/responses"
+	"github.com/m13ha/asiko/services/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLogin(t *testing.T) {
@@ -20,42 +22,63 @@ func TestLogin(t *testing.T) {
 		body               string
 		setupMock          func(mockService *mocks.UserService)
 		expectedStatusCode int
-		expectedBody       string
+		expectedContains   string
+		expectedError      *apiErrorPayload
 	}{
 		{
-			name:        "Success",
-			body:        `{"email": "test@example.com", "password": "password123"}`,
+			name: "Success",
+			body: `{"email": "test@example.com", "password": "password123"}`,
 			setupMock: func(mockService *mocks.UserService) {
 				mockUser := &entities.User{Name: "Test User", Email: "test@example.com"}
 				mockService.On("AuthenticateUser", "test@example.com", "password123").Return(mockUser, nil).Once()
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedBody:       `{"token":"`,
+			expectedContains:   `{"token":"`,
 		},
 		{
 			name:               "Failure - Bad Request (Invalid JSON)",
 			body:               `{"email": "test@example.com"}`,
 			setupMock:          func(mockService *mocks.UserService) {},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       `{"errors":[`,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeValidationFailed,
+				Message: "Validation failed",
+			},
 		},
 		{
 			name: "Failure - Unauthorized (Invalid Credentials)",
 			body: `{"email": "wrong@example.com", "password": "wrongpassword"}`,
 			setupMock: func(mockService *mocks.UserService) {
-				mockService.On("AuthenticateUser", "wrong@example.com", "wrongpassword").Return(nil, errors.NewUserError("Invalid email or password")).Once()
+				err := apperrors.New(apperrors.CodeLoginInvalidCredentials).
+					WithKind(apperrors.KindUnauthorized).
+					WithHTTP(http.StatusUnauthorized).
+					WithMessage("Invalid email or password.")
+				mockService.On("AuthenticateUser", "wrong@example.com", "wrongpassword").Return(nil, err).Once()
 			},
 			expectedStatusCode: http.StatusUnauthorized,
-			expectedBody:       `{"error":"Invalid email or password"}`,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusUnauthorized,
+				Code:    apperrors.CodeLoginInvalidCredentials,
+				Message: "Invalid email or password.",
+			},
 		},
 		{
 			name: "Failure - Pending Verification",
 			body: `{"email": "pending@example.com", "password": "password123"}`,
 			setupMock: func(mockService *mocks.UserService) {
-				mockService.On("AuthenticateUser", "pending@example.com", "password123").Return(nil, errors.NewUserError("Invalid email or password")).Once()
+				err := apperrors.New(apperrors.CodeUserPendingVerification).
+					WithKind(apperrors.KindPrecondition).
+					WithHTTP(http.StatusAccepted).
+					WithMessage("Registration is pending verification. Please check your email for a verification code.")
+				mockService.On("AuthenticateUser", "pending@example.com", "password123").Return(nil, err).Once()
 			},
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedBody:       `{"error":"Invalid email or password"}`,
+			expectedStatusCode: http.StatusAccepted,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusAccepted,
+				Code:    apperrors.CodeUserPendingVerification,
+				Message: "Registration is pending verification. Please check your email for a verification code.",
+			},
 		},
 	}
 
@@ -71,7 +94,13 @@ func TestLogin(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.expectedStatusCode, w.Code)
-			assert.Contains(t, w.Body.String(), tc.expectedBody)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedContains != "" {
+				assert.Contains(t, w.Body.String(), tc.expectedContains)
+			}
 			mockUserService.AssertExpectations(t)
 		})
 	}
@@ -83,7 +112,8 @@ func TestCreateUserAPI(t *testing.T) {
 		body               string
 		setupMock          func(mockService *mocks.UserService)
 		expectedStatusCode int
-		expectedBody       string
+		expectedMessage    string
+		expectedError      *apiErrorPayload
 	}{
 		{
 			name: "Success - Pending Registration",
@@ -92,23 +122,35 @@ func TestCreateUserAPI(t *testing.T) {
 				mockService.On("CreateUser", mock.AnythingOfType("requests.UserRequest")).Return(nil, nil).Once()
 			},
 			expectedStatusCode: http.StatusAccepted,
-			expectedBody:       `{"message":"Registration pending. Please check your email for a verification code."}`,
+			expectedMessage:    "Registration pending. Please check your email for a verification code.",
 		},
 		{
 			name:               "Failure - Bad Request",
 			body:               `{"name": "New User"}`,
 			setupMock:          func(mockService *mocks.UserService) {},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       `{"errors":[`,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeValidationFailed,
+				Message: "Validation failed",
+			},
 		},
 		{
 			name: "Failure - Service Error",
 			body: `{"name": "New User", "email": "new@example.com", "password": "password123"}`,
 			setupMock: func(mockService *mocks.UserService) {
-				mockService.On("CreateUser", mock.AnythingOfType("requests.UserRequest")).Return(nil, fmt.Errorf("service error")).Once()
+				err := apperrors.New(apperrors.CodeInternalError).
+					WithKind(apperrors.KindInternal).
+					WithHTTP(http.StatusInternalServerError).
+					WithMessage("Internal server error")
+				mockService.On("CreateUser", mock.AnythingOfType("requests.UserRequest")).Return(nil, err).Once()
 			},
 			expectedStatusCode: http.StatusInternalServerError,
-			expectedBody:       `{"error":"internal server error"}`,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusInternalServerError,
+				Code:    apperrors.CodeInternalError,
+				Message: "Internal server error",
+			},
 		},
 	}
 
@@ -124,7 +166,15 @@ func TestCreateUserAPI(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.expectedStatusCode, w.Code)
-			assert.Contains(t, w.Body.String(), tc.expectedBody)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedMessage != "" {
+				var payload responses.SimpleMessage
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &payload))
+				assert.Equal(t, tc.expectedMessage, payload.Message)
+			}
 			mockUserService.AssertExpectations(t)
 		})
 	}
@@ -136,7 +186,8 @@ func TestVerifyRegistrationAPI(t *testing.T) {
 		body               string
 		setupMock          func(mockService *mocks.UserService)
 		expectedStatusCode int
-		expectedBody       string
+		expectedToken      string
+		expectedError      *apiErrorPayload
 	}{
 		{
 			name: "Success",
@@ -145,23 +196,52 @@ func TestVerifyRegistrationAPI(t *testing.T) {
 				mockService.On("VerifyRegistration", "verify@example.com", "123456").Return("mock-jwt-token", nil).Once()
 			},
 			expectedStatusCode: http.StatusCreated,
-			expectedBody:       `{"token":"mock-jwt-token"}`,
+			expectedToken:      "mock-jwt-token",
 		},
 		{
 			name:               "Failure - Bad Request (Invalid JSON)",
 			body:               `{invalid}`,
 			setupMock:          func(mockService *mocks.UserService) {},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       `{"error":"Invalid request payload"}`,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeValidationFailed,
+				Message: "Invalid request payload",
+			},
 		},
 		{
 			name: "Failure - Service Error",
 			body: `{"email": "verify@example.com", "code": "wrong"}`,
 			setupMock: func(mockService *mocks.UserService) {
-				mockService.On("VerifyRegistration", "verify@example.com", "wrong").Return("", errors.NewUserError("Invalid or expired verification code.")).Once()
+				err := apperrors.New(apperrors.CodeInvalidVerificationCode).
+					WithKind(apperrors.KindValidation).
+					WithHTTP(http.StatusBadRequest).
+					WithMessage("Invalid verification code.")
+				mockService.On("VerifyRegistration", "verify@example.com", "wrong").Return("", err).Once()
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       `{"error":"Invalid or expired verification code."}`,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeInvalidVerificationCode,
+				Message: "Invalid verification code.",
+			},
+		},
+		{
+			name: "Failure - Expired Code",
+			body: `{"email": "verify@example.com", "code": "123456"}`,
+			setupMock: func(mockService *mocks.UserService) {
+				err := apperrors.New(apperrors.CodeVerificationExpired).
+					WithKind(apperrors.KindValidation).
+					WithHTTP(http.StatusBadRequest).
+					WithMessage("Verification code expired. Request a new code.")
+				mockService.On("VerifyRegistration", "verify@example.com", "123456").Return("", err).Once()
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeVerificationExpired,
+				Message: "Verification code expired. Request a new code.",
+			},
 		},
 	}
 
@@ -177,7 +257,87 @@ func TestVerifyRegistrationAPI(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.expectedStatusCode, w.Code)
-			assert.Contains(t, w.Body.String(), tc.expectedBody)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedToken != "" {
+				var payload responses.LoginResponse
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &payload))
+				assert.Equal(t, tc.expectedToken, payload.Token)
+			}
+			mockUserService.AssertExpectations(t)
+		})
+	}
+}
+
+func TestResendVerificationAPI(t *testing.T) {
+	testCases := []struct {
+		name               string
+		body               string
+		setupMock          func(mockService *mocks.UserService)
+		expectedStatusCode int
+		expectedContains   string
+		expectedError      *apiErrorPayload
+	}{
+		{
+			name: "Success",
+			body: `{"email": "pending@example.com"}`,
+			setupMock: func(mockService *mocks.UserService) {
+				mockService.On("ResendVerificationCode", "pending@example.com").Return(nil).Once()
+			},
+			expectedStatusCode: http.StatusAccepted,
+			expectedContains:   `{"message":"Verification code resent if a pending registration exists for this email."}`,
+		},
+		{
+			name:               "Failure - Bad Request (invalid JSON)",
+			body:               `{invalid}`,
+			setupMock:          func(mockService *mocks.UserService) {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeValidationFailed,
+				Message: "Invalid request payload",
+			},
+		},
+		{
+			name: "Failure - Service Error",
+			body: `{"email": "missing@example.com"}`,
+			setupMock: func(mockService *mocks.UserService) {
+				err := apperrors.New(apperrors.CodeResourceNotFound).
+					WithKind(apperrors.KindNotFound).
+					WithHTTP(http.StatusNotFound).
+					WithMessage("No pending verification found for this email.")
+				mockService.On("ResendVerificationCode", "missing@example.com").Return(err).Once()
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusNotFound,
+				Code:    apperrors.CodeResourceNotFound,
+				Message: "No pending verification found for this email.",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			router, mockUserService, _, _, _, _, _ := setupTestRouter()
+			tc.setupMock(mockUserService)
+
+			req, _ := http.NewRequest("POST", "/auth/resend-verification", strings.NewReader(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedContains != "" {
+				assert.Contains(t, w.Body.String(), tc.expectedContains)
+			}
 			mockUserService.AssertExpectations(t)
 		})
 	}

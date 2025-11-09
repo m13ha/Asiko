@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/middleware"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/notifications"
-	"github.com/m13ha/appointment_master/repository"
-	"github.com/m13ha/appointment_master/utils"
+	myerrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/notifications"
+	"github.com/m13ha/asiko/repository"
+	"github.com/m13ha/asiko/utils"
 	"github.com/morkid/paginate"
 	"gorm.io/gorm"
 )
@@ -32,6 +32,25 @@ func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo
 	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, banListRepo: banListRepo, notificationService: notificationService, eventNotificationService: eventNotificationService, db: db}
 }
 
+func normalizeSlotState(slot *entities.Booking) {
+	if slot.Capacity < 1 {
+		slot.Capacity = 1
+	}
+	if slot.SeatsBooked < 0 {
+		slot.SeatsBooked = 0
+	}
+	if slot.SeatsBooked >= slot.Capacity {
+		slot.Available = false
+	} else {
+		slot.Available = true
+	}
+	remaining := slot.Capacity - slot.SeatsBooked
+	if remaining < 0 {
+		remaining = 0
+	}
+	slot.AttendeeCount = remaining
+}
+
 // performAntiScalpingChecks runs validation based on the appointment's settings.
 // It returns the trusted device ID (if applicable) or an error if a check fails.
 func (s *bookingServiceImpl) performAntiScalpingChecks(appointment *entities.Appointment, req requests.BookingRequest, bookingEmail string) (string, error) {
@@ -45,24 +64,24 @@ func (s *bookingServiceImpl) performAntiScalpingChecks(appointment *entities.App
 	// Strict check (Device ID)
 	if level == entities.ScalpingStrict {
 		if req.DeviceToken == "" {
-			return "", myerrors.NewUserError("device token is required for this appointment")
+			return "", myerrors.New(myerrors.CodePreconditionFailed).WithKind(myerrors.KindPrecondition).WithHTTP(400).WithMessage("device token is required for this appointment")
 		}
 		validatedDeviceID, err := middleware.ValidateDeviceToken(req.DeviceToken)
 		if err != nil {
-			return "", myerrors.NewUserError(fmt.Sprintf("invalid device token: %v", err))
+			return "", myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage(fmt.Sprintf("invalid device token: %v", err))
 		}
 		trustedDeviceID = validatedDeviceID
 
 		// Check if device has already booked
 		if _, err := s.bookingRepo.FindActiveBookingByDevice(appointment.ID, trustedDeviceID); err == nil {
-			return "", myerrors.NewUserError("a booking has already been made from this device")
+			return "", myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("a booking has already been made from this device")
 		}
 	}
 
 	// Standard check (Email) - runs for both 'standard' and 'strict'
 	if level == entities.ScalpingStandard || level == entities.ScalpingStrict {
 		if _, err := s.bookingRepo.FindActiveBookingByEmail(appointment.ID, bookingEmail); err == nil {
-			return "", myerrors.NewUserError("this email has already been used to book for this appointment")
+			return "", myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("this email has already been used to book for this appointment")
 		}
 	}
 
@@ -85,7 +104,7 @@ func (s *bookingServiceImpl) BookAppointment(req requests.BookingRequest, userID
 	// --- 2. Fetch Appointment ---
 	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(req.AppCode)
 	if err != nil {
-		return nil, myerrors.NewUserError("appointment not found")
+		return nil, err
 	}
 
 	// --- 3. Get Booker's Info ---
@@ -94,7 +113,7 @@ func (s *bookingServiceImpl) BookAppointment(req requests.BookingRequest, userID
 	if userIDStr != "" {
 		user, err = s.userRepo.FindByID(userIDStr)
 		if err != nil {
-			return nil, myerrors.NewUserError("user not found")
+			return nil, err
 		}
 		bookingEmail = user.Email
 	} else {
@@ -122,11 +141,11 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 
 		lockedAppointment, err := appRepo.FindAndLock(req.AppCode, tx)
 		if err != nil {
-			return myerrors.NewUserError("appointment not found")
+			return err
 		}
 
 		if lockedAppointment.AttendeesBooked+req.AttendeeCount > lockedAppointment.MaxAttendees {
-			return myerrors.NewUserError("not enough capacity for this party")
+			return myerrors.New(myerrors.CodeBookingCapacityExceeded).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("not enough capacity for this party")
 		}
 
 		booking = &entities.Booking{
@@ -136,6 +155,9 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 			StartTime:     req.StartTime,
 			EndTime:       req.EndTime,
 			Available:     false,
+			IsSlot:        false,
+			Capacity:      req.AttendeeCount,
+			SeatsBooked:   req.AttendeeCount,
 			AttendeeCount: req.AttendeeCount,
 			Description:   req.Description,
 			Status:        "active",
@@ -146,7 +168,11 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 			booking.UserID = &user.ID
 			booking.Name = user.Name
 			booking.Email = user.Email
-			booking.Phone = user.PhoneNumber
+			if user.PhoneNumber != nil {
+				booking.Phone = *user.PhoneNumber
+			} else {
+				booking.Phone = ""
+			}
 		} else {
 			booking.Name = req.Name
 			booking.Email = utils.NormalizeEmail(req.Email)
@@ -176,65 +202,139 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 }
 
 func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, user *entities.User, appointment *entities.Appointment, deviceID string) (*entities.Booking, error) {
-    var slot *entities.Booking
-    // Use transaction + row lock to prevent concurrent booking of the same slot
-    err := s.db.Transaction(func(tx *gorm.DB) error {
-        bookRepo := s.bookingRepo.WithTx(tx)
+	if appointment.Type == entities.Group {
+		var reservation *entities.Booking
+		err := s.db.Transaction(func(tx *gorm.DB) error {
+			bookRepo := s.bookingRepo.WithTx(tx)
 
-        lockedSlot, err := bookRepo.FindAndLockAvailableSlot(req.AppCode, req.Date, req.StartTime)
-        if err != nil {
-            return myerrors.NewUserError("no available slot found")
-        }
+			lockedSlot, err := bookRepo.FindAndLockAvailableSlot(req.AppCode, req.Date, req.StartTime)
+			if err != nil {
+				return myerrors.New(myerrors.CodeBookingSlotUnavailable).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("no available slot found")
+			}
 
-        // Populate user info
-        if user != nil {
-            lockedSlot.UserID = &user.ID
-            lockedSlot.Name = user.Name
-            lockedSlot.Email = user.Email
-            lockedSlot.Phone = user.PhoneNumber
-        } else {
-            lockedSlot.Name = req.Name
-            lockedSlot.Email = utils.NormalizeEmail(req.Email)
-            lockedSlot.Phone = req.Phone
-        }
+			remaining := lockedSlot.Capacity - lockedSlot.SeatsBooked
+			if remaining <= 0 || req.AttendeeCount > remaining {
+				return myerrors.New(myerrors.CodeBookingCapacityExceeded).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("not enough capacity for this slot")
+			}
 
-        // Populate booking details
-        if appointment.Type == entities.Group {
-            if req.AttendeeCount > appointment.MaxAttendees {
-                return myerrors.NewUserError("attendee count exceeds maximum allowed")
-            }
-            lockedSlot.AttendeeCount = req.AttendeeCount
-        } else {
-            lockedSlot.AttendeeCount = 1
-        }
-        lockedSlot.Description = req.Description
-        lockedSlot.DeviceID = deviceID
-        lockedSlot.Available = false
+			if req.AttendeeCount > appointment.MaxAttendees {
+				return myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("attendee count exceeds maximum allowed")
+			}
 
-        if err := bookRepo.Update(lockedSlot); err != nil {
-            log.Printf("[bookSlot] DB error: %v", err)
-            return fmt.Errorf("internal error")
-        }
+			reservation = &entities.Booking{
+				AppointmentID: lockedSlot.AppointmentID,
+				AppCode:       lockedSlot.AppCode,
+				Date:          lockedSlot.Date,
+				StartTime:     lockedSlot.StartTime,
+				EndTime:       lockedSlot.EndTime,
+				Available:     false,
+				IsSlot:        false,
+				Capacity:      req.AttendeeCount,
+				SeatsBooked:   req.AttendeeCount,
+				AttendeeCount: req.AttendeeCount,
+				Description:   req.Description,
+				DeviceID:      deviceID,
+			}
 
-        slot = lockedSlot
-        return nil
-    })
+			if user != nil {
+				reservation.UserID = &user.ID
+				reservation.Name = user.Name
+				reservation.Email = user.Email
+				if user.PhoneNumber != nil {
+					reservation.Phone = *user.PhoneNumber
+				}
+			} else {
+				reservation.Name = req.Name
+				reservation.Email = utils.NormalizeEmail(req.Email)
+				reservation.Phone = req.Phone
+			}
 
-    if err != nil {
-        return nil, err
-    }
+			if err := bookRepo.Create(reservation); err != nil {
+				log.Printf("[bookSlot] failed to create reservation: %v", err)
+				return myerrors.FromError(err)
+			}
 
-    // Out-of-transaction side effects
-    if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
-        s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
-    } else {
-        s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
-    }
+			lockedSlot.SeatsBooked += req.AttendeeCount
+			normalizeSlotState(lockedSlot)
 
-    message := fmt.Sprintf("New booking by %s for your appointment %s.", slot.Name, appointment.Title)
-    s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, slot.ID)
+			if err := bookRepo.Update(lockedSlot); err != nil {
+				log.Printf("[bookSlot] failed to update slot: %v", err)
+				return myerrors.FromError(err)
+			}
 
-    return slot, nil
+			return nil
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		if err := s.notificationService.SendBookingConfirmation(reservation); err != nil {
+			s.bookingRepo.UpdateNotificationStatus(reservation.ID, "failed", "email")
+		} else {
+			s.bookingRepo.UpdateNotificationStatus(reservation.ID, "sent", "email")
+		}
+
+		message := fmt.Sprintf("New booking by %s for your appointment %s.", reservation.Name, appointment.Title)
+		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, reservation.ID)
+
+		return reservation, nil
+	}
+
+	// Fallback to single-slot behaviour for other appointment types
+	var slot *entities.Booking
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		bookRepo := s.bookingRepo.WithTx(tx)
+
+		lockedSlot, err := bookRepo.FindAndLockAvailableSlot(req.AppCode, req.Date, req.StartTime)
+		if err != nil {
+			return myerrors.New(myerrors.CodeBookingSlotUnavailable).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("no available slot found")
+		}
+
+		// Populate user info
+		if user != nil {
+			lockedSlot.UserID = &user.ID
+			lockedSlot.Name = user.Name
+			lockedSlot.Email = user.Email
+			if user.PhoneNumber != nil {
+				lockedSlot.Phone = *user.PhoneNumber
+			} else {
+				lockedSlot.Phone = ""
+			}
+		} else {
+			lockedSlot.Name = req.Name
+			lockedSlot.Email = utils.NormalizeEmail(req.Email)
+			lockedSlot.Phone = req.Phone
+		}
+
+		lockedSlot.SeatsBooked = lockedSlot.Capacity
+		lockedSlot.Description = req.Description
+		lockedSlot.DeviceID = deviceID
+		normalizeSlotState(lockedSlot)
+
+		if err := bookRepo.Update(lockedSlot); err != nil {
+			log.Printf("[bookSlot] DB error: %v", err)
+			return myerrors.FromError(err)
+		}
+
+		slot = lockedSlot
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
+		s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
+	} else {
+		s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
+	}
+
+	message := fmt.Sprintf("New booking by %s for your appointment %s.", slot.Name, appointment.Title)
+	s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, slot.ID)
+
+	return slot, nil
 }
 
 // BookRegisteredUserAppointment is a wrapper for backward compatibility
@@ -256,7 +356,7 @@ func (s *bookingServiceImpl) GetAllBookingsForAppointment(ctx context.Context, a
 func (s *bookingServiceImpl) GetUserBookings(ctx context.Context, userID string) (paginate.Page, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		return paginate.Page{}, myerrors.NewUserError("Invalid user ID.")
+		return paginate.Page{}, myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Invalid user ID.")
 	}
 	return s.bookingRepo.GetBookingsByUserID(ctx, uid), nil
 }
@@ -270,7 +370,7 @@ func (s *bookingServiceImpl) GetAvailableSlots(ctx context.Context, appcode stri
 func (s *bookingServiceImpl) GetAvailableSlotsByDay(ctx context.Context, appcode string, dateStr string) (paginate.Page, error) {
 	parsedDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		return paginate.Page{}, myerrors.NewUserError("Invalid date format. Use YYYY-MM-DD.")
+		return paginate.Page{}, myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Invalid date format. Use YYYY-MM-DD.")
 	}
 	return s.bookingRepo.GetAvailableSlotsByDay(ctx, appcode, parsedDate), nil
 }
@@ -279,7 +379,7 @@ func (s *bookingServiceImpl) GetAvailableSlotsByDay(ctx context.Context, appcode
 func (s *bookingServiceImpl) GetBookingByCode(bookingCode string) (*entities.Booking, error) {
 	booking, err := s.bookingRepo.GetBookingByCode(bookingCode)
 	if err != nil {
-		return nil, myerrors.NewUserError("Booking not found.")
+		return nil, myerrors.FromError(err)
 	}
 	return booking, nil
 }
@@ -290,22 +390,69 @@ func (s *bookingServiceImpl) UpdateBookingByCode(bookingCode string, req request
 	if err != nil {
 		return nil, err
 	}
-	_, err = s.bookingRepo.FindAvailableSlot(req.AppCode, req.Date, req.StartTime)
+
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		bookRepo := s.bookingRepo.WithTx(tx)
+		capacityErr := myerrors.New(myerrors.CodeBookingCapacityExceeded).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("not enough capacity for this slot")
+		sameSlot := booking.AppCode == req.AppCode && booking.Date.Equal(req.Date) && booking.StartTime.Equal(req.StartTime)
+
+		if sameSlot {
+			slot, slotErr := bookRepo.FindAndLockSlot(req.AppCode, req.Date, req.StartTime)
+			if slotErr != nil {
+				return slotErr
+			}
+			delta := req.AttendeeCount - booking.AttendeeCount
+			if delta > 0 && slot.SeatsBooked+delta > slot.Capacity {
+				return capacityErr
+			}
+			slot.SeatsBooked += delta
+			normalizeSlotState(slot)
+			if updateErr := bookRepo.Update(slot); updateErr != nil {
+				return updateErr
+			}
+		} else {
+			oldSlot, slotErr := bookRepo.FindAndLockSlot(booking.AppCode, booking.Date, booking.StartTime)
+			if slotErr != nil {
+				return slotErr
+			}
+			oldSlot.SeatsBooked -= booking.AttendeeCount
+			normalizeSlotState(oldSlot)
+			if updateErr := bookRepo.Update(oldSlot); updateErr != nil {
+				return updateErr
+			}
+
+			newSlot, slotErr := bookRepo.FindAndLockSlot(req.AppCode, req.Date, req.StartTime)
+			if slotErr != nil {
+				return slotErr
+			}
+			if newSlot.SeatsBooked+req.AttendeeCount > newSlot.Capacity {
+				return capacityErr
+			}
+			newSlot.SeatsBooked += req.AttendeeCount
+			normalizeSlotState(newSlot)
+			if updateErr := bookRepo.Update(newSlot); updateErr != nil {
+				return updateErr
+			}
+		}
+
+		booking.AppCode = req.AppCode
+		booking.Date = req.Date
+		booking.StartTime = req.StartTime
+		booking.EndTime = req.EndTime
+		booking.AttendeeCount = req.AttendeeCount
+		booking.Description = req.Description
+		booking.Available = false
+		booking.Status = "active"
+
+		if updateErr := bookRepo.Update(booking); updateErr != nil {
+			return updateErr
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return nil, myerrors.NewUserError("Requested slot is not available.")
-	}
-	booking.Available = true
-	s.bookingRepo.Update(booking)
-	booking.Date = req.Date
-	booking.StartTime = req.StartTime
-	booking.EndTime = req.EndTime
-	booking.AttendeeCount = req.AttendeeCount
-	booking.Description = req.Description
-	booking.Available = false
-	booking.Status = "active"
-	if err := s.bookingRepo.Update(booking); err != nil {
-		log.Printf("[UpdateBookingByCode] DB error: %v", err)
-		return nil, fmt.Errorf("internal error")
+		return nil, myerrors.FromError(err)
 	}
 
 	appointment, _ := s.appointmentRepo.FindAppointmentByAppCode(booking.AppCode)
@@ -326,7 +473,7 @@ func (s *bookingServiceImpl) CancelBookingByCode(bookingCode string) (*entities.
 
 	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(booking.AppCode)
 	if err != nil {
-		return nil, myerrors.NewUserError("Appointment not found.")
+		return nil, myerrors.FromError(err)
 	}
 
 	if appointment.Type == entities.Party {
@@ -354,14 +501,35 @@ func (s *bookingServiceImpl) CancelBookingByCode(bookingCode string) (*entities.
 
 		if err != nil {
 			log.Printf("[CancelBookingByCode] DB error: %v", err)
-			return nil, fmt.Errorf("internal error")
+			return nil, myerrors.FromError(err)
 		}
 	} else {
-		booking.Available = true
-		booking.Status = "cancelled"
-		if err := s.bookingRepo.Update(booking); err != nil {
+		err = s.db.Transaction(func(tx *gorm.DB) error {
+			bookRepo := s.bookingRepo.WithTx(tx)
+
+			slot, slotErr := bookRepo.FindAndLockSlot(booking.AppCode, booking.Date, booking.StartTime)
+			if slotErr != nil {
+				return slotErr
+			}
+
+			slot.SeatsBooked -= booking.AttendeeCount
+			normalizeSlotState(slot)
+			if updateErr := bookRepo.Update(slot); updateErr != nil {
+				return updateErr
+			}
+
+			booking.Available = true
+			booking.Status = "cancelled"
+			if updateErr := bookRepo.Update(booking); updateErr != nil {
+				return updateErr
+			}
+
+			return nil
+		})
+
+		if err != nil {
 			log.Printf("[CancelBookingByCode] DB error: %v", err)
-			return nil, fmt.Errorf("internal error")
+			return nil, myerrors.FromError(err)
 		}
 	}
 
@@ -387,11 +555,11 @@ func (s *bookingServiceImpl) RejectBooking(bookingCode string, ownerID uuid.UUID
 
 	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(booking.AppCode)
 	if err != nil {
-		return nil, myerrors.NewUserError("Appointment not found.")
+		return nil, myerrors.FromError(err)
 	}
 
 	if appointment.OwnerID != ownerID {
-		return nil, myerrors.NewUserError("you are not the owner of this appointment")
+		return nil, myerrors.New(myerrors.CodeForbidden).WithKind(myerrors.KindForbidden).WithHTTP(403).WithMessage("you are not the owner of this appointment")
 	}
 
 	if appointment.Type == entities.Party {
@@ -419,14 +587,35 @@ func (s *bookingServiceImpl) RejectBooking(bookingCode string, ownerID uuid.UUID
 
 		if err != nil {
 			log.Printf("[RejectBooking] DB error: %v", err)
-			return nil, fmt.Errorf("internal error")
+			return nil, myerrors.FromError(err)
 		}
 	} else {
-		booking.Available = true
-		booking.Status = "rejected"
-		if err := s.bookingRepo.Update(booking); err != nil {
+		err = s.db.Transaction(func(tx *gorm.DB) error {
+			bookRepo := s.bookingRepo.WithTx(tx)
+
+			slot, slotErr := bookRepo.FindAndLockSlot(booking.AppCode, booking.Date, booking.StartTime)
+			if slotErr != nil {
+				return slotErr
+			}
+
+			slot.SeatsBooked -= booking.AttendeeCount
+			normalizeSlotState(slot)
+			if updateErr := bookRepo.Update(slot); updateErr != nil {
+				return updateErr
+			}
+
+			booking.Available = true
+			booking.Status = "rejected"
+			if updateErr := bookRepo.Update(booking); updateErr != nil {
+				return updateErr
+			}
+
+			return nil
+		})
+
+		if err != nil {
 			log.Printf("[RejectBooking] DB error: %v", err)
-			return nil, fmt.Errorf("internal error")
+			return nil, myerrors.FromError(err)
 		}
 	}
 

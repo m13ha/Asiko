@@ -5,7 +5,7 @@ package mocks
 import (
 	time "time"
 
-	repository "github.com/m13ha/appointment_master/repository"
+	repository "github.com/m13ha/asiko/repository"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"

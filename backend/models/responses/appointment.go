@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
+	"github.com/m13ha/asiko/models/entities"
 )
 
 type AppointmentResponse struct {

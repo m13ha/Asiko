@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"github.com/m13ha/appointment_master/models/entities"
-	"gorm.io/gorm"
+    apperr "github.com/m13ha/asiko/errors"
+    "github.com/m13ha/asiko/models/entities"
+    "gorm.io/gorm"
 )
 
 type PendingUserRepository interface {
@@ -21,21 +22,30 @@ func NewGormPendingUserRepository(db *gorm.DB) PendingUserRepository {
 }
 
 func (r *gormPendingUserRepository) Create(user *entities.PendingUser) error {
-	return r.db.Create(user).Error
+    if err := r.db.Create(user).Error; err != nil {
+        return apperr.TranslateRepoError("repository.pending.Create", err)
+    }
+    return nil
 }
 
 func (r *gormPendingUserRepository) FindByEmail(email string) (*entities.PendingUser, error) {
 	var user entities.PendingUser
-	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+    if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+        return nil, apperr.TranslateRepoError("repository.pending.FindByEmail", err)
+    }
+    return &user, nil
 }
 
 func (r *gormPendingUserRepository) Update(user *entities.PendingUser) error {
-	return r.db.Save(user).Error
+    if err := r.db.Save(user).Error; err != nil {
+        return apperr.TranslateRepoError("repository.pending.Update", err)
+    }
+    return nil
 }
 
 func (r *gormPendingUserRepository) Delete(email string) error {
-	return r.db.Where("email = ?", email).Delete(&entities.PendingUser{}).Error
+    if err := r.db.Where("email = ?", email).Delete(&entities.PendingUser{}).Error; err != nil {
+        return apperr.TranslateRepoError("repository.pending.Delete", err)
+    }
+    return nil
 }

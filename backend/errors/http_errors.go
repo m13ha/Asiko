@@ -1,17 +1,17 @@
 package errors
 
 import (
-	"encoding/json"
-	"net/http"
+    "encoding/json"
+    "net/http"
 
-	"github.com/go-playground/validator/v10"
+    "github.com/go-playground/validator/v10"
 )
 
 // WriteError is a helper for consistent error responses
 func WriteError(w http.ResponseWriter, status int, msg string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(status)
+    json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
 // Unauthorized sends a 401 Unauthorized error
@@ -42,14 +42,21 @@ func InternalServerError(w http.ResponseWriter, msg string) {
 
 // HandleServiceError checks for UserError and writes a user-friendly message, otherwise writes a generic error
 func HandleServiceError(w http.ResponseWriter, err error, status int) {
-	if err == nil {
-		return
-	}
-	if ue, ok := err.(*UserError); ok {
-		WriteError(w, status, ue.Message)
-	} else {
-		InternalServerError(w, "")
-	}
+    if err == nil {
+        return
+    }
+    if ae := FromError(err); ae != nil {
+        httpStatus := ae.HTTP
+        if httpStatus == 0 {
+            httpStatus = StatusFromKind(ae.Kind)
+        }
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(httpStatus)
+        _ = json.NewEncoder(w).Encode(APIErrorResponse{Status: httpStatus, Code: ae.Code, Message: ae.Message, Fields: ae.Fields})
+        return
+    }
+    // Fallback
+    InternalServerError(w, "")
 }
 
 // FormatValidationErrors writes validation errors as a structured HTTP response

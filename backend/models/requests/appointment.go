@@ -3,21 +3,21 @@ package requests
 import (
 	"time"
 
-	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/utils"
+	myerrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/utils"
 )
 
 type AppointmentRequest struct {
-	Title             string                   `json:"title" validate:"required"`
-	StartTime         time.Time                `json:"start_time" validate:"required"`
-	EndTime           time.Time                `json:"end_time" validate:"required"`
-	BookingDuration   int                      `json:"booking_duration" validate:"required,gt=0"`
-	StartDate         time.Time                `json:"start_date" validate:"required"`
-	EndDate           time.Time                `json:"end_date" validate:"required,gtefield=StartDate"`
-	Type              entities.AppointmentType `json:"type" validate:"required,oneof=single group party"`
-	MaxAttendees      int                      `json:"max_attendees" validate:"gte=1"`
-	Description       string                   `json:"description"`
+	Title             string                     `json:"title" validate:"required"`
+	StartTime         time.Time                  `json:"start_time" validate:"required"`
+	EndTime           time.Time                  `json:"end_time" validate:"required"`
+	BookingDuration   int                        `json:"booking_duration" validate:"required,gt=0"`
+	StartDate         time.Time                  `json:"start_date" validate:"required"`
+	EndDate           time.Time                  `json:"end_date" validate:"required,gtefield=StartDate"`
+	Type              entities.AppointmentType   `json:"type" validate:"required,oneof=single group party"`
+	MaxAttendees      int                        `json:"max_attendees" validate:"gte=1"`
+	Description       string                     `json:"description"`
 	AntiScalpingLevel entities.AntiScalpingLevel `json:"anti_scalping_level,omitempty" validate:"omitempty,oneof=none standard strict"`
 }
 

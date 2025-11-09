@@ -1,7 +1,7 @@
 {
   "name": "appointment-master-backend",
   "version": "1.0.0",
-  "description": "Appointment Master Backend API",
+  "description": "Asiko Backend API",
   "main": "main.go",
   "scripts": {
     "client-gen": "swag init -g main.go && bash generate-client.sh",
@@ -17,6 +17,6 @@
     "appointments",
     "booking"
   ],
-  "author": "Appointment Master Team",
+  "author": "Asiko Team",
   "license": "MIT"
 }

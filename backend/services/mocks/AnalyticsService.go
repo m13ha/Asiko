@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	responses "github.com/m13ha/appointment_master/models/responses"
+	responses "github.com/m13ha/asiko/models/responses"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"

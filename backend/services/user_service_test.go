@@ -4,21 +4,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/notifications/mocks"
-	repoMocks "github.com/m13ha/appointment_master/repository/mocks"
+	myerrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/notifications/mocks"
+	repoMocks "github.com/m13ha/asiko/repository/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 func TestCreateUser(t *testing.T) {
 	testCases := []struct {
 		name          string
 		request       requests.UserRequest
-		setupMocks    func(*repoMocks.UserRepository, *repoMocks.PendingUserRepository, *mocks.NotificationService)
+		setupMocks    func(*repoMocks.UserRepository, *repoMocks.PendingUserRepository, *mocks.NotificationService) func(*testing.T)
 		expectedError string
 	}{
 		{
@@ -28,10 +28,45 @@ func TestCreateUser(t *testing.T) {
 				Email:    "test@example.com",
 				Password: "password123",
 			},
-			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository, notificationSvc *mocks.NotificationService) {
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository, notificationSvc *mocks.NotificationService) func(*testing.T) {
 				userRepo.On("FindByEmail", "test@example.com").Return(&entities.User{}, nil).Once()
+				return nil
 			},
-			expectedError: "Email already registered.",
+			expectedError: "EMAIL_ALREADY_REGISTERED: Email already registered.",
+		},
+		{
+			name: "Success - Creates pending user when none exists",
+			request: requests.UserRequest{
+				Name:     "New User",
+				Email:    "new@example.com",
+				Password: "password123",
+			},
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository, notificationSvc *mocks.NotificationService) func(*testing.T) {
+				userRepo.On("FindByEmail", "new@example.com").
+					Return((*entities.User)(nil), repoNotFoundError()).Once()
+				pendingRepo.On("FindByEmail", "new@example.com").
+					Return((*entities.PendingUser)(nil), repoNotFoundError()).Once()
+				pendingRepo.On("Create", mock.AnythingOfType("*entities.PendingUser")).Return(nil).Once()
+
+				done := make(chan struct{}, 1)
+				notificationSvc.On("SendVerificationCode", "new@example.com", mock.AnythingOfType("string")).
+					Return(nil).
+					Run(func(args mock.Arguments) {
+						select {
+						case done <- struct{}{}:
+						default:
+						}
+					}).Once()
+
+				return func(t *testing.T) {
+					select {
+					case <-done:
+					case <-time.After(100 * time.Millisecond):
+						t.Fatal("expected SendVerificationCode to be called")
+					}
+				}
+			},
+			expectedError: "",
 		},
 	}
 
@@ -40,13 +75,26 @@ func TestCreateUser(t *testing.T) {
 			mockUserRepo := new(repoMocks.UserRepository)
 			mockPendingRepo := new(repoMocks.PendingUserRepository)
 			mockNotificationSvc := new(mocks.NotificationService)
-			tc.setupMocks(mockUserRepo, mockPendingRepo, mockNotificationSvc)
+			waitFn := tc.setupMocks(mockUserRepo, mockPendingRepo, mockNotificationSvc)
 
 			userService := NewUserService(mockUserRepo, mockPendingRepo, mockNotificationSvc)
-			_, err := userService.CreateUser(tc.request)
+			resp, err := userService.CreateUser(tc.request)
 
-			assert.Error(t, err)
-			assert.Equal(t, tc.expectedError, err.Error())
+			if waitFn != nil {
+				waitFn(t)
+			}
+
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expectedError, err.Error())
+			} else {
+				assert.NoError(t, err)
+				if assert.NotNil(t, resp) {
+					assert.Equal(t, tc.request.Name, resp.Name)
+					assert.Equal(t, tc.request.Email, resp.Email)
+					assert.Nil(t, resp.PhoneNumber)
+				}
+			}
 
 			mockUserRepo.AssertExpectations(t)
 			mockPendingRepo.AssertExpectations(t)
@@ -83,20 +131,30 @@ func TestAuthenticateUser(t *testing.T) {
 			email:    "pending@example.com",
 			password: "password123",
 			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
-				userRepo.On("FindByEmail", "pending@example.com").Return(nil, gorm.ErrRecordNotFound).Once()
+				userRepo.On("FindByEmail", "pending@example.com").Return(nil, repoNotFoundError()).Once()
 				pendingRepo.On("FindByEmail", "pending@example.com").Return(&entities.PendingUser{}, nil).Once()
 			},
-			expectedError: "Registration is pending verification. Please check your email for a verification code.",
+			expectedError: "USER_PENDING_VERIFICATION: Registration is pending verification. Please check your email for a verification code.",
 		},
 		{
 			name:     "Failure - User not found",
 			email:    "notfound@example.com",
 			password: "password123",
 			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
-				userRepo.On("FindByEmail", "notfound@example.com").Return(nil, gorm.ErrRecordNotFound).Once()
-				pendingRepo.On("FindByEmail", "notfound@example.com").Return(nil, gorm.ErrRecordNotFound).Once()
+				userRepo.On("FindByEmail", "notfound@example.com").Return(nil, repoNotFoundError()).Once()
+				pendingRepo.On("FindByEmail", "notfound@example.com").Return(nil, repoNotFoundError()).Once()
 			},
-			expectedError: "Invalid email or password.",
+			expectedError: "LOGIN_INVALID_CREDENTIALS: Invalid email or password.",
+		},
+		{
+			name:     "Failure - Repository error surfaces",
+			email:    "error@example.com",
+			password: "password123",
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
+				repoErr := myerrors.New(myerrors.CodeInternalError).WithKind(myerrors.KindInternal).WithHTTP(500).WithMessage("repository failure")
+				userRepo.On("FindByEmail", "error@example.com").Return(nil, repoErr).Once()
+			},
+			expectedError: "INTERNAL_ERROR: repository failure",
 		},
 	}
 
@@ -119,39 +177,88 @@ func TestAuthenticateUser(t *testing.T) {
 	}
 }
 
-func TestVerifyRegistration(t *testing.T) {
-	mockPendingUser := &entities.PendingUser{
-		Email:                     "test@example.com",
-		VerificationCode:          "123456",
-		VerificationCodeExpiresAt: time.Now().Add(15 * time.Minute),
-	}
+func repoNotFoundError() error {
+	return myerrors.New(myerrors.CodeResourceNotFound).
+		WithKind(myerrors.KindNotFound).
+		WithHTTP(404).
+		WithMessage("Resource not found")
+}
 
+func TestVerifyRegistration(t *testing.T) {
 	testCases := []struct {
 		name          string
 		email         string
 		code          string
 		setupMocks    func(*repoMocks.UserRepository, *repoMocks.PendingUserRepository)
-		expectedError bool
+		expectedError string
 	}{
 		{
 			name:  "Success",
 			email: "test@example.com",
 			code:  "123456",
 			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
+				mockPendingUser := &entities.PendingUser{
+					Email:                     "test@example.com",
+					VerificationCode:          "123456",
+					VerificationCodeExpiresAt: time.Now().Add(15 * time.Minute),
+					Name:                      "Test User",
+					HashedPassword:            "hashed",
+				}
 				pendingRepo.On("FindByEmail", "test@example.com").Return(mockPendingUser, nil).Once()
 				userRepo.On("Create", mock.AnythingOfType("*entities.User")).Return(nil).Once()
 				pendingRepo.On("Delete", "test@example.com").Return(nil).Once()
 			},
-			expectedError: false,
+			expectedError: "",
+		},
+		{
+			name:  "Success - Empty phone sanitized",
+			email: "phone@example.com",
+			code:  "123456",
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
+				empty := ""
+				mockPendingUser := &entities.PendingUser{
+					Email:                     "phone@example.com",
+					VerificationCode:          "123456",
+					VerificationCodeExpiresAt: time.Now().Add(15 * time.Minute),
+					Name:                      "Phone User",
+					HashedPassword:            "hashed",
+					PhoneNumber:               &empty,
+				}
+				pendingRepo.On("FindByEmail", "phone@example.com").Return(mockPendingUser, nil).Once()
+				userRepo.On("Create", mock.MatchedBy(func(u *entities.User) bool {
+					return u.Email == "phone@example.com" && u.PhoneNumber == nil
+				})).Return(nil).Once()
+				pendingRepo.On("Delete", "phone@example.com").Return(nil).Once()
+			},
+			expectedError: "",
 		},
 		{
 			name:  "Failure - Invalid Code",
 			email: "test@example.com",
 			code:  "654321",
 			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
+				mockPendingUser := &entities.PendingUser{
+					Email:                     "test@example.com",
+					VerificationCode:          "123456",
+					VerificationCodeExpiresAt: time.Now().Add(15 * time.Minute),
+				}
 				pendingRepo.On("FindByEmail", "test@example.com").Return(mockPendingUser, nil).Once()
 			},
-			expectedError: true,
+			expectedError: "INVALID_VERIFICATION_CODE: Invalid verification code.",
+		},
+		{
+			name:  "Failure - Code Expired",
+			email: "test@example.com",
+			code:  "123456",
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
+				mockPendingUser := &entities.PendingUser{
+					Email:                     "test@example.com",
+					VerificationCode:          "123456",
+					VerificationCodeExpiresAt: time.Now().Add(-1 * time.Minute),
+				}
+				pendingRepo.On("FindByEmail", "test@example.com").Return(mockPendingUser, nil).Once()
+			},
+			expectedError: "VERIFICATION_EXPIRED: Verification code expired. Request a new code.",
 		},
 	}
 
@@ -164,7 +271,97 @@ func TestVerifyRegistration(t *testing.T) {
 			userService := NewUserService(mockUserRepo, mockPendingRepo, nil)
 			_, err := userService.VerifyRegistration(tc.email, tc.code)
 
-			assert.Equal(t, tc.expectedError, err != nil)
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expectedError, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestResendVerificationCode(t *testing.T) {
+	testCases := []struct {
+		name          string
+		email         string
+		setupMocks    func(*repoMocks.UserRepository, *repoMocks.PendingUserRepository, *mocks.NotificationService) func(*testing.T)
+		expectedError string
+	}{
+		{
+			name:  "Success - Pending user found",
+			email: "pending@example.com",
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository, notificationSvc *mocks.NotificationService) func(*testing.T) {
+				userRepo.On("FindByEmail", "pending@example.com").Return((*entities.User)(nil), repoNotFoundError()).Once()
+				pendingUser := &entities.PendingUser{
+					Email:                     "pending@example.com",
+					VerificationCode:          "000000",
+					VerificationCodeExpiresAt: time.Now().Add(-1 * time.Minute),
+				}
+				pendingRepo.On("FindByEmail", "pending@example.com").Return(pendingUser, nil).Once()
+				pendingRepo.On("Update", mock.AnythingOfType("*entities.PendingUser")).Return(nil).Once()
+				done := make(chan struct{}, 1)
+				notificationSvc.On("SendVerificationCode", "pending@example.com", mock.AnythingOfType("string")).Return(nil).Run(func(args mock.Arguments) {
+					select {
+					case done <- struct{}{}:
+					default:
+					}
+				}).Once()
+				return func(t *testing.T) {
+					select {
+					case <-done:
+					case <-time.After(100 * time.Millisecond):
+						t.Fatal("expected SendVerificationCode to be called")
+					}
+				}
+			},
+			expectedError: "",
+		},
+		{
+			name:  "Failure - Already verified",
+			email: "existing@example.com",
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository, notificationSvc *mocks.NotificationService) func(*testing.T) {
+				userRepo.On("FindByEmail", "existing@example.com").Return(&entities.User{}, nil).Once()
+				return nil
+			},
+			expectedError: "EMAIL_ALREADY_REGISTERED: Account already verified. Please login.",
+		},
+		{
+			name:  "Failure - Pending not found",
+			email: "missing@example.com",
+			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository, notificationSvc *mocks.NotificationService) func(*testing.T) {
+				userRepo.On("FindByEmail", "missing@example.com").Return((*entities.User)(nil), repoNotFoundError()).Once()
+				pendingRepo.On("FindByEmail", "missing@example.com").Return((*entities.PendingUser)(nil), repoNotFoundError()).Once()
+				return nil
+			},
+			expectedError: "RESOURCE_NOT_FOUND: No pending verification found for this email.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			userRepo := new(repoMocks.UserRepository)
+			pendingRepo := new(repoMocks.PendingUserRepository)
+			notificationSvc := new(mocks.NotificationService)
+			waitFn := tc.setupMocks(userRepo, pendingRepo, notificationSvc)
+
+			service := NewUserService(userRepo, pendingRepo, notificationSvc)
+			err := service.ResendVerificationCode(tc.email)
+
+			if waitFn != nil {
+				waitFn(t)
+			}
+
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expectedError, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			userRepo.AssertExpectations(t)
+			pendingRepo.AssertExpectations(t)
+			notificationSvc.AssertExpectations(t)
 		})
 	}
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,8 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/services/mocks"
+	apperrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/services/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -22,6 +23,8 @@ func TestCreateAppointmentAPI(t *testing.T) {
 		tokenUserID        string
 		setupMock          func(mockService *mocks.AppointmentService)
 		expectedStatusCode int
+		expectedContains   string
+		expectedError      *apiErrorPayload
 	}{
 		{
 			name:        "Success",
@@ -31,6 +34,7 @@ func TestCreateAppointmentAPI(t *testing.T) {
 				mockService.On("CreateAppointment", mock.Anything, mock.Anything).Return(&entities.Appointment{Title: "Test App"}, nil).Once()
 			},
 			expectedStatusCode: http.StatusCreated,
+			expectedContains:   "Test App",
 		},
 		{
 			name:               "Failure - Unauthorized (No Token)",
@@ -38,6 +42,11 @@ func TestCreateAppointmentAPI(t *testing.T) {
 			tokenUserID:        "", // No user ID set in context
 			setupMock:          func(mockService *mocks.AppointmentService) {},
 			expectedStatusCode: http.StatusUnauthorized,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusUnauthorized,
+				Code:    apperrors.CodeUnauthorized,
+				Message: "authentication required",
+			},
 		},
 		{
 			name:               "Failure - Bad Request",
@@ -45,32 +54,48 @@ func TestCreateAppointmentAPI(t *testing.T) {
 			tokenUserID:        uuid.New().String(),
 			setupMock:          func(mockService *mocks.AppointmentService) {},
 			expectedStatusCode: http.StatusBadRequest,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeValidationFailed,
+				Message: "Validation failed",
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Arrange
-			_, _, mockAppointmentService, _, _, _, _ := setupTestRouter()
+			mockAppointmentService := new(mocks.AppointmentService)
 			tc.setupMock(mockAppointmentService)
+
+			handler := NewHandler(nil, mockAppointmentService, nil, nil, nil, nil)
+			router := gin.New()
+			router.Use(middleware.RequestID())
+			router.Use(gin.Recovery())
+			router.Use(middleware.ErrorHandler())
+			router.POST("/appointments", func(c *gin.Context) {
+				if tc.tokenUserID != "" {
+					if uid, err := uuid.Parse(tc.tokenUserID); err == nil {
+						c.Set("userID", tc.tokenUserID)
+						c.Set("userUUID", uid)
+					}
+				}
+				handler.CreateAppointment(c)
+			})
 
 			req, _ := http.NewRequest("POST", "/appointments", strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
-
 			w := httptest.NewRecorder()
-			ctx, _ := gin.CreateTestContext(w)
-			ctx.Request = req
-			// Simulate auth middleware by setting (or not setting) the userID
-			if tc.tokenUserID != "" {
-				ctx.Set("userID", tc.tokenUserID)
-			}
 
-			// Act
-			h := NewHandler(nil, mockAppointmentService, nil, nil, nil, nil)
-			h.CreateAppointment(ctx)
+			router.ServeHTTP(w, req)
 
-			// Assert
 			assert.Equal(t, tc.expectedStatusCode, w.Code)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedContains != "" {
+				assert.Contains(t, w.Body.String(), tc.expectedContains)
+			}
 			mockAppointmentService.AssertExpectations(t)
 		})
 	}
@@ -82,6 +107,8 @@ func TestCancelBookingAPI(t *testing.T) {
 		bookingCode        string
 		setupMock          func(mockService *mocks.BookingService)
 		expectedStatusCode int
+		expectedContains   string
+		expectedError      *apiErrorPayload
 	}{
 		{
 			name:        "Success",
@@ -90,14 +117,24 @@ func TestCancelBookingAPI(t *testing.T) {
 				mockService.On("CancelBookingByCode", "BK123XYZ").Return(&entities.Booking{Status: "cancelled"}, nil).Once()
 			},
 			expectedStatusCode: http.StatusOK,
+			expectedContains:   `"status":"cancelled"`,
 		},
 		{
 			name:        "Failure - Booking Not Found",
 			bookingCode: "NOTFOUND",
 			setupMock: func(mockService *mocks.BookingService) {
-				mockService.On("CancelBookingByCode", "NOTFOUND").Return(nil, fmt.Errorf("not found")).Once()
+				err := apperrors.New(apperrors.CodeBookingNotFound).
+					WithKind(apperrors.KindNotFound).
+					WithHTTP(http.StatusNotFound).
+					WithMessage("Booking not found")
+				mockService.On("CancelBookingByCode", "NOTFOUND").Return((*entities.Booking)(nil), err).Once()
 			},
-			expectedStatusCode: http.StatusInternalServerError, // Service errors return 500
+			expectedStatusCode: http.StatusNotFound,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusNotFound,
+				Code:    apperrors.CodeBookingNotFound,
+				Message: "Booking not found",
+			},
 		},
 	}
 
@@ -115,6 +152,13 @@ func TestCancelBookingAPI(t *testing.T) {
 
 			// Assert
 			assert.Equal(t, tc.expectedStatusCode, w.Code)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedContains != "" {
+				assert.Contains(t, w.Body.String(), tc.expectedContains)
+			}
 			mockBookingService.AssertExpectations(t)
 		})
 	}

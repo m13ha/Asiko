@@ -5,14 +5,13 @@ package mocks
 import (
 	context "context"
 
-	entities "github.com/m13ha/appointment_master/models/entities"
-	gorm "gorm.io/gorm"
-
+	entities "github.com/m13ha/asiko/models/entities"
+	repository "github.com/m13ha/asiko/repository"
 	mock "github.com/stretchr/testify/mock"
 
-	paginate "github.com/morkid/paginate"
+	gorm "gorm.io/gorm"
 
-	repository "github.com/m13ha/appointment_master/repository"
+	paginate "github.com/morkid/paginate"
 
 	uuid "github.com/google/uuid"
 )

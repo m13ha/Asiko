@@ -1,4 +1,4 @@
-module github.com/m13ha/appointment_master
+module github.com/m13ha/asiko
 
 go 1.24
 

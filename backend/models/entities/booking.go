@@ -21,6 +21,9 @@ type Booking struct {
 	StartTime           time.Time      `json:"start_time" gorm:"not null"`
 	EndTime             time.Time      `json:"end_time" gorm:"not null"`
 	Available           bool           `json:"available" gorm:"not null;default:true"`
+	IsSlot              bool           `json:"is_slot" gorm:"not null;default:false"`
+	Capacity            int            `json:"capacity" gorm:"not null;default:1"`
+	SeatsBooked         int            `json:"seats_booked" gorm:"not null;default:0"`
 	AttendeeCount       int            `json:"attendee_count" gorm:"default:1"`
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedAt           time.Time      `json:"updated_at"`
@@ -34,6 +37,12 @@ type Booking struct {
 }
 
 func (a *Booking) BeforeCreate(tx *gorm.DB) error {
+	if a.Capacity < 1 {
+		a.Capacity = 1
+	}
+	if a.SeatsBooked < 0 {
+		a.SeatsBooked = 0
+	}
 	// Generate unique appointment code
 	code, err := generateUniqueCode(tx, "bookings", "booking_code = ?", Booking{}, "BK")
 	if err != nil {

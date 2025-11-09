@@ -4,46 +4,47 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/middleware"
-	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/models/responses"
-	"github.com/m13ha/appointment_master/utils"
+	"github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/models/responses"
+	"github.com/m13ha/asiko/utils"
 )
 
 // @Summary User Login
 // @Description Authenticate a user and receive a JWT token.
 // @Tags Authentication
-// @Accept  json
-// @Produce  json
+// @Accept  application/json
+// @Produce  application/json
 // @Param   login  body   requests.LoginRequest  true  "Login Credentials"
 // @Success 200 {object} responses.LoginResponse
-// @Failure 400 {object} errors.ApiErrorResponse "Invalid request body or validation error"
-// @Failure 401 {object} errors.ApiErrorResponse "Invalid email or password"
-// @Failure 500 {object} errors.ApiErrorResponse "Could not generate token"
+// @Success 202 {object} errors.APIErrorResponse "Registration pending verification"
+// @Failure 400 {object} errors.APIErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} errors.APIErrorResponse "Invalid email or password"
+// @Failure 500 {object} errors.APIErrorResponse "Could not generate token"
 // @Router /login [post]
 // @ID loginUser
 func (h *Handler) Login(c *gin.Context) {
 	var req requests.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errors.BadRequest(c.Writer, "Invalid request body")
+		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request body"))
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		errors.FormatValidationErrors(c.Writer, err)
+		c.Error(errors.FromValidation(err, "Validation failed"))
 		return
 	}
 
 	userEntity, err := h.userService.AuthenticateUser(utils.NormalizeEmail(req.Email), req.Password)
 	if err != nil {
-		errors.Unauthorized(c.Writer, "Invalid email or password")
+		c.Error(errors.FromError(err))
 		return
 	}
 
 	token, err := middleware.GenerateToken(userEntity.ID.String())
 	if err != nil {
-		errors.InternalServerError(c.Writer, "Could not generate token")
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate token"))
 		return
 	}
 
@@ -60,7 +61,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Summary User Logout
 // @Description Invalidate the user's session.
 // @Tags Authentication
-// @Produce  json
+// @Produce  application/json
 // @Success 200 {object} responses.SimpleMessage
 // @Router /logout [post]
 // @ID logoutUser
@@ -71,29 +72,29 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Summary Generate Device Token
 // @Description Generate a short-lived token for a given device ID to be used in booking requests.
 // @Tags Authentication
-// @Accept  json
-// @Produce  json
+// @Accept  application/json
+// @Produce  application/json
 // @Param   device   body   requests.DeviceTokenRequest  true  "Device ID"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} errors.ApiErrorResponse "Invalid request body or validation error"
-// @Failure 500 {object} errors.ApiErrorResponse "Could not generate token"
+// @Failure 400 {object} errors.APIErrorResponse "Invalid request body or validation error"
+// @Failure 500 {object} errors.APIErrorResponse "Could not generate token"
 // @Router /auth/device-token [post]
 // @ID generateDeviceToken
 func (h *Handler) GenerateDeviceTokenHandler(c *gin.Context) {
 	var req requests.DeviceTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errors.BadRequest(c.Writer, "Invalid request body")
+		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request body"))
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		errors.FormatValidationErrors(c.Writer, err)
+		c.Error(errors.FromValidation(err, "Validation failed"))
 		return
 	}
 
 	token, err := middleware.GenerateDeviceToken(req.DeviceID)
 	if err != nil {
-		errors.InternalServerError(c.Writer, "Could not generate device token")
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate device token"))
 		return
 	}
 

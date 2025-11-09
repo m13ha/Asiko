@@ -1,21 +1,23 @@
 package services
 
 import (
-	"fmt"
-	"log"
-	"net/http"
+    "fmt"
+    "context"
+    "log"
+    "net/http"
 
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/models/responses"
-	"github.com/m13ha/appointment_master/repository"
-	"github.com/m13ha/appointment_master/utils"
+    myerrors "github.com/m13ha/asiko/errors"
+    "github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/models/responses"
+	"github.com/m13ha/asiko/repository"
+	"github.com/m13ha/asiko/utils"
 	"github.com/morkid/paginate"
 )
 
 type appointmentServiceImpl struct {
-	appointmentRepo        repository.AppointmentRepository
+	appointmentRepo          repository.AppointmentRepository
 	eventNotificationService EventNotificationService
 }
 
@@ -42,10 +44,10 @@ func (s *appointmentServiceImpl) CreateAppointment(req requests.AppointmentReque
 		AntiScalpingLevel: req.AntiScalpingLevel,
 	}
 
-	if err := s.appointmentRepo.Create(appointment); err != nil {
-		log.Printf("[CreateAppointment] DB error: %v", err)
-		return nil, fmt.Errorf("internal error")
-	}
+    if err := s.appointmentRepo.Create(appointment); err != nil {
+        log.Printf("[CreateAppointment] DB error: %v", err)
+        return nil, myerrors.FromError(err)
+    }
 
 	message := fmt.Sprintf("New appointment '%s' created.", appointment.Title)
 	s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "APPOINTMENT_CREATED", message, appointment.ID)
@@ -54,9 +56,15 @@ func (s *appointmentServiceImpl) CreateAppointment(req requests.AppointmentReque
 }
 
 func (s *appointmentServiceImpl) GetAllAppointmentsCreatedByUser(userID string, r *http.Request) paginate.Page {
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		return paginate.New().With(nil).Request(r).Response(&[]responses.AppointmentResponse{})
-	}
-	return s.appointmentRepo.GetAppointmentsByOwnerIDQuery(r.Context(), uid)
+    uid, err := uuid.Parse(userID)
+    if err != nil {
+        return paginate.New().With(nil).Request(r).Response(&[]responses.AppointmentResponse{})
+    }
+    var ctx context.Context
+    if r != nil {
+        ctx = r.Context()
+    } else {
+        ctx = context.Background()
+    }
+    return s.appointmentRepo.GetAppointmentsByOwnerIDQuery(ctx, uid)
 }

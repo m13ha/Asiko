@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/repository"
+	myerrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/repository"
 	"github.com/morkid/paginate"
 )
 

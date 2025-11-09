@@ -17,6 +17,9 @@ type BookingResponse struct {
 	Date          time.Time  `json:"date"`
 	StartTime     time.Time  `json:"start_time"`
 	EndTime       time.Time  `json:"end_time"`
+	IsSlot        bool       `json:"is_slot"`
+	Capacity      int        `json:"capacity"`
+	SeatsBooked   int        `json:"seats_booked"`
 	AttendeeCount int        `json:"attendee_count"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`

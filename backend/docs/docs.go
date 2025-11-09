@@ -732,6 +732,112 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/verify-registration": {
+            "post": {
+                "description": "Verify a user's email address with a code to complete registration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify user registration",
+                "operationId": "verifyRegistration",
+                "parameters": [
+                    {
+                        "description": "Email and Verification Code",
+                        "name": "verification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.VerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload or verification error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/resend-verification": {
+            "post": {
+                "description": "Resend a verification code for a pending registration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Resend verification code",
+                "operationId": "resendVerification",
+                "parameters": [
+                    {
+                        "description": "Email to resend verification code to",
+                        "name": "resend",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ResendVerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pending registration not found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Account already verified",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "post": {
                 "description": "Register a new user in the system.",
@@ -872,6 +978,15 @@ const docTemplate = `{
                 "available": {
                     "type": "boolean"
                 },
+                "is_slot": {
+                    "type": "boolean"
+                },
+                "capacity": {
+                    "type": "integer"
+                },
+                "seats_booked": {
+                    "type": "integer"
+                },
                 "booking_code": {
                     "description": "Permanent booking code for all bookings",
                     "type": "string"
@@ -1004,6 +1119,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "attendee_count": {
+                    "description": "Number of attendees to reserve in this booking (must not exceed remaining capacity)",
                     "type": "integer",
                     "minimum": 1
                 },
@@ -1064,11 +1180,31 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64,
                     "minLength": 8
-                },
-                "phone": {
+                }
+            }
+        },
+        "requests.VerificationRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "code"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 },
-                "phone_number": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.ResendVerificationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }
@@ -1215,7 +1351,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8888",
 	BasePath:         "/",
 	Schemes:          []string{"http"},
-	Title:            "Appointment Master API",
+	Title:            "Asiko API",
 	Description:      "This is a comprehensive API for creating and managing appointments.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

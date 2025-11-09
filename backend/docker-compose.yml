@@ -5,7 +5,7 @@ services:
     image: postgres:17-alpine
     container_name: postgres_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     env_file:
       - .env
     volumes:
@@ -24,11 +24,11 @@ services:
     depends_on:
       - postgres
     ports:
-      - "8888:8080"
+      - "8890:8080"
     env_file:
       - .env
     environment:
-      - CORS_ALLOWED_ORIGINS=http://localhost:8081
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,https://7obnqz8ix1.loclx.io
     volumes:
       - .:/usr/src/app
       - /usr/src/app/tmp

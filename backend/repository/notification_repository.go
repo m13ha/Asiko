@@ -1,12 +1,13 @@
 package repository
 
 import (
-	"context"
+    "context"
 
-	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/morkid/paginate"
-	"gorm.io/gorm"
+    "github.com/google/uuid"
+    apperr "github.com/m13ha/asiko/errors"
+    "github.com/m13ha/asiko/models/entities"
+    "github.com/morkid/paginate"
+    "gorm.io/gorm"
 )
 
 type NotificationRepository interface {
@@ -24,7 +25,10 @@ func NewGormNotificationRepository(db *gorm.DB) NotificationRepository {
 }
 
 func (r *gormNotificationRepository) Create(notification *entities.Notification) error {
-	return r.db.Create(notification).Error
+    if err := r.db.Create(notification).Error; err != nil {
+        return apperr.TranslateRepoError("repository.notification.Create", err)
+    }
+    return nil
 }
 
 func (r *gormNotificationRepository) GetByUserID(ctx context.Context, userID uuid.UUID) paginate.Page {
@@ -34,5 +38,8 @@ func (r *gormNotificationRepository) GetByUserID(ctx context.Context, userID uui
 }
 
 func (r *gormNotificationRepository) MarkAllAsRead(userID uuid.UUID) error {
-	return r.db.Model(&entities.Notification{}).Where("user_id = ? AND is_read = false", userID).Update("is_read", true).Error
+    if err := r.db.Model(&entities.Notification{}).Where("user_id = ? AND is_read = false", userID).Update("is_read", true).Error; err != nil {
+        return apperr.TranslateRepoError("repository.notification.MarkAllAsRead", err)
+    }
+    return nil
 }

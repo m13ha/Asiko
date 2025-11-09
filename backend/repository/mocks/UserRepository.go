@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	entities "github.com/m13ha/appointment_master/models/entities"
+	entities "github.com/m13ha/asiko/models/entities"
 	mock "github.com/stretchr/testify/mock"
 )
 

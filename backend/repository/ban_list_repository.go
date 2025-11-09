@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"gorm.io/gorm"
+    "github.com/google/uuid"
+    apperr "github.com/m13ha/asiko/errors"
+    "github.com/m13ha/asiko/models/entities"
+    "gorm.io/gorm"
 )
 
 type BanListRepository interface {
@@ -22,25 +23,31 @@ func NewGormBanListRepository(db *gorm.DB) BanListRepository {
 }
 
 func (r *gormBanListRepository) Create(entry *entities.BanListEntry) error {
-	return r.db.Create(entry).Error
+    if err := r.db.Create(entry).Error; err != nil {
+        return apperr.TranslateRepoError("repository.banlist.Create", err)
+    }
+    return nil
 }
 
 func (r *gormBanListRepository) Delete(userID uuid.UUID, email string) error {
-	return r.db.Where("user_id = ? AND banned_email = ?", userID, email).Delete(&entities.BanListEntry{}).Error
+    if err := r.db.Where("user_id = ? AND banned_email = ?", userID, email).Delete(&entities.BanListEntry{}).Error; err != nil {
+        return apperr.TranslateRepoError("repository.banlist.Delete", err)
+    }
+    return nil
 }
 
 func (r *gormBanListRepository) FindByUserAndEmail(userID uuid.UUID, email string) (*entities.BanListEntry, error) {
 	var entry entities.BanListEntry
-	if err := r.db.Where("user_id = ? AND banned_email = ?", userID, email).First(&entry).Error; err != nil {
-		return nil, err
-	}
-	return &entry, nil
+    if err := r.db.Where("user_id = ? AND banned_email = ?", userID, email).First(&entry).Error; err != nil {
+        return nil, apperr.TranslateRepoError("repository.banlist.FindByUserAndEmail", err)
+    }
+    return &entry, nil
 }
 
 func (r *gormBanListRepository) GetAllByUser(userID uuid.UUID) ([]entities.BanListEntry, error) {
 	var entries []entities.BanListEntry
-	if err := r.db.Where("user_id = ?", userID).Find(&entries).Error; err != nil {
-		return nil, err
-	}
-	return entries, nil
+    if err := r.db.Where("user_id = ?", userID).Find(&entries).Error; err != nil {
+        return nil, apperr.TranslateRepoError("repository.banlist.GetAllByUser", err)
+    }
+    return entries, nil
 }

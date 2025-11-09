@@ -12,7 +12,7 @@ type User struct {
 	ID             uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Name           string         `json:"name" gorm:"not null"`
 	Email          string         `gorm:"uniqueIndex" json:"email"`
-	PhoneNumber    string         `gorm:"uniqueIndex" json:"phone_number"`
+	PhoneNumber    *string        `gorm:"uniqueIndex" json:"phone_number"`
 	HashedPassword string         `json:"-" gorm:"not null"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`

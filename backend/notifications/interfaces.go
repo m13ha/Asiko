@@ -1,6 +1,6 @@
 package notifications
 
-import "github.com/m13ha/appointment_master/models/entities"
+import "github.com/m13ha/asiko/models/entities"
 
 // NotificationService defines the interface for sending notifications.
 type NotificationService interface {

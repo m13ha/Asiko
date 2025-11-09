@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Appointment Master API
+ * Asiko API
  * This is a comprehensive API for creating and managing appointments.
  *
  * The version of the OpenAPI document: 1.0

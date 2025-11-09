@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,8 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/responses"
-	"github.com/m13ha/appointment_master/services/mocks"
+	apperrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/responses"
+	"github.com/m13ha/asiko/services/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,6 +24,8 @@ func TestGetUserAnalytics(t *testing.T) {
 		userID             string
 		setupMock          func(mockService *mocks.AnalyticsService, userID string)
 		expectedStatusCode int
+		expectedContains   string
+		expectedError      *apiErrorPayload
 	}{
 		{
 			name:        "Success",
@@ -38,6 +41,7 @@ func TestGetUserAnalytics(t *testing.T) {
 				}, nil)
 			},
 			expectedStatusCode: http.StatusOK,
+			expectedContains:   `"total_appointments":5`,
 		},
 		{
 			name:               "Missing query parameters",
@@ -45,6 +49,11 @@ func TestGetUserAnalytics(t *testing.T) {
 			userID:             uuid.New().String(),
 			setupMock:          func(mockService *mocks.AnalyticsService, userID string) {},
 			expectedStatusCode: http.StatusBadRequest,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusBadRequest,
+				Code:    apperrors.CodeValidationFailed,
+				Message: "start_date and end_date query parameters are required",
+			},
 		},
 		{
 			name:        "Service error",
@@ -52,9 +61,18 @@ func TestGetUserAnalytics(t *testing.T) {
 			userID:      uuid.New().String(),
 			setupMock: func(mockService *mocks.AnalyticsService, userID string) {
 				userUUID, _ := uuid.Parse(userID)
-				mockService.On("GetUserAnalytics", userUUID, "2025-01-01", "2025-01-31").Return((*responses.AnalyticsResponse)(nil), fmt.Errorf("service error"))
+				err := apperrors.New(apperrors.CodeInternalError).
+					WithKind(apperrors.KindInternal).
+					WithHTTP(http.StatusInternalServerError).
+					WithMessage("Internal server error")
+				mockService.On("GetUserAnalytics", userUUID, "2025-01-01", "2025-01-31").Return((*responses.AnalyticsResponse)(nil), err)
 			},
 			expectedStatusCode: http.StatusInternalServerError,
+			expectedError: &apiErrorPayload{
+				Status:  http.StatusInternalServerError,
+				Code:    apperrors.CodeInternalError,
+				Message: "Internal server error",
+			},
 		},
 	}
 
@@ -68,8 +86,16 @@ func TestGetUserAnalytics(t *testing.T) {
 			}
 
 			router := gin.New()
+			router.Use(middleware.RequestID())
+			router.Use(gin.Recovery())
+			router.Use(middleware.ErrorHandler())
 			router.GET("/analytics", func(c *gin.Context) {
-				c.Set("userID", tc.userID)
+				if tc.userID != "" {
+					c.Set("userID", tc.userID)
+					if uid, err := uuid.Parse(tc.userID); err == nil {
+						c.Set("userUUID", uid)
+					}
+				}
 				handler.GetUserAnalytics(c)
 			})
 
@@ -78,6 +104,13 @@ func TestGetUserAnalytics(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.expectedStatusCode, w.Code)
+			if tc.expectedError != nil {
+				resp := decodeAPIError(t, w.Body.Bytes())
+				assert.Equal(t, tc.expectedError.Code, resp.Code)
+				assert.Equal(t, tc.expectedError.Message, resp.Message)
+			} else if tc.expectedContains != "" {
+				assert.Contains(t, w.Body.String(), tc.expectedContains)
+			}
 			mockAnalyticsService.AssertExpectations(t)
 		})
 	}

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/models/requests"
-	repomocks "github.com/m13ha/appointment_master/repository/mocks"
-	servicemocks "github.com/m13ha/appointment_master/services/mocks"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/requests"
+	repomocks "github.com/m13ha/asiko/repository/mocks"
+	servicemocks "github.com/m13ha/asiko/services/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

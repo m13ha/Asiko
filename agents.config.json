@@ -1,0 +1,38 @@
+{
+  "nanocoder": {
+    "providers": [
+      {
+        "name": "ollama",
+        "models": [
+          "orca-mini:3b",
+          "qwen3:1.7b",
+          "qwen2.5:1.5b"
+        ],
+        "baseUrl": "http://localhost:11434/v1"
+      }
+    ],
+    "mcpServers": {
+      "fetch": {
+        "name": "fetch",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-fetch"
+        ],
+        "env": {
+          "USER_AGENT": "ModelContextProtocol/1.0"
+        }
+      },
+      "filesystem": {
+        "name": "filesystem",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "documents",
+          "volvlabs"
+        ]
+      }
+    }
+  }
+}

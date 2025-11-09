@@ -65,6 +65,17 @@ definitions:
     - Single
     - Group
     - Party
+  entities.BanListEntry:
+    properties:
+      banned_email:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      user_id:
+        type: string
+    type: object
   entities.Booking:
     properties:
       app_code:
@@ -75,6 +86,12 @@ definitions:
         type: integer
       available:
         type: boolean
+      is_slot:
+        type: boolean
+      capacity:
+        type: integer
+      seats_booked:
+        type: integer
       booking_code:
         description: Permanent booking code for all bookings
         type: string
@@ -112,13 +129,46 @@ definitions:
       user_id:
         type: string
     type: object
-  errors.ApiErrorResponse:
+  entities.Notification:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: string
+      is_read:
+        type: boolean
+      message:
+        type: string
+      resource_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  errors.APIErrorResponse:
     properties:
       code:
         type: string
-      details:
+      fields:
+        items:
+          $ref: '#/definitions/errors.FieldError'
+        type: array
+      message:
+        type: string
+      meta: {}
+      request_id:
+        type: string
+      status:
+        type: integer
+    type: object
+  errors.FieldError:
+    properties:
+      field:
         type: string
       message:
+        type: string
+      rule:
         type: string
     type: object
   requests.AppointmentRequest:
@@ -163,11 +213,19 @@ definitions:
     - title
     - type
     type: object
+  requests.BanRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   requests.BookingRequest:
     properties:
       app_code:
         type: string
       attendee_count:
+        description: Number of attendees to reserve in this booking (must not exceed remaining capacity)
         minimum: 1
         type: integer
       date:
@@ -209,6 +267,13 @@ definitions:
     - email
     - password
     type: object
+  requests.ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   requests.UserRequest:
     properties:
       email:
@@ -220,22 +285,91 @@ definitions:
         maxLength: 64
         minLength: 8
         type: string
-      phone:
-        type: string
-      phone_number:
-        type: string
     required:
     - email
     - name
     - password
     type: object
+  requests.VerificationRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
   responses.AnalyticsResponse:
     properties:
+      appointments_by_type:
+        additionalProperties:
+          type: integer
+        description: Breakdowns
+        type: object
+      avg_attendees_per_booking:
+        type: number
+      avg_lead_time_hours:
+        description: Timing
+        type: number
+      bookings_by_status:
+        additionalProperties:
+          type: integer
+        type: object
+      bookings_per_day:
+        description: Time series
+        items:
+          $ref: '#/definitions/responses.TimeSeriesPoint'
+        type: array
+      cancellations_per_day:
+        items:
+          $ref: '#/definitions/responses.TimeSeriesPoint'
+        type: array
+      distinct_customers:
+        type: integer
       end_date:
         type: string
+      guest_vs_registered:
+        additionalProperties:
+          type: integer
+        type: object
+      median_lead_time_hours:
+        type: number
+      party_capacity:
+        properties:
+          percent:
+            type: number
+          total:
+            type: integer
+          used:
+            type: integer
+        type: object
+      peak_days:
+        items:
+          $ref: '#/definitions/responses.BucketCount'
+        type: array
+      peak_hours:
+        description: Insights
+        items:
+          $ref: '#/definitions/responses.BucketCount'
+        type: array
+      rejections_per_day:
+        items:
+          $ref: '#/definitions/responses.TimeSeriesPoint'
+        type: array
+      repeat_customers:
+        type: integer
+      slot_utilization_percent:
+        description: Utilization & Capacity
+        type: number
       start_date:
         type: string
+      top_appointments:
+        items:
+          $ref: '#/definitions/responses.TopAppointment'
+        type: array
       total_appointments:
+        description: Summary
         type: integer
       total_bookings:
         type: integer
@@ -269,6 +403,13 @@ definitions:
       updated_at:
         type: string
     type: object
+  responses.BucketCount:
+    properties:
+      count:
+        type: integer
+      key:
+        type: string
+    type: object
   responses.LoginResponse:
     properties:
       token:
@@ -290,10 +431,29 @@ definitions:
       total_pages:
         type: integer
     type: object
-  responses.SimpleMessageResponse:
+  responses.SimpleMessage:
     properties:
+      data: {}
       message:
         example: Action completed successfully
+        type: string
+    type: object
+  responses.TimeSeriesPoint:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+    type: object
+  responses.TopAppointment:
+    properties:
+      app_code:
+        type: string
+      bookings:
+        type: integer
+      capacity_usage_percent:
+        type: number
+      title:
         type: string
     type: object
   responses.UserResponse:
@@ -311,7 +471,6 @@ definitions:
       updated_at:
         type: string
     type: object
-host: localhost:8888
 info:
   contact:
     email: support@swagger.io
@@ -322,13 +481,15 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   termsOfService: http://swagger.io/terms/
-  title: Appointment Master API
+  title: Asiko API
   version: "1.0"
 paths:
   /analytics:
     get:
-      description: Get analytics data for the authenticated user including total appointments
-        created and total bookings received
+      description: |-
+        Get analytics for the authenticated user over a date window.
+        Includes totals, breakdowns (by type/status, guest vs registered), utilization,
+        lead-time stats, daily series, peak hours/days, and top appointments.
       operationId: getUserAnalytics
       parameters:
       - description: Start date (YYYY-MM-DD)
@@ -351,15 +512,15 @@ paths:
         "400":
           description: Invalid date format or missing parameters
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       security:
       - BearerAuth: []
       summary: Get user analytics
@@ -388,15 +549,15 @@ paths:
         "400":
           description: Invalid request payload or validation error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "401":
           description: Authentication required
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Failed to create appointment
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new appointment
@@ -424,9 +585,13 @@ paths:
           schema:
             $ref: '#/definitions/entities.Booking'
         "400":
-          description: Invalid request payload, validation error, or capacity exceeded
+          description: Invalid request payload or validation error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "409":
+          description: Slot unavailable or capacity exceeded
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Book an appointment (Guest)
       tags:
       - Bookings
@@ -451,13 +616,17 @@ paths:
           schema:
             $ref: '#/definitions/entities.Booking'
         "400":
-          description: Invalid request payload, validation error, or capacity exceeded
+          description: Invalid request payload or validation error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "409":
+          description: Slot unavailable or capacity exceeded
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
       security:
       - BearerAuth: []
       summary: Book an appointment (Registered User)
@@ -485,7 +654,7 @@ paths:
         "401":
           description: Authentication required
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       security:
       - BearerAuth: []
       summary: Get appointments created by the user
@@ -513,25 +682,25 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       security:
       - BearerAuth: []
       summary: Get user's registered bookings
       tags:
       - Bookings
-  /appointments/slots/{id}:
+  /appointments/slots/{app_code}:
     get:
       description: Retrieves a paginated list of all available booking slots for a
         given appointment.
       operationId: getAvailableSlots
       parameters:
-      - description: Appointment Code (app_code)
+      - description: Appointment identifier (app_code)
         in: path
-        name: id
+        name: app_code
         required: true
         type: string
       produces:
@@ -551,23 +720,23 @@ paths:
         "400":
           description: Missing appointment code parameter
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Get available slots for an appointment
       tags:
       - Bookings
-  /appointments/slots/{id}/by-day:
+  /appointments/slots/{app_code}/by-day:
     get:
       description: Retrieves a paginated list of available slots for an appointment
         on a specific day.
       operationId: getAvailableSlotsByDay
       parameters:
-      - description: Appointment Code (app_code)
+      - description: Appointment identifier (app_code)
         in: path
-        name: id
+        name: app_code
         required: true
         type: string
       - description: Date in YYYY-MM-DD format
@@ -592,23 +761,23 @@ paths:
         "400":
           description: Missing or invalid parameters
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Get available slots for a specific day
       tags:
       - Bookings
-  /appointments/users/{id}:
+  /appointments/users/{app_code}:
     get:
       description: Retrieves a paginated list of all users/bookings for a specific
         appointment.
       operationId: getUsersRegisteredForAppointment
       parameters:
-      - description: Appointment Code (app_code)
+      - description: Appointment identifier (app_code)
         in: path
-        name: id
+        name: app_code
         required: true
         type: string
       produces:
@@ -628,15 +797,15 @@ paths:
         "400":
           description: Missing appointment code parameter
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       security:
       - BearerAuth: []
       summary: Get all bookings for an appointment
@@ -668,14 +837,174 @@ paths:
         "400":
           description: Invalid request body or validation error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Could not generate token
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Generate Device Token
       tags:
       - Authentication
+  /auth/resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Resend a verification code for a pending user registration.
+      operationId: resendVerification
+      parameters:
+      - description: Email to resend verification code to
+        in: body
+        name: resend
+        required: true
+        schema:
+          $ref: '#/definitions/requests.ResendVerificationRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/responses.SimpleMessage'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "404":
+          description: Pending registration not found
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "409":
+          description: Account already verified
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      summary: Resend verification code
+      tags:
+      - Authentication
+  /auth/verify-registration:
+    post:
+      consumes:
+      - application/json
+      description: Verify a user's email address with a code to complete registration.
+      operationId: verifyRegistration
+      parameters:
+      - description: Email and Verification Code
+        in: body
+        name: verification
+        required: true
+        schema:
+          $ref: '#/definitions/requests.VerificationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.LoginResponse'
+        "400":
+          description: Invalid request payload or verification error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      summary: Verify user registration
+      tags:
+      - Authentication
+  /ban-list:
+    delete:
+      consumes:
+      - application/json
+      description: Remove an email from the user's personal ban list.
+      operationId: removeFromBanList
+      parameters:
+      - description: Email to unban
+        in: body
+        name: ban_request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.BanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SimpleMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove email from ban list
+      tags:
+      - BanList
+    get:
+      description: Get a list of all emails on the user's personal ban list.
+      operationId: getBanList
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.BanListEntry'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user's ban list
+      tags:
+      - BanList
+    post:
+      consumes:
+      - application/json
+      description: Add an email to the user's personal ban list.
+      operationId: addToBanList
+      parameters:
+      - description: Email to ban
+        in: body
+        name: ban_request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.BanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.BanListEntry'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "409":
+          description: Email already on ban list
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add email to ban list
+      tags:
+      - BanList
   /bookings/{booking_code}:
     delete:
       description: Cancels a booking by its unique booking_code. This is a soft delete.
@@ -696,11 +1025,11 @@ paths:
         "400":
           description: Error while cancelling booking
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "404":
           description: Booking not found
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Cancel a booking
       tags:
       - Bookings
@@ -723,11 +1052,11 @@ paths:
         "400":
           description: Missing booking_code parameter
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "404":
           description: Booking not found
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Get booking by code
       tags:
       - Bookings
@@ -758,12 +1087,50 @@ paths:
         "400":
           description: Invalid request, validation error, or slot not available
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "404":
           description: Booking not found
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "409":
+          description: Requested slot not available or capacity exceeded
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: Update/Reschedule a booking
+      tags:
+      - Bookings
+  /bookings/{booking_code}/reject:
+    post:
+      description: Rejects a booking by its unique booking_code. This is a soft delete.
+      operationId: rejectBookingByCode
+      parameters:
+      - description: Unique Booking Code
+        in: path
+        name: booking_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Booking'
+        "400":
+          description: Error while rejecting booking
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "404":
+          description: Booking not found
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject a booking
       tags:
       - Bookings
   /login:
@@ -786,18 +1153,22 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/responses.LoginResponse'
+        "202":
+          description: Registration pending verification
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
         "400":
           description: Invalid request body or validation error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "401":
           description: Invalid email or password
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Could not generate token
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
       summary: User Login
       tags:
       - Authentication
@@ -811,15 +1182,72 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responses.SimpleMessageResponse'
+            $ref: '#/definitions/responses.SimpleMessage'
       summary: User Logout
       tags:
       - Authentication
+  /notifications:
+    get:
+      description: Retrieves a paginated list of notifications for the currently authenticated
+        user.
+      operationId: getNotifications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/responses.PaginatedResponse'
+            - properties:
+                items:
+                  items:
+                    $ref: '#/definitions/entities.Notification'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user notifications
+      tags:
+      - Notifications
+  /notifications/read-all:
+    put:
+      description: Marks all notifications for the currently authenticated user as
+        read.
+      operationId: markAllNotificationsAsRead
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SimpleMessage'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark all notifications as read
+      tags:
+      - Notifications
   /users:
     post:
       consumes:
       - application/json
-      description: Register a new user in the system.
+      description: Register a new user in the system. This will trigger an email verification.
       operationId: createUser
       parameters:
       - description: User Registration Details
@@ -831,19 +1259,19 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "202":
+          description: Accepted
           schema:
-            $ref: '#/definitions/responses.UserResponse'
+            $ref: '#/definitions/responses.SimpleMessage'
         "400":
           description: Invalid request payload or validation error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
+            $ref: '#/definitions/errors.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/errors.ApiErrorResponse'
-      summary: Create a new user
+            $ref: '#/definitions/errors.APIErrorResponse'
+      summary: Create a new user (initiate registration)
       tags:
       - Authentication
 schemes:

@@ -1,11 +1,11 @@
 package services
 
 import (
-	"github.com/google/uuid"
-	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/repository"
-	"github.com/m13ha/appointment_master/utils"
+    "github.com/google/uuid"
+    myerrors "github.com/m13ha/asiko/errors"
+    "github.com/m13ha/asiko/models/entities"
+    "github.com/m13ha/asiko/repository"
+    "github.com/m13ha/asiko/utils"
 )
 
 type BanListService interface {
@@ -23,29 +23,36 @@ func NewBanListService(banListRepo repository.BanListRepository) BanListService 
 }
 
 func (s *banListServiceImpl) AddToBanList(userID uuid.UUID, email string) (*entities.BanListEntry, error) {
-	normalizedEmail := utils.NormalizeEmail(email)
-	_, err := s.banListRepo.FindByUserAndEmail(userID, normalizedEmail)
-	if err == nil {
-		return nil, myerrors.NewUserError("email already on ban list")
-	}
+    normalizedEmail := utils.NormalizeEmail(email)
+    _, err := s.banListRepo.FindByUserAndEmail(userID, normalizedEmail)
+    if err == nil {
+        return nil, myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("email already on ban list")
+    }
 
 	entry := &entities.BanListEntry{
 		UserID:      userID,
 		BannedEmail: normalizedEmail,
 	}
 
-	if err := s.banListRepo.Create(entry); err != nil {
-		return nil, myerrors.NewUserError("failed to add email to ban list")
-	}
+    if err := s.banListRepo.Create(entry); err != nil {
+        return nil, myerrors.FromError(err)
+    }
 
 	return entry, nil
 }
 
 func (s *banListServiceImpl) RemoveFromBanList(userID uuid.UUID, email string) error {
-	normalizedEmail := utils.NormalizeEmail(email)
-	return s.banListRepo.Delete(userID, normalizedEmail)
+    normalizedEmail := utils.NormalizeEmail(email)
+    if err := s.banListRepo.Delete(userID, normalizedEmail); err != nil {
+        return myerrors.FromError(err)
+    }
+    return nil
 }
 
 func (s *banListServiceImpl) GetBanList(userID uuid.UUID) ([]entities.BanListEntry, error) {
-	return s.banListRepo.GetAllByUser(userID)
+    entries, err := s.banListRepo.GetAllByUser(userID)
+    if err != nil {
+        return nil, myerrors.FromError(err)
+    }
+    return entries, nil
 }

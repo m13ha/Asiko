@@ -1,4 +1,13 @@
 .aider*
 backend/RECOMMENDATIONS.md
 backend/appointment_master
-AGENTS.md   
+AGENTS.md
+/api-client
+/web/.api-client
+node_modules/
+.venv/
+.env
+.env.example
+.env.local
+.env.routes
+web/.env.local.example

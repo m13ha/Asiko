@@ -3,8 +3,8 @@ package requests
 import (
 	"time"
 
-	myerrors "github.com/m13ha/appointment_master/errors"
-	"github.com/m13ha/appointment_master/utils"
+	myerrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/utils"
 )
 
 type BookingRequest struct {

@@ -4,8 +4,8 @@ import (
     "net/http"
 
     "github.com/gin-gonic/gin"
-    "github.com/m13ha/appointment_master/errors"
-    "github.com/m13ha/appointment_master/middleware"
+    "github.com/m13ha/asiko/errors"
+    "github.com/m13ha/asiko/middleware"
 )
 
 // @Summary Get user analytics
@@ -13,34 +13,34 @@ import (
 // @Description Includes totals, breakdowns (by type/status, guest vs registered), utilization,
 // @Description lead-time stats, daily series, peak hours/days, and top appointments.
 // @Tags Analytics
-// @Produce json
+// @Produce application/json
 // @Security BearerAuth
 // @Param start_date query string true "Start date (YYYY-MM-DD)"
 // @Param end_date query string true "End date (YYYY-MM-DD)"
 // @Success 200 {object} responses.AnalyticsResponse
-// @Failure 400 {object} errors.ApiErrorResponse "Invalid date format or missing parameters"
-// @Failure 401 {object} errors.ApiErrorResponse "Unauthorized"
-// @Failure 500 {object} errors.ApiErrorResponse "Internal server error"
+// @Failure 400 {object} errors.APIErrorResponse "Invalid date format or missing parameters"
+// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
+// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
 // @Router /analytics [get]
 // @ID getUserAnalytics
 func (h *Handler) GetUserAnalytics(c *gin.Context) {
     userID, ok := middleware.GetUUIDFromContext(c)
     if !ok {
-        errors.Unauthorized(c.Writer, "Unauthorized")
+        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
         return
     }
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 
-	if startDate == "" || endDate == "" {
-		errors.BadRequest(c.Writer, "start_date and end_date query parameters are required")
-		return
-	}
+    if startDate == "" || endDate == "" {
+        c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("start_date and end_date query parameters are required"))
+        return
+    }
 
     analytics, err := h.analyticsService.GetUserAnalytics(userID, startDate, endDate)
     if err != nil {
-        errors.HandleServiceError(c.Writer, err, http.StatusBadRequest)
+        c.Error(errors.FromError(err))
         return
     }
 

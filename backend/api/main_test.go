@@ -2,7 +2,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/appointment_master/services/mocks"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/services/mocks"
 )
 
 // setupTestRouter initializes a gin router with mocked services for testing.
@@ -18,7 +19,10 @@ func setupTestRouter() (*gin.Engine, *mocks.UserService, *mocks.AppointmentServi
 
 	h := NewHandler(mockUserService, mockAppointmentService, mockBookingService, mockAnalyticsService, mockBanListService, mockEventNotificationService)
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(middleware.RequestID())
+	router.Use(gin.Recovery())
+	router.Use(middleware.ErrorHandler())
 	router.POST("/login", h.Login)
 	router.POST("/users", h.CreateUser)
 	router.POST("/auth/verify-registration", h.VerifyRegistrationHandler)

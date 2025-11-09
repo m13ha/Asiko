@@ -5,13 +5,13 @@ package mocks
 import (
 	http "net/http"
 
-	entities "github.com/m13ha/appointment_master/models/entities"
+	entities "github.com/m13ha/asiko/models/entities"
 
 	mock "github.com/stretchr/testify/mock"
 
 	paginate "github.com/morkid/paginate"
 
-	requests "github.com/m13ha/appointment_master/models/requests"
+	requests "github.com/m13ha/asiko/models/requests"
 
 	uuid "github.com/google/uuid"
 )

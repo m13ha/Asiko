@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/models/entities"
-	"github.com/m13ha/appointment_master/models/requests"
-	"github.com/m13ha/appointment_master/models/responses"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/models/responses"
 	"github.com/morkid/paginate"
 )
 
@@ -15,6 +15,7 @@ type UserService interface {
 	CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error)
 	AuthenticateUser(email, password string) (*entities.User, error)
 	VerifyRegistration(email, code string) (string, error)
+	ResendVerificationCode(email string) error
 }
 
 type BookingService interface {

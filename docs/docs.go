@@ -31,7 +31,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get analytics data for the authenticated user including total appointments created and total bookings received",
+                "description": "Get analytics for the authenticated user over a date window.\nIncludes totals, breakdowns (by type/status, guest vs registered), utilization,\nlead-time stats, daily series, peak hours/days, and top appointments.",
                 "produces": [
                     "application/json"
                 ],
@@ -66,19 +66,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid date format or missing parameters",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -124,19 +124,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Failed to create appointment",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -175,9 +175,15 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request payload, validation error, or capacity exceeded",
+                        "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Slot unavailable or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -221,15 +227,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request payload, validation error, or capacity exceeded",
+                        "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Slot unavailable or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -276,7 +288,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -323,19 +335,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/appointments/slots/{id}": {
+        "/appointments/slots/{app_code}": {
             "get": {
                 "description": "Retrieves a paginated list of all available booking slots for a given appointment.",
                 "produces": [
@@ -349,8 +361,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment Code (app_code)",
-                        "name": "id",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
                         "in": "path",
                         "required": true
                     }
@@ -380,19 +392,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing appointment code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/appointments/slots/{id}/by-day": {
+        "/appointments/slots/{app_code}/by-day": {
             "get": {
                 "description": "Retrieves a paginated list of available slots for an appointment on a specific day.",
                 "produces": [
@@ -406,8 +418,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment Code (app_code)",
-                        "name": "id",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
                         "in": "path",
                         "required": true
                     },
@@ -444,19 +456,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing or invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/appointments/users/{id}": {
+        "/appointments/users/{app_code}": {
             "get": {
                 "security": [
                     {
@@ -475,8 +487,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment Code (app_code)",
-                        "name": "id",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
                         "in": "path",
                         "required": true
                     }
@@ -506,19 +518,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing appointment code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -562,13 +574,260 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Could not generate token",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/resend-verification": {
+            "post": {
+                "description": "Resend a verification code for a pending user registration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Resend verification code",
+                "operationId": "resendVerification",
+                "parameters": [
+                    {
+                        "description": "Email to resend verification code to",
+                        "name": "resend",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ResendVerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pending registration not found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Account already verified",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-registration": {
+            "post": {
+                "description": "Verify a user's email address with a code to complete registration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify user registration",
+                "operationId": "verifyRegistration",
+                "parameters": [
+                    {
+                        "description": "Email and Verification Code",
+                        "name": "verification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.VerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload or verification error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ban-list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all emails on the user's personal ban list.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BanList"
+                ],
+                "summary": "Get user's ban list",
+                "operationId": "getBanList",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entities.BanListEntry"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add an email to the user's personal ban list.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BanList"
+                ],
+                "summary": "Add email to ban list",
+                "operationId": "addToBanList",
+                "parameters": [
+                    {
+                        "description": "Email to ban",
+                        "name": "ban_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.BanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entities.BanListEntry"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Email already on ban list",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove an email from the user's personal ban list.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BanList"
+                ],
+                "summary": "Remove email from ban list",
+                "operationId": "removeFromBanList",
+                "parameters": [
+                    {
+                        "description": "Email to unban",
+                        "name": "ban_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.BanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -604,13 +863,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing booking_code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -656,13 +915,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request, validation error, or slot not available",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Requested slot not available or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -696,13 +961,66 @@ const docTemplate = `{
                     "400": {
                         "description": "Error while cancelling booking",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/bookings/{booking_code}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rejects a booking by its unique booking_code. This is a soft delete.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Reject a booking",
+                "operationId": "rejectBookingByCode",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Unique Booking Code",
+                        "name": "booking_code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Booking"
+                        }
+                    },
+                    "400": {
+                        "description": "Error while rejecting booking",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Booking not found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -740,22 +1058,28 @@ const docTemplate = `{
                             "$ref": "#/definitions/responses.LoginResponse"
                         }
                     },
+                    "202": {
+                        "description": "Registration pending verification",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid email or password",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Could not generate token",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -776,7 +1100,98 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.SimpleMessageResponse"
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a paginated list of notifications for the currently authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Get user notifications",
+                "operationId": "getNotifications",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/entities.Notification"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/read-all": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marks all notifications for the currently authenticated user as read.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Mark all notifications as read",
+                "operationId": "markAllNotificationsAsRead",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -784,7 +1199,7 @@ const docTemplate = `{
         },
         "/users": {
             "post": {
-                "description": "Register a new user in the system.",
+                "description": "Register a new user in the system. This will trigger an email verification.",
                 "consumes": [
                     "application/json"
                 ],
@@ -794,7 +1209,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Create a new user",
+                "summary": "Create a new user (initiate registration)",
                 "operationId": "createUser",
                 "parameters": [
                     {
@@ -808,22 +1223,22 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/responses.UserResponse"
+                            "$ref": "#/definitions/responses.SimpleMessage"
                         }
                     },
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/errors.APIErrorResponse"
                         }
                     }
                 }
@@ -923,6 +1338,23 @@ const docTemplate = `{
                 "Party"
             ]
         },
+        "entities.BanListEntry": {
+            "type": "object",
+            "properties": {
+                "banned_email": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "entities.Booking": {
             "type": "object",
             "properties": {
@@ -937,6 +1369,15 @@ const docTemplate = `{
                 },
                 "available": {
                     "type": "boolean"
+                },
+                "is_slot": {
+                    "type": "boolean"
+                },
+                "capacity": {
+                    "type": "integer"
+                },
+                "seats_booked": {
+                    "type": "integer"
                 },
                 "booking_code": {
                     "description": "Permanent booking code for all bookings",
@@ -992,16 +1433,66 @@ const docTemplate = `{
                 }
             }
         },
-        "errors.ApiErrorResponse": {
+        "entities.Notification": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "errors.APIErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {
                     "type": "string"
                 },
-                "details": {
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/errors.FieldError"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "meta": {},
+                "request_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "errors.FieldError": {
+            "type": "object",
+            "properties": {
+                "field": {
                     "type": "string"
                 },
                 "message": {
+                    "type": "string"
+                },
+                "rule": {
                     "type": "string"
                 }
             }
@@ -1069,6 +1560,17 @@ const docTemplate = `{
                 }
             }
         },
+        "requests.BanRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.BookingRequest": {
             "type": "object",
             "required": [
@@ -1082,6 +1584,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "attendee_count": {
+                    "description": "Number of attendees to reserve in this booking (must not exceed remaining capacity)",
                     "type": "integer",
                     "minimum": 1
                 },
@@ -1137,6 +1640,17 @@ const docTemplate = `{
                 }
             }
         },
+        "requests.ResendVerificationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.UserRequest": {
             "type": "object",
             "required": [
@@ -1156,11 +1670,20 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64,
                     "minLength": 8
-                },
-                "phone": {
+                }
+            }
+        },
+        "requests.VerificationRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "email"
+            ],
+            "properties": {
+                "code": {
                     "type": "string"
                 },
-                "phone_number": {
+                "email": {
                     "type": "string"
                 }
             }
@@ -1168,13 +1691,105 @@ const docTemplate = `{
         "responses.AnalyticsResponse": {
             "type": "object",
             "properties": {
+                "appointments_by_type": {
+                    "description": "Breakdowns",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "avg_attendees_per_booking": {
+                    "type": "number"
+                },
+                "avg_lead_time_hours": {
+                    "description": "Timing",
+                    "type": "number"
+                },
+                "bookings_by_status": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "bookings_per_day": {
+                    "description": "Time series",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
+                "cancellations_per_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
+                "distinct_customers": {
+                    "type": "integer"
+                },
                 "end_date": {
                     "type": "string"
+                },
+                "guest_vs_registered": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "median_lead_time_hours": {
+                    "type": "number"
+                },
+                "party_capacity": {
+                    "type": "object",
+                    "properties": {
+                        "percent": {
+                            "type": "number"
+                        },
+                        "total": {
+                            "type": "integer"
+                        },
+                        "used": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "peak_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.BucketCount"
+                    }
+                },
+                "peak_hours": {
+                    "description": "Insights",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.BucketCount"
+                    }
+                },
+                "rejections_per_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
+                "repeat_customers": {
+                    "type": "integer"
+                },
+                "slot_utilization_percent": {
+                    "description": "Utilization \u0026 Capacity",
+                    "type": "number"
                 },
                 "start_date": {
                     "type": "string"
                 },
+                "top_appointments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TopAppointment"
+                    }
+                },
                 "total_appointments": {
+                    "description": "Summary",
                     "type": "integer"
                 },
                 "total_bookings": {
@@ -1226,6 +1841,17 @@ const docTemplate = `{
                 }
             }
         },
+        "responses.BucketCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
         "responses.LoginResponse": {
             "type": "object",
             "properties": {
@@ -1258,12 +1884,41 @@ const docTemplate = `{
                 }
             }
         },
-        "responses.SimpleMessageResponse": {
+        "responses.SimpleMessage": {
             "type": "object",
             "properties": {
+                "data": {},
                 "message": {
                     "type": "string",
                     "example": "Action completed successfully"
+                }
+            }
+        },
+        "responses.TimeSeriesPoint": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.TopAppointment": {
+            "type": "object",
+            "properties": {
+                "app_code": {
+                    "type": "string"
+                },
+                "bookings": {
+                    "type": "integer"
+                },
+                "capacity_usage_percent": {
+                    "type": "number"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -1304,10 +1959,10 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8888",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"http"},
-	Title:            "Appointment Master API",
+	Title:            "Asiko API",
 	Description:      "This is a comprehensive API for creating and managing appointments.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

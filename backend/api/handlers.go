@@ -2,8 +2,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/appointment_master/middleware"
-	"github.com/m13ha/appointment_master/services"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/services"
 )
 
 type Handler struct {
@@ -33,10 +33,11 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 	r.POST("/logout", h.Logout)
 	r.POST("/users", h.CreateUser)
 	r.POST("/auth/verify-registration", h.VerifyRegistrationHandler)
+	r.POST("/auth/resend-verification", h.ResendVerificationHandler)
 	r.POST("/auth/device-token", h.GenerateDeviceTokenHandler)
 	r.POST("/appointments/book", h.BookGuestAppointment)
-	r.GET("/appointments/slots/:id", h.GetAvailableSlots)
-	r.GET("/appointments/slots/:id/by-day", h.GetAvailableSlotsByDay)
+	r.GET("/appointments/slots/:app_code", h.GetAvailableSlots)
+	r.GET("/appointments/slots/:app_code/by-day", h.GetAvailableSlotsByDay)
 	r.GET("/bookings/:booking_code", h.GetBookingByCodeHandler)
 	r.PUT("/bookings/:booking_code", h.UpdateBookingByCodeHandler)
 	r.DELETE("/bookings/:booking_code", h.CancelBookingByCodeHandler)
@@ -46,7 +47,7 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 	r.POST("/appointments", middleware.AuthMiddleware(), h.CreateAppointment)
 	r.GET("/appointments/my", middleware.AuthMiddleware(), h.GetAppointmentsCreatedByUser)
 	r.GET("/appointments/registered", middleware.AuthMiddleware(), h.GetUserRegisteredBookings)
-	r.GET("/appointments/users/:id", middleware.AuthMiddleware(), h.GetUsersRegisteredForAppointment)
+	r.GET("/appointments/users/:app_code", middleware.AuthMiddleware(), h.GetUsersRegisteredForAppointment)
 	r.POST("/appointments/book/registered", middleware.AuthMiddleware(), h.BookRegisteredUserAppointment)
 	r.GET("/analytics", middleware.AuthMiddleware(), h.GetUserAnalytics)
 

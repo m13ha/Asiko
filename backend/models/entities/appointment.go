@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/m13ha/appointment_master/utils"
+	"github.com/m13ha/asiko/utils"
 	"gorm.io/gorm"
 )
 
@@ -37,14 +37,14 @@ type Appointment struct {
 	Type              AppointmentType   `json:"type" gorm:"not null;default:'single'"`
 	AntiScalpingLevel AntiScalpingLevel `json:"anti_scalping_level" gorm:"type:anti_scalping_level;not null;default:'none'"`
 	OwnerID           uuid.UUID         `json:"owner_id" gorm:"type:uuid;not null"`
-	User            User            `json:"-" gorm:"foreignKey:OwnerID"`
-	AppCode         string          `json:"app_code" gorm:"unique;not null"`
-	Bookings        []Booking       `json:"bookings" gorm:"foreignKey:AppointmentID"`
-	CreatedAt       time.Time       `json:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt  `json:"deleted_at,omitempty" gorm:"index" swaggertype:"string" format:"date-time"`
-	Description     string          `json:"description" gorm:"type:text"` // Additional info for the appointment
-	AttendeesBooked int             `json:"attendees_booked" gorm:"default:0"`
+	User              User              `json:"-" gorm:"foreignKey:OwnerID"`
+	AppCode           string            `json:"app_code" gorm:"unique;not null"`
+	Bookings          []Booking         `json:"bookings" gorm:"foreignKey:AppointmentID"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt    `json:"deleted_at,omitempty" gorm:"index" swaggertype:"string" format:"date-time"`
+	Description       string            `json:"description" gorm:"type:text"` // Additional info for the appointment
+	AttendeesBooked   int               `json:"attendees_booked" gorm:"default:0"`
 }
 
 func (a *Appointment) BeforeCreate(tx *gorm.DB) error {
@@ -71,6 +71,10 @@ func (a *Appointment) AfterCreate(tx *gorm.DB) error {
 func (a *Appointment) generateBookings() []Booking {
 	var slots []Booking
 	duration := time.Duration(a.BookingDuration) * time.Minute
+	defaultCapacity := 1
+	if a.Type == Group && a.MaxAttendees > 0 {
+		defaultCapacity = a.MaxAttendees
+	}
 
 	for currentDate := a.StartDate; !currentDate.After(a.EndDate); currentDate = currentDate.AddDate(0, 0, 1) {
 		currentSlotStart := time.Date(
@@ -97,6 +101,9 @@ func (a *Appointment) generateBookings() []Booking {
 				StartTime:     currentSlotStart,
 				EndTime:       slotEnd,
 				Available:     true,
+				IsSlot:        true,
+				Capacity:      defaultCapacity,
+				SeatsBooked:   0,
 			})
 			currentSlotStart = slotEnd
 		}

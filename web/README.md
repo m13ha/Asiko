@@ -1,4 +1,4 @@
-# Appointment Master Web (Vite + React + TypeScript)
+# Asiko Web (Vite + React + TypeScript)
 
 This document is the development plan for the new web frontend that replaces the React Native app. It uses the generated API client in `api-client` for all backend access.
 
@@ -65,11 +65,12 @@ This document is the development plan for the new web frontend that replaces the
   `#112D4E`
 
 ## Using the Generated API Client
-We will consume the client from `api-client` as a local dependency and configure it per environment.
+We consume the client from `web/api-client` as a local dependency and configure it per environment.
 
 - Install locally (from web/):
-  - `npm i @appointment-master/api-client@file:../api-client`
-  - Ensure `api-client` is built at least once: `npm --prefix ../api-client run build`
+  - `npm i`
+  - `npm i @appointment-master/api-client@file:./api-client`
+  - Regenerate client from backend when API changes: `npm run client:gen`
 - Configure the client:
   ```ts
   import { Configuration, AppointmentsApi, AuthenticationApi } from '@appointment-master/api-client';
@@ -92,9 +93,9 @@ We will consume the client from `api-client` as a local dependency and configure
 ## Environment & CORS
 - Create `web/.env.local`:
   ```env
-  VITE_API_BASE_URL=http://localhost:8888
+  VITE_API_BASE_URL=https://7obnqz8ix1.loclx.io
   ```
-- Backend CORS for dev: set `CORS_ALLOWED_ORIGINS=http://localhost:5173`.
+- Backend CORS for dev: set `CORS_ALLOWED_ORIGINS=http://localhost:5173,https://7obnqz8ix1.loclx.io`.
 
 ## Auth Strategy
 - Store JWT in `localStorage`.
