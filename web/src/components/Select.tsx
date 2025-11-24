@@ -1,11 +1,13 @@
-import styled from 'styled-components';
+import { forwardRef } from 'react';
+import type { DropdownProps } from 'primereact/dropdown';
+import { Dropdown } from 'primereact/dropdown';
 
-export const Select = styled.select`
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text);
-`;
+export type SelectProps = DropdownProps;
 
+export const Select = forwardRef<any, SelectProps>(function Select(
+  { className, ...props },
+  ref
+) {
+  const computedClass = ['app-select', className].filter(Boolean).join(' ');
+  return <Dropdown ref={ref} {...props} className={computedClass || undefined} />;
+});

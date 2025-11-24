@@ -12,6 +12,7 @@
  * Do not edit the class manually.
  */
 import { EntitiesAntiScalpingLevelFromJSON, EntitiesAntiScalpingLevelToJSON, } from './EntitiesAntiScalpingLevel';
+import { EntitiesAppointmentStatusFromJSON, EntitiesAppointmentStatusToJSON, } from './EntitiesAppointmentStatus';
 import { EntitiesAppointmentTypeFromJSON, EntitiesAppointmentTypeToJSON, } from './EntitiesAppointmentType';
 import { EntitiesBookingFromJSON, EntitiesBookingToJSON, } from './EntitiesBooking';
 /**
@@ -44,6 +45,7 @@ export function EntitiesAppointmentFromJSONTyped(json, ignoreDiscriminator) {
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'startTime': json['start_time'] == null ? undefined : json['start_time'],
         'title': json['title'] == null ? undefined : json['title'],
+        'status': json['status'] == null ? undefined : EntitiesAppointmentStatusFromJSON(json['status']),
         'type': json['type'] == null ? undefined : EntitiesAppointmentTypeFromJSON(json['type']),
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
     };
@@ -72,6 +74,7 @@ export function EntitiesAppointmentToJSONTyped(value, ignoreDiscriminator = fals
         'start_date': value['startDate'],
         'start_time': value['startTime'],
         'title': value['title'],
+        'status': EntitiesAppointmentStatusToJSON(value['status']),
         'type': EntitiesAppointmentTypeToJSON(value['type']),
         'updated_at': value['updatedAt'],
     };

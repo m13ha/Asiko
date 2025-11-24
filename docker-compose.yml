@@ -28,7 +28,7 @@ services:
     depends_on:
       - postgres
     env_file:
-      - ./env.routes
+      - ./.env.routes
       - ./backend/.env
     ports:
       - "8890:8080"
@@ -50,7 +50,7 @@ services:
     depends_on:
       - api
     env_file:
-      - ./env.routes
+      - ./.env.routes
     environment:
       - CHOKIDAR_USEPOLLING=true
     ports:

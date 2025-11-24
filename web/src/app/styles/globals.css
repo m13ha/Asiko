@@ -4,36 +4,13 @@ html, body, #root { height: 100%; }
 body {
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg, #FAFAF7);
+  color: var(--text, #101828);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 :root {
-  /* Core palette */
-  --bg: #FAFAF7; /* paper */
-  --bg-elevated: #FFFFFF;
-  --text: #101828; /* ink */
-  --text-muted: #4B5563;
-  --border: #E5E7EB;
-
-  /* Brand */
-  --primary: #146C43; /* deep green */
-  --primary-contrast: #FFFFFF;
-  --accent: #E6B10E; /* gold accent (sparingly) */
-  --secondary: #2EB872; /* highlight green */
-
-  /* Status */
-  --success: #16A34A;
-  --warning: #F59E0B;
-  --danger: #DC2626;
-
-  /* Vintage accents (sparingly) */
-  --vintage-red: #A23C3D;
-  --vintage-blue: #2A4E7E;
-  --vintage-cream: #F3ECE4;
-
   /* Radius & elevation */
   --radius-sm: 6px;
   --radius: 10px;
@@ -56,7 +33,7 @@ input, select, textarea { font: inherit; color: inherit; }
 
 /* Accessibility */
 :focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--primary) 60%, transparent);
+  outline: 2px solid color-mix(in oklab, var(--primary, #146C43) 60%, transparent);
   outline-offset: 2px;
 }
 
@@ -94,4 +71,18 @@ small { color: var(--text-muted); }
 /* Field spacing tweaks on small screens */
 @media (max-width: 768px) {
   .field { gap: 4px; }
+}
+
+.pi {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.chart-empty {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
 }

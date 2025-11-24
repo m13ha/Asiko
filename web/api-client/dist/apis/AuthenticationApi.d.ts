@@ -20,11 +20,11 @@ export interface GenerateDeviceTokenRequest {
 export interface LoginUserRequest {
     login: RequestsLoginRequest;
 }
-export interface VerifyRegistrationRequest {
-    verification: RequestsVerificationRequest;
-}
 export interface ResendVerificationRequest {
     resend: RequestsResendVerificationRequest;
+}
+export interface VerifyRegistrationRequest {
+    verification: RequestsVerificationRequest;
 }
 /**
  *
@@ -75,6 +75,16 @@ export declare class AuthenticationApi extends runtime.BaseAPI {
      */
     logoutUser(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
     /**
+     * Resend a verification code for a pending user registration.
+     * Resend verification code
+     */
+    resendVerificationRaw(requestParameters: ResendVerificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>>;
+    /**
+     * Resend a verification code for a pending user registration.
+     * Resend verification code
+     */
+    resendVerification(requestParameters: ResendVerificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
+    /**
      * Verify a user\'s email address with a code to complete registration.
      * Verify user registration
      */
@@ -84,15 +94,5 @@ export declare class AuthenticationApi extends runtime.BaseAPI {
      * Verify user registration
      */
     verifyRegistration(requestParameters: VerifyRegistrationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesLoginResponse>;
-    /**
-     * Resend a verification code for a pending registration.
-     * Resend verification code
-     */
-    resendVerificationRaw(requestParameters: ResendVerificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>>;
-    /**
-     * Resend a verification code for a pending registration.
-     * Resend verification code
-     */
-    resendVerification(requestParameters: ResendVerificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
 }
 //# sourceMappingURL=AuthenticationApi.d.ts.map

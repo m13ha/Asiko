@@ -54,6 +54,9 @@ func main() {
 		port = "5000"
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if err := db.ConnectDB(); err != nil {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
@@ -76,6 +79,8 @@ func main() {
 	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, notificationService, eventNotificationService, db.DB)
 	analyticsService := services.NewAnalyticsService(analyticsRepo)
 	banListService := services.NewBanListService(banListRepo)
+	statusScheduler := services.NewAppointmentStatusScheduler(appointmentService, time.Minute)
+	statusScheduler.Start(ctx)
 
 	r := gin.Default()
 	r.Use(customMiddleware.RequestID())
@@ -115,6 +120,7 @@ func main() {
 
 	go func() {
 		<-stop
+		cancel()
 		log.Println("Shutting down server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

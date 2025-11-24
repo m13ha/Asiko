@@ -11,11 +11,14 @@
     "client:gen": "bash ./scripts/generate-api-client.sh"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.0",
     "@appointment-master/api-client": "file:./api-client",
+    "@hookform/resolvers": "^3.9.0",
     "@tanstack/react-query": "^5.50.0",
+    "chart.js": "^4.5.1",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.454.0",
+    "primeicons": "^7.0.0",
+    "primereact": "^10.9.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",

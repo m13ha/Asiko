@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { useLogin } from '@/features/auth/hooks';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import * as API from '@appointment-master/api-client';
-import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
 import { HandUnderline } from '@/components/HandUnderline';
 import { Spinner } from '@/components/Spinner';
@@ -53,7 +52,7 @@ export function LoginPage() {
             <FieldLabel>Email</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Mail size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-envelope" aria-hidden="true" /></IconSlot>
                 <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ paddingLeft: 36 }} />
               </div>
             </FieldRow>
@@ -62,11 +61,11 @@ export function LoginPage() {
             <FieldLabel>Password</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Lock size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-lock" aria-hidden="true" /></IconSlot>
                 <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ paddingLeft: 36 }} />
               </div>
               <Button onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'}>
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <i className={`pi ${showPassword ? 'pi-eye-slash' : 'pi-eye'}`} aria-hidden="true" />
               </Button>
             </FieldRow>
           </Field>
@@ -102,7 +101,7 @@ export function LoginPage() {
               </>
             ) : (
               <>
-                <LogIn size={16} /> Login
+                <i className="pi pi-sign-in" aria-hidden="true" /> Login
               </>
             )}
           </Button>

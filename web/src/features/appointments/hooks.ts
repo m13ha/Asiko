@@ -11,8 +11,13 @@ async function parseError(e: unknown): Promise<string> {
   return 'Something went wrong';
 }
 
-export function useMyAppointments() {
-  return useQuery({ queryKey: ['my-appointments'], queryFn: () => listMyAppointments() });
+export function useMyAppointments(filters?: { statuses?: API.EntitiesAppointmentStatus[] }) {
+  const statuses = filters?.statuses ?? [];
+  const key = statuses.length ? statuses.slice().sort().join(',') : 'all';
+  return useQuery({
+    queryKey: ['my-appointments', key],
+    queryFn: () => listMyAppointments({ statuses }),
+  });
 }
 
 export function useCreateAppointment() {

@@ -21,6 +21,8 @@ import type {
   ResponsesLoginResponse,
   ResponsesSimpleMessageResponse,
   ResponsesUserResponse,
+  RequestsRefreshTokenRequest,
+  ResponsesTokenResponse,
 } from '../models/index';
 import {
     ErrorsApiErrorResponseFromJSON,
@@ -35,6 +37,10 @@ import {
     ResponsesSimpleMessageResponseToJSON,
     ResponsesUserResponseFromJSON,
     ResponsesUserResponseToJSON,
+    RequestsRefreshTokenRequestFromJSON,
+    RequestsRefreshTokenRequestToJSON,
+    ResponsesTokenResponseFromJSON,
+    ResponsesTokenResponseToJSON,
 } from '../models/index';
 
 export interface CreateUserRequest {
@@ -43,6 +49,10 @@ export interface CreateUserRequest {
 
 export interface LoginUserRequest {
     login: RequestsLoginRequest;
+}
+
+export interface RefreshTokenRequest {
+    refresh: RequestsRefreshTokenRequest;
 }
 
 /**
@@ -129,6 +139,47 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async loginUser(requestParameters: LoginUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesLoginResponse> {
         const response = await this.loginUserRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Exchange a refresh token for a new access token.
+     * Refresh access token
+     */
+    async refreshTokenRaw(requestParameters: RefreshTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesTokenResponse>> {
+        if (requestParameters['refresh'] == null) {
+            throw new runtime.RequiredError(
+                'refresh',
+                'Required parameter "refresh" was null or undefined when calling refreshToken().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/refresh`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestsRefreshTokenRequestToJSON(requestParameters['refresh']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesTokenResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Exchange a refresh token for a new access token.
+     * Refresh access token
+     */
+    async refreshToken(requestParameters: RefreshTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesTokenResponse> {
+        const response = await this.refreshTokenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

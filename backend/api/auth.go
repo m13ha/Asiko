@@ -42,14 +42,22 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := middleware.GenerateToken(userEntity.ID.String())
+	accessToken, err := middleware.GenerateToken(userEntity.ID.String())
 	if err != nil {
 		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate token"))
 		return
 	}
 
+	refreshToken, err := middleware.GenerateRefreshToken(userEntity.ID.String())
+	if err != nil {
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate refresh token"))
+		return
+	}
+
 	c.JSON(http.StatusOK, responses.LoginResponse{
-		Token: token,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    middleware.AccessTokenTTLSeconds(),
 		User: responses.UserResponse{
 			ID:    userEntity.ID,
 			Name:  userEntity.Name,
@@ -67,6 +75,55 @@ func (h *Handler) Login(c *gin.Context) {
 // @ID logoutUser
 func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "Logged out successfully"})
+}
+
+// @Summary Refresh access token
+// @Description Exchange a refresh token for a new access token
+// @Tags Authentication
+// @Accept  application/json
+// @Produce  application/json
+// @Param   refresh body requests.RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} responses.TokenResponse
+// @Failure 400 {object} errors.APIErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} errors.APIErrorResponse "Invalid refresh token"
+// @Failure 500 {object} errors.APIErrorResponse "Could not generate token"
+// @Router /auth/refresh [post]
+// @ID refreshToken
+func (h *Handler) Refresh(c *gin.Context) {
+	var req requests.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request body"))
+		return
+	}
+
+	if err := utils.Validate(req); err != nil {
+		c.Error(errors.FromValidation(err, "Validation failed"))
+		return
+	}
+
+	userID, err := middleware.ValidateRefreshToken(req.RefreshToken)
+	if err != nil {
+		c.Error(errors.New(errors.CodeLoginInvalidCredentials).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Invalid refresh token"))
+		return
+	}
+
+	accessToken, err := middleware.GenerateToken(userID)
+	if err != nil {
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate token"))
+		return
+	}
+
+	newRefreshToken, err := middleware.GenerateRefreshToken(userID)
+	if err != nil {
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate refresh token"))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.TokenResponse{
+		Token:        accessToken,
+		RefreshToken: newRefreshToken,
+		ExpiresIn:    middleware.AccessTokenTTLSeconds(),
+	})
 }
 
 // @Summary Generate Device Token

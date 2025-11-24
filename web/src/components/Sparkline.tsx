@@ -1,33 +1,63 @@
 import type { ResponsesTimeSeriesPoint } from '@appointment-master/api-client';
+import { useMemo } from 'react';
+import { Chart } from 'primereact/chart';
+import { getCssVarValue } from './chartConfig';
 
-function pathFromSeries(series: ResponsesTimeSeriesPoint[], w: number, h: number, pad = 2) {
-  const pts = (series || []).filter(s => typeof s.count === 'number');
-  if (pts.length === 0) return '';
-  const xs = pts.map((_, i) => i);
-  const ys = pts.map(p => p.count as number);
-  const xMin = 0, xMax = Math.max(pts.length - 1, 1);
-  const yMin = Math.min(...ys);
-  const yMax = Math.max(...ys);
-  const xScale = (i: number) => pad + (i - xMin) / (xMax - xMin || 1) * (w - pad * 2);
-  const yScale = (v: number) => pad + (1 - (v - yMin) / (yMax - yMin || 1)) * (h - pad * 2);
-  const d = xs.map((i, idx) => `${idx === 0 ? 'M' : 'L'}${xScale(i)},${yScale(ys[idx])}`).join(' ');
-  return d;
-}
+type SparklineProps = {
+  series: ResponsesTimeSeriesPoint[];
+  colorVar?: string;
+  height?: number;
+};
 
-export function Sparkline({ series, colorVar = '--primary', width = 140, height = 36, title = 'sparkline' }: { series: ResponsesTimeSeriesPoint[]; colorVar?: string; width?: number; height?: number; title?: string; }) {
-  const d = pathFromSeries(series || [], width, height, 2);
-  const color = getComputedStyleColor(colorVar);
+export function Sparkline({ series, colorVar = '--primary', height = 60 }: SparklineProps) {
+  const { labels, dataPoints } = useMemo(() => {
+    const normalized = (series || [])
+      .filter(point => typeof point?.count === 'number' && typeof point?.date === 'string')
+      .map(point => ({ date: point.date as string, count: point.count as number }));
+    return {
+      labels: normalized.map(point => point.date),
+      dataPoints: normalized.map(point => point.count),
+    };
+  }, [series]);
+
+  if (!labels.length) {
+    return (
+      <div className="chart-empty" style={{ height }}>
+        No data
+      </div>
+    );
+  }
+
+  const color = getCssVarValue(colorVar, '#146C43');
+
   return (
-    <svg role="img" viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-label={title} preserveAspectRatio="none">
-      <title>{title}</title>
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <div style={{ width: '100%', height }}>
+      <Chart
+        type="line"
+        data={{
+          labels,
+          datasets: [
+            {
+              data: dataPoints,
+              borderColor: color,
+              backgroundColor: color,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.35,
+              pointRadius: 0,
+            },
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: true } },
+          scales: {
+            x: { display: false },
+            y: { display: false },
+          },
+        }}
+      />
+    </div>
   );
 }
-
-function getComputedStyleColor(varName: string) {
-  if (typeof window === 'undefined') return '#146C43';
-  const c = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  return c || '#146C43';
-}
-

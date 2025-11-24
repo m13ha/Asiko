@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,12 +44,22 @@ func (a *Booking) BeforeCreate(tx *gorm.DB) error {
 	if a.SeatsBooked < 0 {
 		a.SeatsBooked = 0
 	}
-	// Generate unique appointment code
-	code, err := generateUniqueCode(tx, "bookings", "booking_code = ?", Booking{}, "BK")
-	if err != nil {
-		return err
+	if a.BookingCode == "" {
+		a.BookingCode = generateDeterministicBookingCode(a)
 	}
-	a.BookingCode = code
-
 	return nil
+}
+
+func generateDeterministicBookingCode(b *Booking) string {
+	datePart := b.Date.Format("060102")
+	timePart := b.StartTime.Format("1504")
+	base := fmt.Sprintf("BK%s%s", datePart, timePart)
+	if b.ID != uuid.Nil {
+		return fmt.Sprintf("%s%s", base, shortUUID(b.ID))
+	}
+	return fmt.Sprintf("%s%s", base, uuid.New().String()[:4])
+}
+
+func shortUUID(id uuid.UUID) string {
+	return id.String()[:4]
 }

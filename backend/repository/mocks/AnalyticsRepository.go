@@ -3,10 +3,10 @@
 package mocks
 
 import (
-	time "time"
-
 	repository "github.com/m13ha/asiko/repository"
 	mock "github.com/stretchr/testify/mock"
+
+	time "time"
 
 	uuid "github.com/google/uuid"
 )

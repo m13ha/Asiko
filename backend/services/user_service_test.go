@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	"github.com/m13ha/asiko/models/requests"
 	"github.com/m13ha/asiko/notifications/mocks"
 	repoMocks "github.com/m13ha/asiko/repository/mocks"
+	services "github.com/m13ha/asiko/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
@@ -77,7 +78,7 @@ func TestCreateUser(t *testing.T) {
 			mockNotificationSvc := new(mocks.NotificationService)
 			waitFn := tc.setupMocks(mockUserRepo, mockPendingRepo, mockNotificationSvc)
 
-			userService := NewUserService(mockUserRepo, mockPendingRepo, mockNotificationSvc)
+			userService := services.NewUserService(mockUserRepo, mockPendingRepo, mockNotificationSvc)
 			resp, err := userService.CreateUser(tc.request)
 
 			if waitFn != nil {
@@ -164,7 +165,7 @@ func TestAuthenticateUser(t *testing.T) {
 			mockPendingRepo := new(repoMocks.PendingUserRepository)
 			tc.setupMocks(mockUserRepo, mockPendingRepo)
 
-			userService := NewUserService(mockUserRepo, mockPendingRepo, nil)
+			userService := services.NewUserService(mockUserRepo, mockPendingRepo, nil)
 			_, err := userService.AuthenticateUser(tc.email, tc.password)
 
 			if tc.expectedError != "" {
@@ -268,7 +269,7 @@ func TestVerifyRegistration(t *testing.T) {
 			mockPendingRepo := new(repoMocks.PendingUserRepository)
 			tc.setupMocks(mockUserRepo, mockPendingRepo)
 
-			userService := NewUserService(mockUserRepo, mockPendingRepo, nil)
+			userService := services.NewUserService(mockUserRepo, mockPendingRepo, nil)
 			_, err := userService.VerifyRegistration(tc.email, tc.code)
 
 			if tc.expectedError != "" {
@@ -345,7 +346,7 @@ func TestResendVerificationCode(t *testing.T) {
 			notificationSvc := new(mocks.NotificationService)
 			waitFn := tc.setupMocks(userRepo, pendingRepo, notificationSvc)
 
-			service := NewUserService(userRepo, pendingRepo, notificationSvc)
+			service := services.NewUserService(userRepo, pendingRepo, notificationSvc)
 			err := service.ResendVerificationCode(tc.email)
 
 			if waitFn != nil {

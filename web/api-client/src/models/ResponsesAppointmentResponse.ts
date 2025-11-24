@@ -20,6 +20,13 @@ import {
     EntitiesAppointmentTypeToJSON,
     EntitiesAppointmentTypeToJSONTyped,
 } from './EntitiesAppointmentType';
+import type { EntitiesAppointmentStatus } from './EntitiesAppointmentStatus';
+import {
+    EntitiesAppointmentStatusFromJSON,
+    EntitiesAppointmentStatusFromJSONTyped,
+    EntitiesAppointmentStatusToJSON,
+    EntitiesAppointmentStatusToJSONTyped,
+} from './EntitiesAppointmentStatus';
 
 /**
  * 
@@ -89,6 +96,12 @@ export interface ResponsesAppointmentResponse {
     startTime?: string;
     /**
      * 
+     * @type {EntitiesAppointmentStatus}
+     * @memberof ResponsesAppointmentResponse
+     */
+    status?: EntitiesAppointmentStatus;
+    /**
+     * 
      * @type {string}
      * @memberof ResponsesAppointmentResponse
      */
@@ -136,6 +149,7 @@ export function ResponsesAppointmentResponseFromJSONTyped(json: any, ignoreDiscr
         'maxAttendees': json['max_attendees'] == null ? undefined : json['max_attendees'],
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'startTime': json['start_time'] == null ? undefined : json['start_time'],
+        'status': json['status'] == null ? undefined : EntitiesAppointmentStatusFromJSON(json['status']),
         'title': json['title'] == null ? undefined : json['title'],
         'type': json['type'] == null ? undefined : EntitiesAppointmentTypeFromJSON(json['type']),
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
@@ -163,6 +177,7 @@ export function ResponsesAppointmentResponseToJSONTyped(value?: ResponsesAppoint
         'max_attendees': value['maxAttendees'],
         'start_date': value['startDate'],
         'start_time': value['startTime'],
+        'status': EntitiesAppointmentStatusToJSON(value['status']),
         'title': value['title'],
         'type': EntitiesAppointmentTypeToJSON(value['type']),
         'updated_at': value['updatedAt'],

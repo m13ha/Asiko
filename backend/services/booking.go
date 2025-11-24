@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +31,17 @@ type bookingServiceImpl struct {
 
 func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo repository.AppointmentRepository, userRepo repository.UserRepository, banListRepo repository.BanListRepository, notificationService notifications.NotificationService, eventNotificationService EventNotificationService, db *gorm.DB) BookingService {
 	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, banListRepo: banListRepo, notificationService: notificationService, eventNotificationService: eventNotificationService, db: db}
+}
+
+func ensureAppointmentIsBookable(appointment *entities.Appointment) error {
+	switch appointment.Status {
+	case entities.AppointmentStatusCanceled:
+		return myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("appointment has been canceled")
+	case entities.AppointmentStatusCompleted, entities.AppointmentStatusExpired:
+		return myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("appointment is no longer active")
+	default:
+		return nil
+	}
 }
 
 func normalizeSlotState(slot *entities.Booking) {
@@ -106,6 +118,9 @@ func (s *bookingServiceImpl) BookAppointment(req requests.BookingRequest, userID
 	if err != nil {
 		return nil, err
 	}
+	if err := ensureAppointmentIsBookable(appointment); err != nil {
+		return nil, err
+	}
 
 	// --- 3. Get Booker's Info ---
 	var user *entities.User
@@ -141,6 +156,9 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 
 		lockedAppointment, err := appRepo.FindAndLock(req.AppCode, tx)
 		if err != nil {
+			return err
+		}
+		if err := ensureAppointmentIsBookable(lockedAppointment); err != nil {
 			return err
 		}
 
@@ -205,7 +223,16 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 	if appointment.Type == entities.Group {
 		var reservation *entities.Booking
 		err := s.db.Transaction(func(tx *gorm.DB) error {
+			appRepo := s.appointmentRepo.WithTx(tx)
 			bookRepo := s.bookingRepo.WithTx(tx)
+
+			lockedAppointment, err := appRepo.FindAndLock(req.AppCode, tx)
+			if err != nil {
+				return err
+			}
+			if err := ensureAppointmentIsBookable(lockedAppointment); err != nil {
+				return err
+			}
 
 			lockedSlot, err := bookRepo.FindAndLockAvailableSlot(req.AppCode, req.Date, req.StartTime)
 			if err != nil {
@@ -284,7 +311,16 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 	// Fallback to single-slot behaviour for other appointment types
 	var slot *entities.Booking
 	err := s.db.Transaction(func(tx *gorm.DB) error {
+		appRepo := s.appointmentRepo.WithTx(tx)
 		bookRepo := s.bookingRepo.WithTx(tx)
+
+		lockedAppointment, err := appRepo.FindAndLock(req.AppCode, tx)
+		if err != nil {
+			return err
+		}
+		if err := ensureAppointmentIsBookable(lockedAppointment); err != nil {
+			return err
+		}
 
 		lockedSlot, err := bookRepo.FindAndLockAvailableSlot(req.AppCode, req.Date, req.StartTime)
 		if err != nil {
@@ -362,17 +398,25 @@ func (s *bookingServiceImpl) GetUserBookings(ctx context.Context, userID string)
 }
 
 // GetAvailableSlots returns all available slots for an appointment with pagination
-func (s *bookingServiceImpl) GetAvailableSlots(ctx context.Context, appcode string) (paginate.Page, error) {
-	return s.bookingRepo.GetAvailableSlots(ctx, appcode), nil
+func (s *bookingServiceImpl) GetAvailableSlots(req *http.Request, appcode string) (paginate.Page, error) {
+	ctx := context.Background()
+	if req != nil {
+		ctx = req.Context()
+	}
+	return s.bookingRepo.GetAvailableSlots(ctx, req, appcode), nil
 }
 
 // GetAvailableSlotsByDay returns available slots for an appointment on a specific day with pagination
-func (s *bookingServiceImpl) GetAvailableSlotsByDay(ctx context.Context, appcode string, dateStr string) (paginate.Page, error) {
+func (s *bookingServiceImpl) GetAvailableSlotsByDay(req *http.Request, appcode string, dateStr string) (paginate.Page, error) {
 	parsedDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		return paginate.Page{}, myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Invalid date format. Use YYYY-MM-DD.")
 	}
-	return s.bookingRepo.GetAvailableSlotsByDay(ctx, appcode, parsedDate), nil
+	ctx := context.Background()
+	if req != nil {
+		ctx = req.Context()
+	}
+	return s.bookingRepo.GetAvailableSlotsByDay(ctx, req, appcode, parsedDate), nil
 }
 
 // GetBookingByCode retrieves a booking by its permanent booking_code

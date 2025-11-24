@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -25,6 +26,16 @@ const (
 	ScalpingStrict   AntiScalpingLevel = "strict"
 )
 
+type AppointmentStatus string
+
+const (
+	AppointmentStatusPending   AppointmentStatus = "pending"
+	AppointmentStatusOngoing   AppointmentStatus = "ongoing"
+	AppointmentStatusCompleted AppointmentStatus = "completed"
+	AppointmentStatusCanceled  AppointmentStatus = "canceled"
+	AppointmentStatusExpired   AppointmentStatus = "expired"
+)
+
 type Appointment struct {
 	ID                uuid.UUID         `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Title             string            `json:"title" gorm:"not null"`
@@ -40,6 +51,7 @@ type Appointment struct {
 	User              User              `json:"-" gorm:"foreignKey:OwnerID"`
 	AppCode           string            `json:"app_code" gorm:"unique;not null"`
 	Bookings          []Booking         `json:"bookings" gorm:"foreignKey:AppointmentID"`
+	Status            AppointmentStatus `json:"status" gorm:"type:appointment_status;not null;default:'pending'"`
 	CreatedAt         time.Time         `json:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at"`
 	DeletedAt         gorm.DeletedAt    `json:"deleted_at,omitempty" gorm:"index" swaggertype:"string" format:"date-time"`
@@ -56,6 +68,9 @@ func (a *Appointment) BeforeCreate(tx *gorm.DB) error {
 	a.AppCode = code
 
 	a.Type = AppointmentType(utils.NormalizeString(string(a.Type)))
+	if a.Status == "" {
+		a.Status = AppointmentStatusPending
+	}
 
 	return nil
 }
@@ -112,12 +127,14 @@ func (a *Appointment) generateBookings() []Booking {
 }
 
 func isAppCodeAvailable(tx *gorm.DB, code string, table string, query string, entity interface{}) (bool, error) {
-	err := tx.Table(table).Where(query, code).Order("end_date desc").First(&entity).Error
-	if err != nil {
+	err := tx.Table(table).Where(query, code).First(&entity).Error
+	if err == nil {
+		return false, nil
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return true, nil
 	}
-
-	return false, nil
+	return false, err
 }
 
 func generateUniqueCode(tx *gorm.DB, table string, query string, entity interface{}, codeType string) (string, error) {

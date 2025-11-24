@@ -129,6 +129,35 @@ export class AuthenticationApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
+     * Resend a verification code for a pending user registration.
+     * Resend verification code
+     */
+    async resendVerificationRaw(requestParameters, initOverrides) {
+        if (requestParameters['resend'] == null) {
+            throw new runtime.RequiredError('resend', 'Required parameter "resend" was null or undefined when calling resendVerification().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        headerParameters['Content-Type'] = 'application/json';
+        let urlPath = `/auth/resend-verification`;
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestsResendVerificationRequestToJSON(requestParameters['resend']),
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
+    }
+    /**
+     * Resend a verification code for a pending user registration.
+     * Resend verification code
+     */
+    async resendVerification(requestParameters, initOverrides) {
+        const response = await this.resendVerificationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
      * Verify a user\'s email address with a code to complete registration.
      * Verify user registration
      */
@@ -155,35 +184,6 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async verifyRegistration(requestParameters, initOverrides) {
         const response = await this.verifyRegistrationRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-    /**
-     * Resend a verification code for a pending registration.
-     * Resend verification code
-     */
-    async resendVerificationRaw(requestParameters, initOverrides) {
-        if (requestParameters['resend'] == null) {
-            throw new runtime.RequiredError('resend', 'Required parameter "resend" was null or undefined when calling resendVerification().');
-        }
-        const queryParameters = {};
-        const headerParameters = {};
-        headerParameters['Content-Type'] = 'application/json';
-        let urlPath = `/auth/resend-verification`;
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: RequestsResendVerificationRequestToJSON(requestParameters['resend']),
-        }, initOverrides);
-        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
-    }
-    /**
-     * Resend a verification code for a pending registration.
-     * Resend verification code
-     */
-    async resendVerification(requestParameters, initOverrides) {
-        const response = await this.resendVerificationRaw(requestParameters, initOverrides);
         return await response.value();
     }
 }

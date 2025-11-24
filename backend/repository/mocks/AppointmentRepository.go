@@ -6,12 +6,17 @@ import (
 	context "context"
 
 	entities "github.com/m13ha/asiko/models/entities"
-	repository "github.com/m13ha/asiko/repository"
-	mock "github.com/stretchr/testify/mock"
-
 	gorm "gorm.io/gorm"
 
+	http "net/http"
+
+	mock "github.com/stretchr/testify/mock"
+
 	paginate "github.com/morkid/paginate"
+
+	repository "github.com/m13ha/asiko/repository"
+
+	time "time"
 
 	uuid "github.com/google/uuid"
 )
@@ -99,22 +104,136 @@ func (_m *AppointmentRepository) FindAppointmentByAppCode(appCode string) (*enti
 	return r0, r1
 }
 
-// GetAppointmentsByOwnerIDQuery provides a mock function with given fields: ctx, ownerID
-func (_m *AppointmentRepository) GetAppointmentsByOwnerIDQuery(ctx context.Context, ownerID uuid.UUID) paginate.Page {
-	ret := _m.Called(ctx, ownerID)
+// FindByIDAndOwner provides a mock function with given fields: ctx, id, ownerID
+func (_m *AppointmentRepository) FindByIDAndOwner(ctx context.Context, id uuid.UUID, ownerID uuid.UUID) (*entities.Appointment, error) {
+	ret := _m.Called(ctx, id, ownerID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByIDAndOwner")
+	}
+
+	var r0 *entities.Appointment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (*entities.Appointment, error)); ok {
+		return rf(ctx, id, ownerID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) *entities.Appointment); ok {
+		r0 = rf(ctx, id, ownerID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Appointment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, id, ownerID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetAppointmentsByOwnerIDQuery provides a mock function with given fields: ctx, req, ownerID, statuses
+func (_m *AppointmentRepository) GetAppointmentsByOwnerIDQuery(ctx context.Context, req *http.Request, ownerID uuid.UUID, statuses []entities.AppointmentStatus) paginate.Page {
+	ret := _m.Called(ctx, req, ownerID, statuses)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAppointmentsByOwnerIDQuery")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) paginate.Page); ok {
-		r0 = rf(ctx, ownerID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, uuid.UUID, []entities.AppointmentStatus) paginate.Page); ok {
+		r0 = rf(ctx, req, ownerID, statuses)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
 	return r0
+}
+
+// MarkAppointmentsCompleted provides a mock function with given fields: ctx, now
+func (_m *AppointmentRepository) MarkAppointmentsCompleted(ctx context.Context, now time.Time) (int64, error) {
+	ret := _m.Called(ctx, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkAppointmentsCompleted")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) (int64, error)); ok {
+		return rf(ctx, now)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) int64); ok {
+		r0 = rf(ctx, now)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MarkAppointmentsExpired provides a mock function with given fields: ctx, now
+func (_m *AppointmentRepository) MarkAppointmentsExpired(ctx context.Context, now time.Time) (int64, error) {
+	ret := _m.Called(ctx, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkAppointmentsExpired")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) (int64, error)); ok {
+		return rf(ctx, now)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) int64); ok {
+		r0 = rf(ctx, now)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MarkAppointmentsOngoing provides a mock function with given fields: ctx, now
+func (_m *AppointmentRepository) MarkAppointmentsOngoing(ctx context.Context, now time.Time) (int64, error) {
+	ret := _m.Called(ctx, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkAppointmentsOngoing")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) (int64, error)); ok {
+		return rf(ctx, now)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) int64); ok {
+		r0 = rf(ctx, now)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Update provides a mock function with given fields: appointment
@@ -128,6 +247,24 @@ func (_m *AppointmentRepository) Update(appointment *entities.Appointment) error
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*entities.Appointment) error); ok {
 		r0 = rf(appointment)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateStatus provides a mock function with given fields: ctx, appointmentID, status
+func (_m *AppointmentRepository) UpdateStatus(ctx context.Context, appointmentID uuid.UUID, status entities.AppointmentStatus) error {
+	ret := _m.Called(ctx, appointmentID, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStatus")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, entities.AppointmentStatus) error); ok {
+		r0 = rf(ctx, appointmentID, status)
 	} else {
 		r0 = ret.Error(0)
 	}

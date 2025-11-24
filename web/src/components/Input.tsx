@@ -1,16 +1,11 @@
-import styled from 'styled-components';
+import { forwardRef } from 'react';
+import type { InputTextProps } from 'primereact/inputtext';
+import { InputText } from 'primereact/inputtext';
 
-export const Input = styled.input`
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text);
-  outline: none;
-  transition: border-color var(--spring-fast), box-shadow var(--spring-fast), background var(--spring-fast);
-  &:focus {
-    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent);
-  }
-`;
+export const Input = forwardRef<HTMLInputElement, InputTextProps>(function Input(
+  { className, ...props },
+  ref
+) {
+  const computedClass = ['app-input', className].filter(Boolean).join(' ');
+  return <InputText ref={ref} {...props} className={computedClass || undefined} />;
+});

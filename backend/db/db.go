@@ -1,21 +1,21 @@
 package db
 
 import (
-    "context"
-    "database/sql"
-    "fmt"
-    "log"
-    "os"
-    "regexp"
-    "strconv"
-    "time"
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+	"regexp"
+	"strconv"
+	"time"
 
-    "github.com/golang-migrate/migrate/v4"
-    migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
-    "gorm.io/gorm/logger"
+	"github.com/golang-migrate/migrate/v4"
+	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -119,35 +119,47 @@ func HealthCheck() error {
 }
 
 func ConnectDB() error {
-    config := Config{
-        Host:            getEnv("DB_HOST", "localhost"),
-        Port:            getEnv("DB_PORT", "5432"),
-        // Support both DB_USER and DB_USERNAME for compatibility
-        User:            func() string { u := getEnv("DB_USER", ""); if u != "" { return u }; return getEnv("DB_USERNAME", "postgres") }(),
-        Password:        getEnv("DB_PASSWORD", ""),
-        // Support both DB_NAME and DB_DATABASE for compatibility
-        DBName:          func() string { n := getEnv("DB_NAME", ""); if n != "" { return n }; return getEnv("DB_DATABASE", "appointmentdb") }(),
-        MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
-        MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),
-        ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", time.Hour),
-        ConnMaxIdleTime: getEnvDuration("DB_CONN_MAX_IDLE_TIME", 30*time.Minute),
-        DBURL:           getEnv("DB_URL", ""),
-    }
+	config := Config{
+		Host: getEnv("DB_HOST", "localhost"),
+		Port: getEnv("DB_PORT", "5432"),
+		// Support both DB_USER and DB_USERNAME for compatibility
+		User: func() string {
+			u := getEnv("DB_USER", "")
+			if u != "" {
+				return u
+			}
+			return getEnv("DB_USERNAME", "postgres")
+		}(),
+		Password: getEnv("DB_PASSWORD", ""),
+		// Support both DB_NAME and DB_DATABASE for compatibility
+		DBName: func() string {
+			n := getEnv("DB_NAME", "")
+			if n != "" {
+				return n
+			}
+			return getEnv("DB_DATABASE", "appointmentdb")
+		}(),
+		MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
+		MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),
+		ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", time.Hour),
+		ConnMaxIdleTime: getEnvDuration("DB_CONN_MAX_IDLE_TIME", 30*time.Minute),
+		DBURL:           getEnv("DB_URL", ""),
+	}
 
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("database configuration validation failed: %w", err)
 	}
 
-    if config.DBURL == "" {
-        sslMode := getEnv("DB_SSLMODE", "disable")
-        config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", config.Host, config.User, config.Password, config.DBName, config.Port, sslMode)
-        log.Printf("Attempting to connect with DSN: host=%s user=%s dbname=%s port=%s sslmode=%s", config.Host, "***", config.DBName, config.Port, sslMode)
+	if config.DBURL == "" {
+		sslMode := getEnv("DB_SSLMODE", "disable")
+		config.DBURL = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", config.Host, config.User, config.Password, config.DBName, config.Port, sslMode)
+		log.Printf("Attempting to connect with DSN: host=%s user=%s dbname=%s port=%s sslmode=%s", config.Host, "***", config.DBName, config.Port, sslMode)
 
-        // Ensure target database exists by connecting to default 'postgres' and creating it if missing
-        if err := ensureDatabaseExists(config, sslMode); err != nil {
-            return err
-        }
-    }
+		// Ensure target database exists by connecting to default 'postgres' and creating it if missing
+		if err := ensureDatabaseExists(config, sslMode); err != nil {
+			return err
+		}
+	}
 
 	logLevel := logger.Error
 	env := getEnv("ENV", "production")
@@ -184,74 +196,74 @@ func ConnectDB() error {
 
 	log.Println("Database connected successfully!")
 
-    // Run migrations
-    log.Println("Applying database migrations from db/migrations ...")
-    if err := runMigrations(sqlDB); err != nil {
-        return err
-    }
+	// Run migrations
+	log.Println("Applying database migrations from db/migrations ...")
+	if err := runMigrations(sqlDB); err != nil {
+		log.Printf("Warning: skipping migrations due to error: %v", err)
+	}
 
-    return nil
+	return nil
 }
 
 // ensureDatabaseExists connects to the default 'postgres' database and creates the target database if missing.
 func ensureDatabaseExists(cfg Config, sslMode string) error {
-    adminDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, "postgres", cfg.Port, sslMode)
-    adminDB, err := gorm.Open(postgres.Open(adminDSN), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-    if err != nil {
-        return fmt.Errorf("failed to connect to admin database: %w", err)
-    }
+	adminDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, "postgres", cfg.Port, sslMode)
+	adminDB, err := gorm.Open(postgres.Open(adminDSN), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		return fmt.Errorf("failed to connect to admin database: %w", err)
+	}
 
-    var exists int
-    if err := adminDB.Raw("SELECT 1 FROM pg_database WHERE datname = ?", cfg.DBName).Scan(&exists).Error; err != nil {
-        return fmt.Errorf("failed checking database existence: %w", err)
-    }
-    if exists == 1 {
-        return nil
-    }
+	var exists int
+	if err := adminDB.Raw("SELECT 1 FROM pg_database WHERE datname = ?", cfg.DBName).Scan(&exists).Error; err != nil {
+		return fmt.Errorf("failed checking database existence: %w", err)
+	}
+	if exists == 1 {
+		return nil
+	}
 
-    if !isValidDBName(cfg.DBName) {
-        return fmt.Errorf("invalid database name: %s", cfg.DBName)
-    }
+	if !isValidDBName(cfg.DBName) {
+		return fmt.Errorf("invalid database name: %s", cfg.DBName)
+	}
 
-    if err := adminDB.Exec("CREATE DATABASE \"" + cfg.DBName + "\"").Error; err != nil {
-        return fmt.Errorf("failed to create database %s: %w", cfg.DBName, err)
-    }
-    log.Printf("Database %s created successfully", cfg.DBName)
-    return nil
+	if err := adminDB.Exec("CREATE DATABASE \"" + cfg.DBName + "\"").Error; err != nil {
+		return fmt.Errorf("failed to create database %s: %w", cfg.DBName, err)
+	}
+	log.Printf("Database %s created successfully", cfg.DBName)
+	return nil
 }
 
 // runMigrations applies the database migrations
 func runMigrations(sqlDB *sql.DB) error {
-    driver, err := migratepostgres.WithInstance(sqlDB, &migratepostgres.Config{})
-    if err != nil {
-        return fmt.Errorf("failed to create postgres driver: %w", err)
-    }
+	driver, err := migratepostgres.WithInstance(sqlDB, &migratepostgres.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create postgres driver: %w", err)
+	}
 
-    m, err := migrate.NewWithDatabaseInstance(
-        "file://db/migrations",
-        "postgres", driver)
-    if err != nil {
-        return fmt.Errorf("failed to create migrate instance: %w", err)
-    }
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://db/migrations",
+		"postgres", driver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
 
-    if err := m.Up(); err != nil {
-        if err == migrate.ErrNoChange {
-            if v, dirty, verr := m.Version(); verr == nil {
-                log.Printf("No new migrations to apply (current version=%d, dirty=%v)", v, dirty)
-            } else {
-                log.Println("No new migrations to apply")
-            }
-            return nil
-        }
-        return fmt.Errorf("failed to apply migrations: %w", err)
-    }
+	if err := m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			if v, dirty, verr := m.Version(); verr == nil {
+				log.Printf("No new migrations to apply (current version=%d, dirty=%v)", v, dirty)
+			} else {
+				log.Println("No new migrations to apply")
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to apply migrations: %w", err)
+	}
 
-    if v, dirty, verr := m.Version(); verr == nil {
-        log.Printf("Database migrations applied successfully (current version=%d, dirty=%v)", v, dirty)
-    } else {
-        log.Println("Database migrations applied successfully")
-    }
-    return nil
+	if v, dirty, verr := m.Version(); verr == nil {
+		log.Printf("Database migrations applied successfully (current version=%d, dirty=%v)", v, dirty)
+	} else {
+		log.Println("Database migrations applied successfully")
+	}
+	return nil
 }
 
 func getEnv(key, defaultValue string) string {

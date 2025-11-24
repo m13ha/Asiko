@@ -35,6 +35,18 @@ export interface ResponsesLoginResponse {
     token?: string;
     /**
      * 
+     * @type {string}
+     * @memberof ResponsesLoginResponse
+     */
+    refreshToken?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ResponsesLoginResponse
+     */
+    expiresIn?: number;
+    /**
+     * 
      * @type {ResponsesUserResponse}
      * @memberof ResponsesLoginResponse
      */
@@ -59,6 +71,8 @@ export function ResponsesLoginResponseFromJSONTyped(json: any, ignoreDiscriminat
     return {
         
         'token': json['token'] == null ? undefined : json['token'],
+        'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
+        'expiresIn': json['expires_in'] == null ? undefined : json['expires_in'],
         'user': json['user'] == null ? undefined : ResponsesUserResponseFromJSON(json['user']),
     };
 }
@@ -75,7 +89,8 @@ export function ResponsesLoginResponseToJSONTyped(value?: ResponsesLoginResponse
     return {
         
         'token': value['token'],
+        'refresh_token': value['refreshToken'],
+        'expires_in': value['expiresIn'],
         'user': ResponsesUserResponseToJSON(value['user']),
     };
 }
-

@@ -1,13 +1,18 @@
-import styled from 'styled-components';
+import { forwardRef } from 'react';
+import type { InputTextareaProps } from 'primereact/inputtextarea';
+import { InputTextarea } from 'primereact/inputtextarea';
 
-export const Textarea = styled.textarea`
-  width: 100%;
-  min-height: 96px;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text);
-  resize: vertical;
-`;
-
+export const Textarea = forwardRef<HTMLTextAreaElement, InputTextareaProps>(function Textarea(
+  { className, autoResize = false, ...props },
+  ref
+) {
+  const computedClass = ['app-textarea', className].filter(Boolean).join(' ');
+  return (
+    <InputTextarea
+      ref={ref}
+      {...props}
+      className={computedClass || undefined}
+      autoResize={autoResize}
+    />
+  );
+});

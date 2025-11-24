@@ -4,7 +4,6 @@ import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { useResendVerification, useVerify } from '@/features/auth/hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, KeySquare, CheckCircle2 } from 'lucide-react';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
 import { HandUnderline } from '@/components/HandUnderline';
 import { Spinner } from '@/components/Spinner';
@@ -54,7 +53,7 @@ export function VerifyPage() {
             <FieldLabel>Email</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Mail size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-envelope" aria-hidden="true" /></IconSlot>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ paddingLeft: 36 }} />
               </div>
             </FieldRow>
@@ -63,7 +62,7 @@ export function VerifyPage() {
             <FieldLabel>Verification code</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><KeySquare size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-key" aria-hidden="true" /></IconSlot>
                 <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" style={{ paddingLeft: 36 }} />
               </div>
             </FieldRow>
@@ -75,7 +74,7 @@ export function VerifyPage() {
               </>
             ) : (
               <>
-                <CheckCircle2 size={16} /> Verify
+                <i className="pi pi-check-circle" aria-hidden="true" /> Verify
               </>
             )}
           </Button>
@@ -86,7 +85,7 @@ export function VerifyPage() {
               </>
             ) : (
               <>
-                <Mail size={16} /> Resend code
+                <i className="pi pi-envelope" aria-hidden="true" /> Resend code
               </>
             )}
           </Button>

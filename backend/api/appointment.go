@@ -1,27 +1,62 @@
 package api
 
 import (
-    "net/http"
+	"net/http"
+	"strings"
 
-    "github.com/gin-gonic/gin"
-    "github.com/m13ha/asiko/errors"
-    "github.com/m13ha/asiko/middleware"
-    "github.com/m13ha/asiko/models/requests"
-    "github.com/m13ha/asiko/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/utils"
 )
 
 // parseAndValidateRequest parses and validates the appointment request from the HTTP request
 func parseAndValidateRequest(c *gin.Context) (requests.AppointmentRequest, error) {
-    var req requests.AppointmentRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        return req, errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("invalid request payload: "+err.Error())
-    }
+	var req requests.AppointmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return req, errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("invalid request payload: " + err.Error())
+	}
 
-    if err := utils.Validate(req); err != nil {
-        return req, errors.FromValidation(err, "validation failed")
-    }
+	if err := utils.Validate(req); err != nil {
+		return req, errors.FromValidation(err, "validation failed")
+	}
 
-    return req, nil
+	return req, nil
+}
+
+func parseStatusFilters(raw []string) []entities.AppointmentStatus {
+	values := make([]entities.AppointmentStatus, 0, len(raw))
+	seen := map[entities.AppointmentStatus]struct{}{}
+
+	normalize := func(token string) {
+		token = strings.TrimSpace(strings.ToLower(token))
+		switch token {
+		case string(entities.AppointmentStatusPending),
+			string(entities.AppointmentStatusOngoing),
+			string(entities.AppointmentStatusCompleted),
+			string(entities.AppointmentStatusCanceled),
+			string(entities.AppointmentStatusExpired):
+			status := entities.AppointmentStatus(token)
+			if _, ok := seen[status]; !ok {
+				seen[status] = struct{}{}
+				values = append(values, status)
+			}
+		}
+	}
+
+	for _, entry := range raw {
+		if strings.Contains(entry, ",") {
+			for _, token := range strings.Split(entry, ",") {
+				normalize(token)
+			}
+			continue
+		}
+		normalize(entry)
+	}
+
+	return values
 }
 
 // @Summary Create a new appointment
@@ -38,25 +73,25 @@ func parseAndValidateRequest(c *gin.Context) (requests.AppointmentRequest, error
 // @Router /appointments [post]
 // @ID createAppointment
 func (h *Handler) CreateAppointment(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("authentication required"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("authentication required"))
+		return
+	}
 
-    req, err := parseAndValidateRequest(c)
-    if err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	req, err := parseAndValidateRequest(c)
+	if err != nil {
+		c.Error(errors.FromError(err))
+		return
+	}
 
-    appointment, err := h.appointmentService.CreateAppointment(req, userID)
-    if err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	appointment, err := h.appointmentService.CreateAppointment(req, userID)
+	if err != nil {
+		c.Error(errors.FromError(err))
+		return
+	}
 
-    c.JSON(http.StatusCreated, appointment)
+	c.JSON(http.StatusCreated, appointment)
 }
 
 // @Summary Get appointments created by the user
@@ -64,18 +99,20 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 // @Tags Appointments
 // @Produce  application/json
 // @Security BearerAuth
+// @Param status query []string false "Filter by appointment status (pending, ongoing, completed, canceled, expired)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]responses.AppointmentResponse}
 // @Failure 401 {object} errors.APIErrorResponse "Authentication required"
 // @Router /appointments/my [get]
 // @ID getMyAppointments
 func (h *Handler) GetAppointmentsCreatedByUser(c *gin.Context) {
-    uid, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Authentication required"))
-        return
-    }
+	uid, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Authentication required"))
+		return
+	}
 
-    appointments := h.appointmentService.GetAllAppointmentsCreatedByUser(uid.String(), c.Request)
+	statuses := parseStatusFilters(c.QueryArray("status"))
+	appointments := h.appointmentService.GetAllAppointmentsCreatedByUser(uid.String(), c.Request, statuses)
 
-    c.JSON(http.StatusOK, appointments)
+	c.JSON(http.StatusOK, appointments)
 }

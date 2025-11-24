@@ -4,6 +4,21 @@ import * as API from '@appointment-master/api-client';
 import toast from 'react-hot-toast';
 import { useAuth } from './AuthProvider';
 
+function computeExpiresAt(token?: string, expiresIn?: number) {
+  if (expiresIn && expiresIn > 0) return Date.now() + expiresIn * 1000;
+  if (!token) return undefined;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return undefined;
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload && typeof payload.exp === 'number') {
+      return payload.exp * 1000;
+    }
+  } catch {
+    return undefined;
+  }
+}
+
 async function parseError(e: unknown): Promise<string> {
   if (e instanceof API.ResponseError) {
     try {
@@ -17,12 +32,18 @@ async function parseError(e: unknown): Promise<string> {
 }
 
 export function useLogin() {
-  const { setToken } = useAuth();
+  const { setTokens } = useAuth();
   return useMutation({
     mutationFn: async (vars: { email: string; password: string }) =>
       authApi.loginUser({ login: { email: vars.email, password: vars.password } }),
     onSuccess: (res: any) => {
-      if (res?.token) setToken(res.token);
+      if (res?.token) {
+        setTokens({
+          accessToken: res.token,
+          refreshToken: res.refreshToken,
+          expiresAt: computeExpiresAt(res.token, res.expiresIn),
+        });
+      }
       toast.success('Logged in');
     },
     onError: async (e) => toast.error(await parseError(e)),
@@ -50,12 +71,18 @@ export function useSignup() {
 }
 
 export function useVerify() {
-  const { setToken } = useAuth();
+  const { setTokens } = useAuth();
   return useMutation({
     mutationFn: async (vars: { email: string; code: string }) =>
       authApi.verifyRegistration({ verification: { email: vars.email, code: vars.code } }),
     onSuccess: (res) => {
-      if (res?.token) setToken(res.token);
+      if (res?.token) {
+        setTokens({
+          accessToken: res.token,
+          refreshToken: res.refreshToken,
+          expiresAt: computeExpiresAt(res.token, res.expiresIn),
+        });
+      }
       toast.success('Email verified');
     },
     onError: async (e) => toast.error(await parseError(e)),

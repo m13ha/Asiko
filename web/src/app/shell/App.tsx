@@ -7,7 +7,6 @@ import { Toaster } from 'react-hot-toast';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useLogout } from '@/features/auth/hooks';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon } from 'lucide-react';
 
 const Header = styled.header`
   position: sticky;
@@ -102,7 +101,6 @@ export function App() {
                 <NavLink to="/dashboard">Dashboard</NavLink>
                 <NavLink to="/appointments">Appointments</NavLink>
                 <NavLink to="/bookings">My Bookings</NavLink>
-                <NavLink to="/analytics">Analytics</NavLink>
                 <NavLink to="/ban-list">Ban List</NavLink>
                 <NavLink to="/notifications">Notifications</NavLink>
                 <a href="#" onClick={(e) => { e.preventDefault(); doLogout.mutate(undefined, { onSettled: () => navigate('/') }); }}>Logout</a>
@@ -113,7 +111,7 @@ export function App() {
           </Nav>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button aria-label="Toggle theme" onClick={toggle} title="Toggle theme">
-              {mode === 'light' ? <Sun size={16} /> : <Moon size={16} />}
+              <i className={`pi ${mode === 'light' ? 'pi-sun' : 'pi-moon'}`} aria-hidden="true" />
               <span className="hide-sm">Theme</span>
             </Button>
             <MenuToggle aria-label="Toggle navigation menu" aria-controls="primary-nav" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}>

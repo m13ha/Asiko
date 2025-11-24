@@ -19,14 +19,20 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 export function ThemeProvider({ children }: PropsWithChildren) {
-  const [mode, setMode] = useState<Mode>(() => (localStorage.getItem('theme') as Mode) || 'light');
+  const [mode, setMode] = useState<Mode>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return (localStorage.getItem('theme') as Mode) || 'light';
+  });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('theme', mode);
     document.documentElement.dataset.theme = mode;
     const t = mode === 'dark' ? darkTheme : lightTheme;
     const vars = themeToCssVars(t);
     Object.entries(vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+    document.body.classList.remove('theme-light', 'theme-dark');
+    document.body.classList.add(`theme-${mode}`);
   }, [mode]);
 
   const value = useMemo<Ctx>(() => ({ mode, toggle: () => setMode(mode === 'light' ? 'dark' : 'light'), setMode }), [mode]);
@@ -47,4 +53,3 @@ export function useTheme() {
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
   return ctx;
 }
-

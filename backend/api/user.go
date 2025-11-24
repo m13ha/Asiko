@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/requests"
 	"github.com/m13ha/asiko/models/responses"
 	"github.com/m13ha/asiko/utils"
@@ -78,7 +79,23 @@ func (h *Handler) VerifyRegistrationHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, responses.LoginResponse{Token: token})
+	userID, err := middleware.ParseUserIDFromToken(token)
+	if err != nil {
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not parse token"))
+		return
+	}
+
+	refreshToken, err := middleware.GenerateRefreshToken(userID)
+	if err != nil {
+		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate refresh token"))
+		return
+	}
+
+	c.JSON(http.StatusCreated, responses.LoginResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresIn:    middleware.AccessTokenTTLSeconds(),
+	})
 }
 
 // @Summary Resend verification code

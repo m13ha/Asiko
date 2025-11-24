@@ -27,7 +27,10 @@ func (req *AppointmentRequest) Validate() error {
 		return myerrors.NewUserError("Invalid appointment data. Please check your input.")
 	}
 
-	if req.EndTime.Before(req.StartTime) {
+	startClock := normalizeClock(req.StartTime)
+	endClock := normalizeClock(req.EndTime)
+
+	if !endClock.After(startClock) {
 		return myerrors.NewUserError("End time cannot be before start time.")
 	}
 
@@ -35,10 +38,26 @@ func (req *AppointmentRequest) Validate() error {
 		return myerrors.NewUserError("End date cannot be before start date.")
 	}
 
-	duration := req.EndTime.Sub(req.StartTime)
+	duration := endClock.Sub(startClock)
 	if duration.Minutes() < float64(req.BookingDuration) {
 		return myerrors.NewUserError("Booking duration exceeds available time window.")
 	}
 
+	// Align times to the start date for downstream processing
+	req.StartTime = time.Date(
+		req.StartDate.Year(), req.StartDate.Month(), req.StartDate.Day(),
+		req.StartTime.Hour(), req.StartTime.Minute(), req.StartTime.Second(), req.StartTime.Nanosecond(),
+		req.StartTime.Location(),
+	)
+	req.EndTime = time.Date(
+		req.StartDate.Year(), req.StartDate.Month(), req.StartDate.Day(),
+		req.EndTime.Hour(), req.EndTime.Minute(), req.EndTime.Second(), req.EndTime.Nanosecond(),
+		req.EndTime.Location(),
+	)
+
 	return nil
+}
+
+func normalizeClock(t time.Time) time.Time {
+	return time.Date(2000, time.January, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 }

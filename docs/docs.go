@@ -263,6 +263,18 @@ const docTemplate = `{
                 ],
                 "summary": "Get appointments created by the user",
                 "operationId": "getMyAppointments",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by appointment status (pending, ongoing, completed, canceled, expired)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1314,6 +1326,9 @@ const docTemplate = `{
                 "start_time": {
                     "type": "string"
                 },
+                "status": {
+                    "$ref": "#/definitions/entities.AppointmentStatus"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -1324,6 +1339,23 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "entities.AppointmentStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "ongoing",
+                "completed",
+                "canceled",
+                "expired"
+            ],
+            "x-enum-varnames": [
+                "AppointmentStatusPending",
+                "AppointmentStatusOngoing",
+                "AppointmentStatusCompleted",
+                "AppointmentStatusCanceled",
+                "AppointmentStatusExpired"
+            ]
         },
         "entities.AppointmentType": {
             "type": "string",
@@ -1370,18 +1402,12 @@ const docTemplate = `{
                 "available": {
                     "type": "boolean"
                 },
-                "is_slot": {
-                    "type": "boolean"
-                },
-                "capacity": {
-                    "type": "integer"
-                },
-                "seats_booked": {
-                    "type": "integer"
-                },
                 "booking_code": {
                     "description": "Permanent booking code for all bookings",
                     "type": "string"
+                },
+                "capacity": {
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
@@ -1406,6 +1432,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_slot": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -1417,6 +1446,9 @@ const docTemplate = `{
                 },
                 "phone": {
                     "type": "string"
+                },
+                "seats_booked": {
+                    "type": "integer"
                 },
                 "start_time": {
                     "type": "string"
@@ -1584,7 +1616,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "attendee_count": {
-                    "description": "Number of attendees to reserve in this booking (must not exceed remaining capacity)",
                     "type": "integer",
                     "minimum": 1
                 },
@@ -1829,6 +1860,9 @@ const docTemplate = `{
                 },
                 "start_time": {
                     "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/entities.AppointmentStatus"
                 },
                 "title": {
                     "type": "string"

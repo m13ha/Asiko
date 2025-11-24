@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	apperrors "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/models/responses"
 	"github.com/m13ha/asiko/services/mocks"
@@ -22,7 +23,7 @@ func TestLogin(t *testing.T) {
 		body               string
 		setupMock          func(mockService *mocks.UserService)
 		expectedStatusCode int
-		expectedContains   string
+		assertResponse     func(t *testing.T, body []byte)
 		expectedError      *apiErrorPayload
 	}{
 		{
@@ -33,7 +34,15 @@ func TestLogin(t *testing.T) {
 				mockService.On("AuthenticateUser", "test@example.com", "password123").Return(mockUser, nil).Once()
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedContains:   `{"token":"`,
+			assertResponse: func(t *testing.T, body []byte) {
+				var payload responses.LoginResponse
+				require.NoError(t, json.Unmarshal(body, &payload))
+				assert.NotEmpty(t, payload.Token)
+				assert.NotEmpty(t, payload.RefreshToken)
+				assert.True(t, payload.ExpiresIn > 0)
+				assert.Equal(t, "Test User", payload.User.Name)
+				assert.Equal(t, "test@example.com", payload.User.Email)
+			},
 		},
 		{
 			name:               "Failure - Bad Request (Invalid JSON)",
@@ -98,8 +107,8 @@ func TestLogin(t *testing.T) {
 				resp := decodeAPIError(t, w.Body.Bytes())
 				assert.Equal(t, tc.expectedError.Code, resp.Code)
 				assert.Equal(t, tc.expectedError.Message, resp.Message)
-			} else if tc.expectedContains != "" {
-				assert.Contains(t, w.Body.String(), tc.expectedContains)
+			} else if tc.assertResponse != nil {
+				tc.assertResponse(t, w.Body.Bytes())
 			}
 			mockUserService.AssertExpectations(t)
 		})
@@ -181,22 +190,25 @@ func TestCreateUserAPI(t *testing.T) {
 }
 
 func TestVerifyRegistrationAPI(t *testing.T) {
+	tokenForVerify, _ := middleware.GenerateToken("user-123")
 	testCases := []struct {
 		name               string
 		body               string
 		setupMock          func(mockService *mocks.UserService)
 		expectedStatusCode int
 		expectedToken      string
+		expectRefresh      bool
 		expectedError      *apiErrorPayload
 	}{
 		{
 			name: "Success",
 			body: `{"email": "verify@example.com", "code": "123456"}`,
 			setupMock: func(mockService *mocks.UserService) {
-				mockService.On("VerifyRegistration", "verify@example.com", "123456").Return("mock-jwt-token", nil).Once()
+				mockService.On("VerifyRegistration", "verify@example.com", "123456").Return(tokenForVerify, nil).Once()
 			},
 			expectedStatusCode: http.StatusCreated,
-			expectedToken:      "mock-jwt-token",
+			expectedToken:      tokenForVerify,
+			expectRefresh:      true,
 		},
 		{
 			name:               "Failure - Bad Request (Invalid JSON)",
@@ -265,6 +277,10 @@ func TestVerifyRegistrationAPI(t *testing.T) {
 				var payload responses.LoginResponse
 				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &payload))
 				assert.Equal(t, tc.expectedToken, payload.Token)
+				if tc.expectRefresh {
+					assert.NotEmpty(t, payload.RefreshToken)
+					assert.True(t, payload.ExpiresIn > 0)
+				}
 			}
 			mockUserService.AssertExpectations(t)
 		})
@@ -341,4 +357,37 @@ func TestResendVerificationAPI(t *testing.T) {
 			mockUserService.AssertExpectations(t)
 		})
 	}
+}
+
+func TestRefreshTokenAPI(t *testing.T) {
+	router, _, _, _, _, _, _ := setupTestRouter()
+
+	t.Run("Success", func(t *testing.T) {
+		rt, err := middleware.GenerateRefreshToken("user-123")
+		require.NoError(t, err)
+
+		req, _ := http.NewRequest("POST", "/auth/refresh", strings.NewReader(`{"refreshToken":"`+rt+`"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var payload responses.TokenResponse
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &payload))
+		assert.NotEmpty(t, payload.Token)
+		assert.NotEmpty(t, payload.RefreshToken)
+		assert.True(t, payload.ExpiresIn > 0)
+	})
+
+	t.Run("Invalid payload", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/auth/refresh", strings.NewReader(`{"refreshToken":""}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		resp := decodeAPIError(t, w.Body.Bytes())
+		assert.Equal(t, apperrors.CodeValidationFailed, resp.Code)
+	})
 }

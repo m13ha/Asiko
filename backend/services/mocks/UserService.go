@@ -76,6 +76,24 @@ func (_m *UserService) CreateUser(userReq requests.UserRequest) (*responses.User
 	return r0, r1
 }
 
+// ResendVerificationCode provides a mock function with given fields: email
+func (_m *UserService) ResendVerificationCode(email string) error {
+	ret := _m.Called(email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResendVerificationCode")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(email)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // VerifyRegistration provides a mock function with given fields: email, code
 func (_m *UserService) VerifyRegistration(email string, code string) (string, error) {
 	ret := _m.Called(email, code)
@@ -102,24 +120,6 @@ func (_m *UserService) VerifyRegistration(email string, code string) (string, er
 	}
 
 	return r0, r1
-}
-
-// ResendVerificationCode provides a mock function with given fields: email
-func (_m *UserService) ResendVerificationCode(email string) error {
-	ret := _m.Called(email)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ResendVerificationCode")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(email)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // NewUserService creates a new instance of UserService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

@@ -38,6 +38,10 @@ export interface CreateAppointmentRequest {
     appointment: RequestsAppointmentRequest;
 }
 
+export interface GetMyAppointmentsRequest {
+    status?: Array<string>;
+}
+
 export interface GetUsersRegisteredForAppointmentRequest {
     appCode: string;
 }
@@ -96,8 +100,12 @@ export class AppointmentsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    async getMyAppointmentsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMyAppointments200Response>> {
+    async getMyAppointmentsRaw(requestParameters: GetMyAppointmentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMyAppointments200Response>> {
         const queryParameters: any = {};
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status']!.join(runtime.COLLECTION_FORMATS["csv"]);
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -122,8 +130,8 @@ export class AppointmentsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    async getMyAppointments(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMyAppointments200Response> {
-        const response = await this.getMyAppointmentsRaw(initOverrides);
+    async getMyAppointments(requestParameters: GetMyAppointmentsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMyAppointments200Response> {
+        const response = await this.getMyAppointmentsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

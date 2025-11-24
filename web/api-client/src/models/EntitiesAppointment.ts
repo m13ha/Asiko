@@ -27,6 +27,13 @@ import {
     EntitiesAppointmentTypeToJSON,
     EntitiesAppointmentTypeToJSONTyped,
 } from './EntitiesAppointmentType';
+import type { EntitiesAppointmentStatus } from './EntitiesAppointmentStatus';
+import {
+    EntitiesAppointmentStatusFromJSON,
+    EntitiesAppointmentStatusFromJSONTyped,
+    EntitiesAppointmentStatusToJSON,
+    EntitiesAppointmentStatusToJSONTyped,
+} from './EntitiesAppointmentStatus';
 import type { EntitiesBooking } from './EntitiesBooking';
 import {
     EntitiesBookingFromJSON,
@@ -133,6 +140,12 @@ export interface EntitiesAppointment {
     startTime?: string;
     /**
      * 
+     * @type {EntitiesAppointmentStatus}
+     * @memberof EntitiesAppointment
+     */
+    status?: EntitiesAppointmentStatus;
+    /**
+     * 
      * @type {string}
      * @memberof EntitiesAppointment
      */
@@ -185,6 +198,7 @@ export function EntitiesAppointmentFromJSONTyped(json: any, ignoreDiscriminator:
         'ownerId': json['owner_id'] == null ? undefined : json['owner_id'],
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'startTime': json['start_time'] == null ? undefined : json['start_time'],
+        'status': json['status'] == null ? undefined : EntitiesAppointmentStatusFromJSON(json['status']),
         'title': json['title'] == null ? undefined : json['title'],
         'type': json['type'] == null ? undefined : EntitiesAppointmentTypeFromJSON(json['type']),
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
@@ -208,7 +222,7 @@ export function EntitiesAppointmentToJSONTyped(value?: EntitiesAppointment | nul
         'booking_duration': value['bookingDuration'],
         'bookings': value['bookings'] == null ? undefined : ((value['bookings'] as Array<any>).map(EntitiesBookingToJSON)),
         'created_at': value['createdAt'],
-        'deleted_at': value['deletedAt'] == null ? undefined : ((value['deletedAt']).toISOString()),
+        'deleted_at': value['deletedAt'] == null ? value['deletedAt'] : value['deletedAt'].toISOString(),
         'description': value['description'],
         'end_date': value['endDate'],
         'end_time': value['endTime'],
@@ -217,6 +231,7 @@ export function EntitiesAppointmentToJSONTyped(value?: EntitiesAppointment | nul
         'owner_id': value['ownerId'],
         'start_date': value['startDate'],
         'start_time': value['startTime'],
+        'status': EntitiesAppointmentStatusToJSON(value['status']),
         'title': value['title'],
         'type': EntitiesAppointmentTypeToJSON(value['type']),
         'updated_at': value['updatedAt'],

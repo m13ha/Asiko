@@ -10,9 +10,12 @@
  * Do not edit the class manually.
  */
 import * as runtime from '../runtime';
-import type { EntitiesAppointment, GetMyAppointments200Response, GetUserRegisteredBookings200Response, RequestsAppointmentRequest } from '../models/index';
+import type { EntitiesAppointment, EntitiesAppointmentStatus, GetMyAppointments200Response, GetUserRegisteredBookings200Response, RequestsAppointmentRequest } from '../models/index';
 export interface CreateAppointmentRequest {
     appointment: RequestsAppointmentRequest;
+}
+export interface GetMyAppointmentsRequest {
+    status?: Array<EntitiesAppointmentStatus>;
 }
 export interface GetUsersRegisteredForAppointmentRequest {
     appCode: string;
@@ -35,12 +38,12 @@ export declare class AppointmentsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    getMyAppointmentsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMyAppointments200Response>>;
+    getMyAppointmentsRaw(requestParameters?: GetMyAppointmentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMyAppointments200Response>>;
     /**
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    getMyAppointments(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMyAppointments200Response>;
+    getMyAppointments(requestParameters?: GetMyAppointmentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMyAppointments200Response>;
     /**
      * Retrieves a paginated list of all users/bookings for a specific appointment.
      * Get all bookings for an appointment

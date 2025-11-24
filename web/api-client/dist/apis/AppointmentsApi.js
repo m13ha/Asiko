@@ -53,8 +53,11 @@ export class AppointmentsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    async getMyAppointmentsRaw(initOverrides) {
+    async getMyAppointmentsRaw(requestParameters = {}, initOverrides) {
         const queryParameters = {};
+        if (requestParameters['status']) {
+            queryParameters['status'] = requestParameters['status'];
+        }
         const headerParameters = {};
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
@@ -72,8 +75,8 @@ export class AppointmentsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    async getMyAppointments(initOverrides) {
-        const response = await this.getMyAppointmentsRaw(initOverrides);
+    async getMyAppointments(requestParameters = {}, initOverrides) {
+        const response = await this.getMyAppointmentsRaw(requestParameters, initOverrides);
         return await response.value();
     }
     /**

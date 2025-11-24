@@ -1,13 +1,14 @@
-package services
+package services_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	myerrors "github.com/m13ha/asiko/errors"
 	"github.com/m13ha/asiko/repository"
 	"github.com/m13ha/asiko/repository/mocks"
+	services "github.com/m13ha/asiko/services"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +74,8 @@ func TestGetUserAnalytics(t *testing.T) {
 				end, _ := time.Parse("2006-01-02", "2025-01-31")
 				end = end.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 
-				mockRepo.On("GetUserAppointmentCount", userID, start, end).Return(int64(0), fmt.Errorf("db error"))
+				repoErr := myerrors.New(myerrors.CodeInternalError).WithKind(myerrors.KindInternal).WithHTTP(500).WithMessage("db error")
+				mockRepo.On("GetUserAppointmentCount", userID, start, end).Return(int64(0), repoErr)
 			},
 			expectedError: "db error",
 		},
@@ -84,7 +86,7 @@ func TestGetUserAnalytics(t *testing.T) {
 			mockRepo := new(mocks.AnalyticsRepository)
 			tc.setupMock(mockRepo, tc.userID)
 
-			service := NewAnalyticsService(mockRepo)
+			service := services.NewAnalyticsService(mockRepo)
 
 			result, err := service.GetUserAnalytics(tc.userID, tc.startDate, tc.endDate)
 
@@ -150,7 +152,7 @@ func TestGetUserAnalytics_DetailedSuccess(t *testing.T) {
 	topRows := []repository.TopAppointmentRow{{AppCode: "AP1", Title: "A", Bookings: 5, CapacityUsagePercent: 40.0}}
 	mockRepo.On("GetTopAppointments", userID, start, end, 5).Return(topRows, nil)
 
-	svc := NewAnalyticsService(mockRepo)
+	svc := services.NewAnalyticsService(mockRepo)
 	resp, err := svc.GetUserAnalytics(userID, startDate, endDate)
 
 	assert.NoError(t, err)
@@ -215,9 +217,10 @@ func TestGetUserAnalytics_FailsOnBreakdownError(t *testing.T) {
 	mockRepo.On("GetUserAppointmentCount", userID, start, end).Return(int64(5), nil)
 	mockRepo.On("GetUserBookingCount", userID, start, end).Return(int64(12), nil)
 	mockRepo.On("GetAppointmentsByTypeCounts", userID, start, end).Return(map[string]int{"single": 3}, nil)
-	mockRepo.On("GetBookingsByStatusCounts", userID, start, end).Return((map[string]int)(nil), fmt.Errorf("boom"))
+	repoErr := myerrors.New(myerrors.CodeInternalError).WithKind(myerrors.KindInternal).WithHTTP(500).WithMessage("boom")
+	mockRepo.On("GetBookingsByStatusCounts", userID, start, end).Return((map[string]int)(nil), repoErr)
 
-	svc := NewAnalyticsService(mockRepo)
+	svc := services.NewAnalyticsService(mockRepo)
 	resp, err := svc.GetUserAnalytics(userID, startDate, endDate)
 	assert.Error(t, err)
 	assert.Nil(t, resp)

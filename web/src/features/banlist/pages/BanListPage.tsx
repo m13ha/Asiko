@@ -5,7 +5,6 @@ import { Input } from '@/components/Input';
 import { useAddBan, useBanList, useRemoveBan } from '../hooks';
 import { EmptyState, EmptyTitle, EmptyDescription, EmptyAction } from '@/components/EmptyState';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
-import { Mail } from 'lucide-react';
 
 export function BanListPage() {
   const { data, isLoading, error } = useBanList();
@@ -25,7 +24,7 @@ export function BanListPage() {
             <FieldLabel>Email</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Mail size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-envelope" aria-hidden="true" /></IconSlot>
                 <Input type="email" placeholder="email@example.com" value={email} onChange={(e: any) => setEmail(e.target.value)} style={{ paddingLeft: 36 }} />
               </div>
               <Button variant="primary" disabled={!email || add.isPending} onClick={() => add.mutate(email)}>

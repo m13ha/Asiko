@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { useSignup } from '@/features/auth/hooks';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
 import { HandUnderline } from '@/components/HandUnderline';
 import { Spinner } from '@/components/Spinner';
@@ -37,7 +36,7 @@ export function SignupPage() {
             <FieldLabel>Name</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><User size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-user" aria-hidden="true" /></IconSlot>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" style={{ paddingLeft: 36 }} />
               </div>
             </FieldRow>
@@ -46,7 +45,7 @@ export function SignupPage() {
             <FieldLabel>Email</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Mail size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-envelope" aria-hidden="true" /></IconSlot>
                 <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ paddingLeft: 36 }} />
               </div>
             </FieldRow>
@@ -55,11 +54,11 @@ export function SignupPage() {
             <FieldLabel>Password</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Lock size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-lock" aria-hidden="true" /></IconSlot>
                 <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ paddingLeft: 36 }} />
               </div>
               <Button onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'}>
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <i className={`pi ${showPassword ? 'pi-eye-slash' : 'pi-eye'}`} aria-hidden="true" />
               </Button>
             </FieldRow>
           </Field>
@@ -67,11 +66,11 @@ export function SignupPage() {
             <FieldLabel>Confirm password</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Lock size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-lock" aria-hidden="true" /></IconSlot>
                 <Input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" style={{ paddingLeft: 36 }} />
               </div>
               <Button onClick={() => setShowConfirm((s) => !s)} aria-label={showConfirm ? 'Hide password' : 'Show password'} title={showConfirm ? 'Hide password' : 'Show password'}>
-                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                <i className={`pi ${showConfirm ? 'pi-eye-slash' : 'pi-eye'}`} aria-hidden="true" />
               </Button>
             </FieldRow>
           </Field>
@@ -103,7 +102,7 @@ export function SignupPage() {
               </>
             ) : (
               <>
-                <UserPlus size={16} /> Sign up
+                <i className="pi pi-user-plus" aria-hidden="true" /> Sign up
               </>
             )}
           </Button>

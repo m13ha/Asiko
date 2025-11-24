@@ -2,6 +2,7 @@
 /* eslint-disable */
 export * from './EntitiesAntiScalpingLevel';
 export * from './EntitiesAppointment';
+export * from './EntitiesAppointmentStatus';
 export * from './EntitiesAppointmentType';
 export * from './EntitiesBanListEntry';
 export * from './EntitiesBooking';
@@ -16,8 +17,8 @@ export * from './RequestsBanRequest';
 export * from './RequestsBookingRequest';
 export * from './RequestsDeviceTokenRequest';
 export * from './RequestsLoginRequest';
-export * from './RequestsUserRequest';
 export * from './RequestsResendVerificationRequest';
+export * from './RequestsUserRequest';
 export * from './RequestsVerificationRequest';
 export * from './ResponsesAnalyticsResponse';
 export * from './ResponsesAnalyticsResponsePartyCapacity';

@@ -35,6 +35,7 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 	r.POST("/auth/verify-registration", h.VerifyRegistrationHandler)
 	r.POST("/auth/resend-verification", h.ResendVerificationHandler)
 	r.POST("/auth/device-token", h.GenerateDeviceTokenHandler)
+	r.POST("/auth/refresh", h.Refresh)
 	r.POST("/appointments/book", h.BookGuestAppointment)
 	r.GET("/appointments/slots/:app_code", h.GetAvailableSlots)
 	r.GET("/appointments/slots/:app_code/by-day", h.GetAvailableSlotsByDay)

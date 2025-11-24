@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"github.com/m13ha/asiko/models/requests"
 	notificationmocks "github.com/m13ha/asiko/notifications/mocks"
 	repomocks "github.com/m13ha/asiko/repository/mocks"
+	services "github.com/m13ha/asiko/services"
 	servicemocks "github.com/m13ha/asiko/services/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -43,6 +44,7 @@ func TestBookAppointment(t *testing.T) {
 	t.Run("Success - Book Slot", func(t *testing.T) {
 		// Arrange
 		mockAppointmentRepo := new(repomocks.AppointmentRepository)
+		stubAppointmentWithTx(mockAppointmentRepo)
 		mockBookingRepo := new(repomocks.BookingRepository)
 		mockUserRepo := new(repomocks.UserRepository)
 		mockBanListRepo := new(repomocks.BanListRepository)
@@ -53,12 +55,13 @@ func TestBookAppointment(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		slot := newSlot()
 		req := requests.BookingRequest{AppCode: "SLOT123", Name: "Test", Email: "test@test.com", Date: slot.Date, StartTime: slot.StartTime, EndTime: slot.EndTime, AttendeeCount: 2}
 
 		mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
+		mockAppointmentRepo.On("FindAndLock", "SLOT123", mock.AnythingOfType("*gorm.DB")).Return(appSlot, nil).Once()
 		mockUserRepo.On("FindByID", userID.String()).Return(user, nil).Once()
 		// Transaction expectations
 		sqlMock.ExpectBegin()
@@ -92,6 +95,7 @@ func TestBookAppointment(t *testing.T) {
 
 	t.Run("Failure - Group Capacity Exceeded", func(t *testing.T) {
 		mockAppointmentRepo := new(repomocks.AppointmentRepository)
+		stubAppointmentWithTx(mockAppointmentRepo)
 		mockBookingRepo := new(repomocks.BookingRepository)
 		mockUserRepo := new(repomocks.UserRepository)
 		mockBanListRepo := new(repomocks.BanListRepository)
@@ -102,10 +106,12 @@ func TestBookAppointment(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		req := requests.BookingRequest{AppCode: "SLOT123", Name: "Test", Email: "test@test.com", Date: slotDate, StartTime: slotStart, EndTime: slotEnd, AttendeeCount: 4}
 		mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
+		mockAppointmentRepo.On("FindAndLock", "SLOT123", mock.AnythingOfType("*gorm.DB")).Return(appSlot, nil).Once()
+		mockUserRepo.On("FindByID", userID.String()).Return(user, nil).Once()
 		sqlMock.ExpectBegin()
 		mockBookingRepo.On("WithTx", mock.AnythingOfType("*gorm.DB")).Return(mockBookingRepo).Once()
 		partialSlot := *newSlot()
@@ -117,7 +123,7 @@ func TestBookAppointment(t *testing.T) {
 		_, err := bookingService.BookAppointment(req, userID.String())
 
 		assert.Error(t, err)
-		assert.Equal(t, "not enough capacity for this slot", err.Error())
+		assert.Equal(t, "BOOKING_CAPACITY_EXCEEDED: not enough capacity for this slot", err.Error())
 		mockAppointmentRepo.AssertExpectations(t)
 		mockBookingRepo.AssertExpectations(t)
 	})
@@ -135,7 +141,7 @@ func TestBookAppointment(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 		validReq := requests.BookingRequest{AppCode: "NOTFOUND", Name: "Guest User", Email: "guest@example.com", Date: time.Now(), StartTime: time.Now(), EndTime: time.Now(), AttendeeCount: 1}
 		mockAppointmentRepo.On("FindAppointmentByAppCode", "NOTFOUND").Return(nil, fmt.Errorf("not found")).Once()
 
@@ -144,13 +150,14 @@ func TestBookAppointment(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		assert.Equal(t, "appointment not found", err.Error())
+		assert.Equal(t, "not found", err.Error())
 		mockAppointmentRepo.AssertExpectations(t)
 	})
 
 	t.Run("Failure - Slot not available", func(t *testing.T) {
 		// Arrange
 		mockAppointmentRepo := new(repomocks.AppointmentRepository)
+		stubAppointmentWithTx(mockAppointmentRepo)
 		mockBookingRepo := new(repomocks.BookingRepository)
 		mockUserRepo := new(repomocks.UserRepository)
 		mockBanListRepo := new(repomocks.BanListRepository)
@@ -161,10 +168,11 @@ func TestBookAppointment(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 		slot := newSlot()
 		validReq := requests.BookingRequest{AppCode: "SLOT123", Name: "Guest User", Email: "guest@example.com", Date: slot.Date, StartTime: slot.StartTime, EndTime: slot.EndTime, AttendeeCount: 1}
 		mockAppointmentRepo.On("FindAppointmentByAppCode", "SLOT123").Return(appSlot, nil).Once()
+		mockAppointmentRepo.On("FindAndLock", "SLOT123", mock.AnythingOfType("*gorm.DB")).Return(appSlot, nil).Once()
 		// Transaction expectations
 		sqlMock.ExpectBegin()
 		mockBookingRepo.On("WithTx", mock.AnythingOfType("*gorm.DB")).Return(mockBookingRepo).Once()
@@ -176,10 +184,14 @@ func TestBookAppointment(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		assert.Equal(t, "no available slot found", err.Error())
+		assert.Equal(t, "BOOKING_SLOT_UNAVAILABLE: no available slot found", err.Error())
 		mockAppointmentRepo.AssertExpectations(t)
 		mockBookingRepo.AssertExpectations(t)
 	})
+}
+
+func stubAppointmentWithTx(repo *repomocks.AppointmentRepository) {
+	repo.On("WithTx", mock.AnythingOfType("*gorm.DB")).Return(repo)
 }
 
 func TestBookAppointmentAntiScalping(t *testing.T) {
@@ -217,7 +229,7 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		mockAppointmentRepo.On("FindAppointmentByAppCode", "STRICT123").Return(appStrict, nil).Once()
 		mockUserRepo.On("FindByID", userID.String()).Return(user, nil).Once()
@@ -231,12 +243,13 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 		_, err := bookingService.BookAppointment(req, userID.String())
 
 		assert.Error(t, err)
-		assert.Equal(t, "this email has already been used to book for this appointment", err.Error())
+		assert.Equal(t, "CONFLICT: this email has already been used to book for this appointment", err.Error())
 		mockBookingRepo.AssertExpectations(t)
 	})
 
 	t.Run("Failure - Strict - Device already exists", func(t *testing.T) {
 		mockAppointmentRepo := new(repomocks.AppointmentRepository)
+		stubAppointmentWithTx(mockAppointmentRepo)
 		mockBookingRepo := new(repomocks.BookingRepository)
 		mockUserRepo := new(repomocks.UserRepository)
 		mockBanListRepo := new(repomocks.BanListRepository)
@@ -248,7 +261,7 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		mockAppointmentRepo.On("FindAppointmentByAppCode", "STRICT123").Return(appStrict, nil).Once()
 		mockUserRepo.On("FindByID", userID.String()).Return(user, nil).Once()
@@ -259,12 +272,13 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 		_, err := bookingService.BookAppointment(req, userID.String())
 
 		assert.Error(t, err)
-		assert.Equal(t, "a booking has already been made from this device", err.Error())
+		assert.Equal(t, "CONFLICT: a booking has already been made from this device", err.Error())
 		mockBookingRepo.AssertExpectations(t)
 	})
 
 	t.Run("Failure - Standard - Email already exists", func(t *testing.T) {
 		mockAppointmentRepo := new(repomocks.AppointmentRepository)
+		stubAppointmentWithTx(mockAppointmentRepo)
 		mockBookingRepo := new(repomocks.BookingRepository)
 		mockUserRepo := new(repomocks.UserRepository)
 		mockBanListRepo := new(repomocks.BanListRepository)
@@ -276,7 +290,7 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		standardReq := requests.BookingRequest{
 			AppCode:       "STD123",
@@ -294,12 +308,13 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 		_, err := bookingService.BookAppointment(standardReq, userID.String())
 
 		assert.Error(t, err)
-		assert.Equal(t, "this email has already been used to book for this appointment", err.Error())
+		assert.Equal(t, "CONFLICT: this email has already been used to book for this appointment", err.Error())
 		mockBookingRepo.AssertExpectations(t)
 	})
 
 	t.Run("Failure - Strict - Missing Device Token", func(t *testing.T) {
 		mockAppointmentRepo := new(repomocks.AppointmentRepository)
+		stubAppointmentWithTx(mockAppointmentRepo)
 		mockUserRepo := new(repomocks.UserRepository)
 		mockBanListRepo := new(repomocks.BanListRepository)
 		mockNotificationService := new(notificationmocks.NotificationService)
@@ -310,7 +325,7 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 			Conn: db,
 		}), &gorm.Config{})
 
-		bookingService := NewBookingService(nil, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
+		bookingService := services.NewBookingService(nil, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, gormDB)
 
 		missingTokenReq := requests.BookingRequest{
 			AppCode:       "STRICT123",
@@ -327,7 +342,7 @@ func TestBookAppointmentAntiScalping(t *testing.T) {
 		_, err := bookingService.BookAppointment(missingTokenReq, userID.String())
 
 		assert.Error(t, err)
-		assert.Equal(t, "device token is required for this appointment", err.Error())
+		assert.Equal(t, "PRECONDITION_FAILED: device token is required for this appointment", err.Error())
 	})
 }
 
@@ -338,7 +353,7 @@ func TestBanListService(t *testing.T) {
 
 	t.Run("Success - Add to ban list", func(t *testing.T) {
 		mockBanListRepo := new(repomocks.BanListRepository)
-		banService := NewBanListService(mockBanListRepo)
+		banService := services.NewBanListService(mockBanListRepo)
 
 		mockBanListRepo.On("FindByUserAndEmail", userID, email).Return(nil, fmt.Errorf("not found")).Once()
 		mockBanListRepo.On("Create", mock.AnythingOfType("*entities.BanListEntry")).Return(nil).Once()
@@ -354,7 +369,7 @@ func TestBanListService(t *testing.T) {
 
 	t.Run("Failure - Email already on ban list", func(t *testing.T) {
 		mockBanListRepo := new(repomocks.BanListRepository)
-		banService := NewBanListService(mockBanListRepo)
+		banService := services.NewBanListService(mockBanListRepo)
 
 		existingEntry := &entities.BanListEntry{UserID: userID, BannedEmail: email}
 		mockBanListRepo.On("FindByUserAndEmail", userID, email).Return(existingEntry, nil).Once()
@@ -362,13 +377,13 @@ func TestBanListService(t *testing.T) {
 		_, err := banService.AddToBanList(userID, email)
 
 		assert.Error(t, err)
-		assert.Equal(t, "email already on ban list", err.Error())
+		assert.Equal(t, "CONFLICT: email already on ban list", err.Error())
 		mockBanListRepo.AssertExpectations(t)
 	})
 
 	t.Run("Success - Remove from ban list", func(t *testing.T) {
 		mockBanListRepo := new(repomocks.BanListRepository)
-		banService := NewBanListService(mockBanListRepo)
+		banService := services.NewBanListService(mockBanListRepo)
 
 		mockBanListRepo.On("Delete", userID, email).Return(nil).Once()
 

@@ -8,6 +8,8 @@ import (
 	entities "github.com/m13ha/asiko/models/entities"
 	gorm "gorm.io/gorm"
 
+	http "net/http"
+
 	mock "github.com/stretchr/testify/mock"
 
 	paginate "github.com/morkid/paginate"
@@ -192,17 +194,17 @@ func (_m *BookingRepository) FindAvailableSlot(appCode string, date time.Time, s
 	return r0, r1
 }
 
-// GetAvailableSlots provides a mock function with given fields: ctx, appCode
-func (_m *BookingRepository) GetAvailableSlots(ctx context.Context, appCode string) paginate.Page {
-	ret := _m.Called(ctx, appCode)
+// GetAvailableSlots provides a mock function with given fields: ctx, req, appCode
+func (_m *BookingRepository) GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page {
+	ret := _m.Called(ctx, req, appCode)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAvailableSlots")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, string) paginate.Page); ok {
-		r0 = rf(ctx, appCode)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) paginate.Page); ok {
+		r0 = rf(ctx, req, appCode)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
@@ -210,17 +212,17 @@ func (_m *BookingRepository) GetAvailableSlots(ctx context.Context, appCode stri
 	return r0
 }
 
-// GetAvailableSlotsByDay provides a mock function with given fields: ctx, appCode, date
-func (_m *BookingRepository) GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page {
-	ret := _m.Called(ctx, appCode, date)
+// GetAvailableSlotsByDay provides a mock function with given fields: ctx, req, appCode, date
+func (_m *BookingRepository) GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page {
+	ret := _m.Called(ctx, req, appCode, date)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAvailableSlotsByDay")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, string, time.Time) paginate.Page); ok {
-		r0 = rf(ctx, appCode, date)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string, time.Time) paginate.Page); ok {
+		r0 = rf(ctx, req, appCode, date)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}

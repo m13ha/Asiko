@@ -4,8 +4,10 @@ package mocks
 
 import (
 	context "context"
+	http "net/http"
 
 	entities "github.com/m13ha/asiko/models/entities"
+
 	mock "github.com/stretchr/testify/mock"
 
 	paginate "github.com/morkid/paginate"
@@ -168,9 +170,9 @@ func (_m *BookingService) GetAllBookingsForAppointment(ctx context.Context, appc
 	return r0, r1
 }
 
-// GetAvailableSlots provides a mock function with given fields: ctx, appcode
-func (_m *BookingService) GetAvailableSlots(ctx context.Context, appcode string) (paginate.Page, error) {
-	ret := _m.Called(ctx, appcode)
+// GetAvailableSlots provides a mock function with given fields: req, appcode
+func (_m *BookingService) GetAvailableSlots(req *http.Request, appcode string) (paginate.Page, error) {
+	ret := _m.Called(req, appcode)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAvailableSlots")
@@ -178,17 +180,17 @@ func (_m *BookingService) GetAvailableSlots(ctx context.Context, appcode string)
 
 	var r0 paginate.Page
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (paginate.Page, error)); ok {
-		return rf(ctx, appcode)
+	if rf, ok := ret.Get(0).(func(*http.Request, string) (paginate.Page, error)); ok {
+		return rf(req, appcode)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) paginate.Page); ok {
-		r0 = rf(ctx, appcode)
+	if rf, ok := ret.Get(0).(func(*http.Request, string) paginate.Page); ok {
+		r0 = rf(req, appcode)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, appcode)
+	if rf, ok := ret.Get(1).(func(*http.Request, string) error); ok {
+		r1 = rf(req, appcode)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -196,9 +198,9 @@ func (_m *BookingService) GetAvailableSlots(ctx context.Context, appcode string)
 	return r0, r1
 }
 
-// GetAvailableSlotsByDay provides a mock function with given fields: ctx, appcode, dateStr
-func (_m *BookingService) GetAvailableSlotsByDay(ctx context.Context, appcode string, dateStr string) (paginate.Page, error) {
-	ret := _m.Called(ctx, appcode, dateStr)
+// GetAvailableSlotsByDay provides a mock function with given fields: req, appcode, dateStr
+func (_m *BookingService) GetAvailableSlotsByDay(req *http.Request, appcode string, dateStr string) (paginate.Page, error) {
+	ret := _m.Called(req, appcode, dateStr)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAvailableSlotsByDay")
@@ -206,17 +208,17 @@ func (_m *BookingService) GetAvailableSlotsByDay(ctx context.Context, appcode st
 
 	var r0 paginate.Page
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (paginate.Page, error)); ok {
-		return rf(ctx, appcode, dateStr)
+	if rf, ok := ret.Get(0).(func(*http.Request, string, string) (paginate.Page, error)); ok {
+		return rf(req, appcode, dateStr)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) paginate.Page); ok {
-		r0 = rf(ctx, appcode, dateStr)
+	if rf, ok := ret.Get(0).(func(*http.Request, string, string) paginate.Page); ok {
+		r0 = rf(req, appcode, dateStr)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, appcode, dateStr)
+	if rf, ok := ret.Get(1).(func(*http.Request, string, string) error); ok {
+		r1 = rf(req, appcode, dateStr)
 	} else {
 		r1 = ret.Error(1)
 	}

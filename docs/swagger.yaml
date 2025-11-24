@@ -48,6 +48,8 @@ definitions:
         type: string
       start_time:
         type: string
+      status:
+        $ref: '#/definitions/entities.AppointmentStatus'
       title:
         type: string
       type:
@@ -55,6 +57,20 @@ definitions:
       updated_at:
         type: string
     type: object
+  entities.AppointmentStatus:
+    enum:
+    - pending
+    - ongoing
+    - completed
+    - canceled
+    - expired
+    type: string
+    x-enum-varnames:
+    - AppointmentStatusPending
+    - AppointmentStatusOngoing
+    - AppointmentStatusCompleted
+    - AppointmentStatusCanceled
+    - AppointmentStatusExpired
   entities.AppointmentType:
     enum:
     - single
@@ -86,15 +102,11 @@ definitions:
         type: integer
       available:
         type: boolean
-      is_slot:
-        type: boolean
-      capacity:
-        type: integer
-      seats_booked:
-        type: integer
       booking_code:
         description: Permanent booking code for all bookings
         type: string
+      capacity:
+        type: integer
       created_at:
         type: string
       date:
@@ -111,6 +123,8 @@ definitions:
         type: string
       id:
         type: string
+      is_slot:
+        type: boolean
       name:
         type: string
       notification_channel:
@@ -119,6 +133,8 @@ definitions:
         type: string
       phone:
         type: string
+      seats_booked:
+        type: integer
       start_time:
         type: string
       status:
@@ -225,7 +241,6 @@ definitions:
       app_code:
         type: string
       attendee_count:
-        description: Number of attendees to reserve in this booking (must not exceed remaining capacity)
         minimum: 1
         type: integer
       date:
@@ -396,6 +411,8 @@ definitions:
         type: string
       start_time:
         type: string
+      status:
+        $ref: '#/definitions/entities.AppointmentStatus'
       title:
         type: string
       type:
@@ -637,6 +654,15 @@ paths:
       description: Retrieves a paginated list of appointments created by the currently
         authenticated user.
       operationId: getMyAppointments
+      parameters:
+      - collectionFormat: csv
+        description: Filter by appointment status (pending, ongoing, completed, canceled,
+          expired)
+        in: query
+        items:
+          type: string
+        name: status
+        type: array
       produces:
       - application/json
       responses:

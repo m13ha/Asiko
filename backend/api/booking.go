@@ -115,8 +115,7 @@ func (h *Handler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-	slots, err := h.bookingService.GetAvailableSlots(ctx, appcode)
+	slots, err := h.bookingService.GetAvailableSlots(c.Request, appcode)
 	if err != nil {
 		c.Error(errors.FromError(err))
 		return
@@ -149,8 +148,7 @@ func (h *Handler) GetAvailableSlotsByDay(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-	slots, err := h.bookingService.GetAvailableSlotsByDay(ctx, appcode, dateStr)
+	slots, err := h.bookingService.GetAvailableSlotsByDay(c.Request, appcode, dateStr)
 	if err != nil {
 		c.Error(errors.FromError(err))
 		return

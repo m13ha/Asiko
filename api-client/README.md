@@ -23,8 +23,8 @@ import {
 // Configure the API client
 const config = new Configuration({
   basePath: 'http://localhost:8888',
-  // Add authentication token when available
-  accessToken: 'your-jwt-token-here'
+  // Inject Bearer token for authenticated calls
+  apiKey: () => `Bearer ${localStorage.getItem('authToken') ?? ''}`,
 });
 
 // Initialize API clients
@@ -49,15 +49,30 @@ const loginRequest: RequestsLoginRequest = {
 
 try {
   const response = await authApi.loginUser({ requestsLoginRequest: loginRequest });
-  const { token, user } = response;
+  const { token, refreshToken, expiresIn, user } = response;
   
   // Store token for future requests
   localStorage.setItem('authToken', token);
+  localStorage.setItem('refreshToken', refreshToken);
   
   // Update configuration with token
-  config.accessToken = token;
+  config.apiKey = () => `Bearer ${token}`;
 } catch (error) {
   console.error('Login failed:', error);
+}
+```
+
+### Refresh Access Token
+
+```typescript
+const refreshToken = localStorage.getItem('refreshToken');
+if (refreshToken) {
+  const refreshed = await authApi.refreshToken({
+    refresh: { refreshToken }
+  });
+  localStorage.setItem('authToken', refreshed.token);
+  localStorage.setItem('refreshToken', refreshed.refreshToken);
+  config.apiKey = () => `Bearer ${refreshed.token}`;
 }
 ```
 

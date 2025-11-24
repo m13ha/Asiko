@@ -2,6 +2,13 @@ BACKEND_DIR := backend
 WEB_DIR := web
 DOCS_DIR := docs
 ENV_FILE := $(BACKEND_DIR)/.env
+GOCACHE := $(abspath $(BACKEND_DIR)/.gocache)
+
+export GOCACHE
+
+$(shell mkdir -p $(GOCACHE))
+
+GO_ENV := env GOCACHE=$(GOCACHE)
 
 -include $(ENV_FILE)
 
@@ -84,11 +91,11 @@ mocks:
 	@echo "Removing deprecated repository mocks directory if it exists..."
 	@rm -rf $(BACKEND_DIR)/mocks
 	@echo "Regenerating repository mocks..."
-	@mockery --all --dir=$(BACKEND_DIR)/repository --output=$(BACKEND_DIR)/repository/mocks
+	@cd $(BACKEND_DIR) && $(GO_ENV) mockery --all --dir=repository --output=repository/mocks
 	@echo "Regenerating service mocks..."
-	@mockery --all --dir=$(BACKEND_DIR)/services --output=$(BACKEND_DIR)/services/mocks
+	@cd $(BACKEND_DIR) && $(GO_ENV) mockery --all --dir=services --output=services/mocks
 	@echo "Regenerating notification mocks..."
-	@mockery --all --dir=$(BACKEND_DIR)/notifications --output=$(BACKEND_DIR)/notifications/mocks
+	@cd $(BACKEND_DIR) && $(GO_ENV) mockery --all --dir=notifications --output=notifications/mocks
 
 install-air:
 	@echo "Installing Air for hot reloading..."

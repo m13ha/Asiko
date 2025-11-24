@@ -10,6 +10,7 @@
  * Do not edit the class manually.
  */
 import type { EntitiesAntiScalpingLevel } from './EntitiesAntiScalpingLevel';
+import type { EntitiesAppointmentStatus } from './EntitiesAppointmentStatus';
 import type { EntitiesAppointmentType } from './EntitiesAppointmentType';
 import type { EntitiesBooking } from './EntitiesBooking';
 /**
@@ -114,6 +115,12 @@ export interface EntitiesAppointment {
      * @memberof EntitiesAppointment
      */
     title?: string;
+    /**
+     *
+     * @type {EntitiesAppointmentStatus}
+     * @memberof EntitiesAppointment
+     */
+    status?: EntitiesAppointmentStatus;
     /**
      *
      * @type {EntitiesAppointmentType}

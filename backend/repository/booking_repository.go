@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,8 +21,8 @@ type BookingRepository interface {
 	Update(booking *entities.Booking) error
 	GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page
 	GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page
-	GetAvailableSlots(ctx context.Context, appCode string) paginate.Page
-	GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page
+	GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page
+	GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error)
 	FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error)
@@ -64,9 +65,9 @@ func (r *gormBookingRepository) FindAndLockAvailableSlot(appCode string, date ti
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("app_code = ? AND date = ? AND start_time = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode, date, startTime).
 		First(&slot).Error; err != nil {
-        return nil, apperr.TranslateRepoError("repository.booking.FindAndLockAvailableSlot", err)
-    }
-    return &slot, nil
+		return nil, apperr.TranslateRepoError("repository.booking.FindAndLockAvailableSlot", err)
+	}
+	return &slot, nil
 }
 
 func (r *gormBookingRepository) FindAndLockSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
@@ -103,20 +104,32 @@ func (r *gormBookingRepository) GetBookingsByUserID(ctx context.Context, userID 
 	return pg.With(db).Request(ctx).Response(&[]entities.Booking{})
 }
 
-func (r *gormBookingRepository) GetAvailableSlots(ctx context.Context, appCode string) paginate.Page {
-	pg := paginate.New()
+func (r *gormBookingRepository) GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page {
+	pg := paginate.New(&paginate.Config{DefaultSize: 500})
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("app_code = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode).
 		Order("date ASC, start_time ASC")
-	return pg.With(db).Request(ctx).Response(&[]entities.Booking{})
+	var request interface{}
+	if req != nil {
+		request = req
+	} else {
+		request = &paginate.Request{}
+	}
+	return pg.With(db).Request(request).Response(&[]entities.Booking{})
 }
 
-func (r *gormBookingRepository) GetAvailableSlotsByDay(ctx context.Context, appCode string, date time.Time) paginate.Page {
-	pg := paginate.New()
+func (r *gormBookingRepository) GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page {
+	pg := paginate.New(&paginate.Config{DefaultSize: 200})
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("app_code = ? AND date = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode, date).
 		Order("start_time ASC")
-	return pg.With(db).Request(ctx).Response(&[]entities.Booking{})
+	var request interface{}
+	if req != nil {
+		request = req
+	} else {
+		request = &paginate.Request{}
+	}
+	return pg.With(db).Request(request).Response(&[]entities.Booking{})
 }
 
 func (r *gormBookingRepository) GetBookingByCode(bookingCode string) (*entities.Booking, error) {

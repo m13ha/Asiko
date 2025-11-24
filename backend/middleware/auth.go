@@ -14,11 +14,18 @@ import (
 )
 
 var (
-	jwtKey          = []byte(os.Getenv("JWT_SECRET_KEY"))
-	tokenExpiration = time.Hour * 24
+	jwtKey                 = []byte(os.Getenv("JWT_SECRET_KEY"))
+	refreshJWTKey          = []byte(os.Getenv("JWT_REFRESH_SECRET_KEY"))
+	tokenExpiration        = time.Hour * 24
+	refreshTokenExpiration = time.Hour * 24 * 7
 )
 
 type Claims struct {
+	UserID string `json:"user_id"`
+	jwt.RegisteredClaims
+}
+
+type RefreshClaims struct {
 	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
 }
@@ -113,6 +120,57 @@ func GenerateToken(userID string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtKey)
+}
+
+func AccessTokenTTLSeconds() int64 {
+	return int64(tokenExpiration.Seconds())
+}
+
+func ensureRefreshKey() []byte {
+	if len(refreshJWTKey) > 0 {
+		return refreshJWTKey
+	}
+	return jwtKey
+}
+
+func GenerateRefreshToken(userID string) (string, error) {
+	expirationTime := time.Now().Add(refreshTokenExpiration)
+	claims := &RefreshClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "appointment_app_refresh",
+			Subject:   userID,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(ensureRefreshKey())
+}
+
+func ValidateRefreshToken(tokenString string) (string, error) {
+	claims := &RefreshClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return ensureRefreshKey(), nil
+	})
+
+	if err != nil || !token.Valid || claims.UserID == "" {
+		return "", fmt.Errorf("invalid refresh token")
+	}
+
+	return claims.UserID, nil
+}
+
+func ParseUserIDFromToken(tokenString string) (string, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil || !token.Valid || claims.UserID == "" {
+		return "", fmt.Errorf("invalid token")
+	}
+	return claims.UserID, nil
 }
 
 func RefreshToken(c *gin.Context) {

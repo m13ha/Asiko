@@ -5,7 +5,6 @@ import { Input } from '@/components/Input';
 import { useState } from 'react';
 import { Button } from '@/components/Button';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
-import { Calendar, Clock } from 'lucide-react';
 import { CopyButton } from '@/components/CopyButton';
 
 export function BookingManagePage() {
@@ -45,7 +44,7 @@ export function BookingManagePage() {
             <FieldLabel>New date</FieldLabel>
             <FieldRow>
               <div style={{ position: 'relative' }}>
-                <IconSlot><Calendar size={16} /></IconSlot>
+                <IconSlot><i className="pi pi-calendar" aria-hidden="true" /></IconSlot>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ paddingLeft: 36 }} />
               </div>
             </FieldRow>
@@ -61,7 +60,7 @@ export function BookingManagePage() {
               <FieldLabel>Start time</FieldLabel>
               <FieldRow>
                 <div style={{ position: 'relative' }}>
-                  <IconSlot><Clock size={16} /></IconSlot>
+                  <IconSlot><i className="pi pi-clock" aria-hidden="true" /></IconSlot>
                   <Input type="time" value={startTime} onChange={(e) => setStart(e.target.value)} style={{ paddingLeft: 36 }} />
                 </div>
               </FieldRow>
@@ -70,7 +69,7 @@ export function BookingManagePage() {
               <FieldLabel>End time</FieldLabel>
               <FieldRow>
                 <div style={{ position: 'relative' }}>
-                  <IconSlot><Clock size={16} /></IconSlot>
+                  <IconSlot><i className="pi pi-clock" aria-hidden="true" /></IconSlot>
                   <Input type="time" value={endTime} onChange={(e) => setEnd(e.target.value)} style={{ paddingLeft: 36 }} />
                 </div>
               </FieldRow>

@@ -11,6 +11,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { EntitiesAppointmentStatusFromJSON, EntitiesAppointmentStatusToJSON, } from './EntitiesAppointmentStatus';
 import { EntitiesAppointmentTypeFromJSON, EntitiesAppointmentTypeToJSON, } from './EntitiesAppointmentType';
 /**
  * Check if a given object implements the ResponsesAppointmentResponse interface.
@@ -37,6 +38,7 @@ export function ResponsesAppointmentResponseFromJSONTyped(json, ignoreDiscrimina
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'startTime': json['start_time'] == null ? undefined : json['start_time'],
         'title': json['title'] == null ? undefined : json['title'],
+        'status': json['status'] == null ? undefined : EntitiesAppointmentStatusFromJSON(json['status']),
         'type': json['type'] == null ? undefined : EntitiesAppointmentTypeFromJSON(json['type']),
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
     };
@@ -60,6 +62,7 @@ export function ResponsesAppointmentResponseToJSONTyped(value, ignoreDiscriminat
         'start_date': value['startDate'],
         'start_time': value['startTime'],
         'title': value['title'],
+        'status': EntitiesAppointmentStatusToJSON(value['status']),
         'type': EntitiesAppointmentTypeToJSON(value['type']),
         'updated_at': value['updatedAt'],
     };
