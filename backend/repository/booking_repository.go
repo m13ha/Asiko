@@ -19,8 +19,8 @@ type BookingRepository interface {
 	FindAndLockAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error)
 	FindAndLockSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error)
 	Update(booking *entities.Booking) error
-	GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page
-	GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page
+	GetBookingsByAppCode(ctx context.Context, req *http.Request, appCode string, available bool) paginate.Page
+	GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page
 	GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page
 	GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
@@ -88,24 +88,36 @@ func (r *gormBookingRepository) Update(booking *entities.Booking) error {
 	return nil
 }
 
-func (r *gormBookingRepository) GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page {
+func (r *gormBookingRepository) GetBookingsByAppCode(ctx context.Context, req *http.Request, appCode string, available bool) paginate.Page {
 	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("app_code = ? AND available = ?", appCode, available).
 		Order("created_at DESC")
-	return pg.With(db).Request(ctx).Response(&[]entities.Booking{})
+	var request interface{}
+	if req != nil {
+		request = req
+	} else {
+		request = &paginate.Request{}
+	}
+	return pg.With(db).Request(request).Response(&[]entities.Booking{})
 }
 
-func (r *gormBookingRepository) GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page {
+func (r *gormBookingRepository) GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
 	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("user_id = ?", userID).
 		Order("created_at DESC")
-	return pg.With(db).Request(ctx).Response(&[]entities.Booking{})
+	var request interface{}
+	if req != nil {
+		request = req
+	} else {
+		request = &paginate.Request{}
+	}
+	return pg.With(db).Request(request).Response(&[]entities.Booking{})
 }
 
 func (r *gormBookingRepository) GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page {
-	pg := paginate.New(&paginate.Config{DefaultSize: 500})
+	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("app_code = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode).
 		Order("date ASC, start_time ASC")
@@ -119,7 +131,7 @@ func (r *gormBookingRepository) GetAvailableSlots(ctx context.Context, req *http
 }
 
 func (r *gormBookingRepository) GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page {
-	pg := paginate.New(&paginate.Config{DefaultSize: 200})
+	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("app_code = ? AND date = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode, date).
 		Order("start_time ASC")

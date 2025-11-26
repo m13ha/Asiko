@@ -1,11 +1,23 @@
 import { forwardRef } from 'react';
-import type { InputTextProps } from 'primereact/inputtext';
-import { InputText } from 'primereact/inputtext';
 
-export const Input = forwardRef<HTMLInputElement, InputTextProps>(function Input(
-  { className, ...props },
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { className = '', error = false, ...props },
   ref
 ) {
-  const computedClass = ['app-input', className].filter(Boolean).join(' ');
-  return <InputText ref={ref} {...props} className={computedClass || undefined} />;
+  const baseClasses = 'w-full px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const errorClasses = error 
+    ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
+  
+  return (
+    <input 
+      ref={ref} 
+      className={`${baseClasses} ${errorClasses} ${className}`} 
+      {...props} 
+    />
+  );
 });

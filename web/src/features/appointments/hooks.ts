@@ -11,12 +11,18 @@ async function parseError(e: unknown): Promise<string> {
   return 'Something went wrong';
 }
 
-export function useMyAppointments(filters?: { statuses?: API.EntitiesAppointmentStatus[] }) {
+export function useMyAppointments(filters?: { 
+  statuses?: API.EntitiesAppointmentStatus[];
+  page?: number;
+  size?: number;
+}) {
   const statuses = filters?.statuses ?? [];
-  const key = statuses.length ? statuses.slice().sort().join(',') : 'all';
+  const page = filters?.page ?? 1;
+  const size = filters?.size ?? 10;
+  const key = `${statuses.length ? statuses.slice().sort().join(',') : 'all'}-${page}-${size}`;
   return useQuery({
     queryKey: ['my-appointments', key],
-    queryFn: () => listMyAppointments({ statuses }),
+    queryFn: () => listMyAppointments({ statuses, page, size }),
   });
 }
 

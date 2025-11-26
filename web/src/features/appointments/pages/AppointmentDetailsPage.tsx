@@ -38,7 +38,6 @@ export function AppointmentDetailsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Title</span>
             <strong style={{ fontSize: 20 }}>{appt?.title || 'Untitled appointment'}</strong>
-            <small style={{ color: 'var(--text-muted)' }}>ID: {id}</small>
           </div>
           {schedule && (
             <div style={{ background: 'color-mix(in oklab, var(--primary) 6%, transparent)', borderRadius: 'var(--radius)', padding: '12px 14px' }}>

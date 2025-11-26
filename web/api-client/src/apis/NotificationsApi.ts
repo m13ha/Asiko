@@ -28,6 +28,11 @@ import {
     ResponsesSimpleMessageToJSON,
 } from '../models/index';
 
+export interface GetNotificationsRequest {
+    page?: number;
+    size?: number;
+}
+
 /**
  * 
  */
@@ -37,8 +42,16 @@ export class NotificationsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of notifications for the currently authenticated user.
      * Get user notifications
      */
-    async getNotificationsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetNotifications200Response>> {
+    async getNotificationsRaw(requestParameters: GetNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetNotifications200Response>> {
         const queryParameters: any = {};
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -63,8 +76,8 @@ export class NotificationsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of notifications for the currently authenticated user.
      * Get user notifications
      */
-    async getNotifications(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetNotifications200Response> {
-        const response = await this.getNotificationsRaw(initOverrides);
+    async getNotifications(requestParameters: GetNotificationsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetNotifications200Response> {
+        const response = await this.getNotificationsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -5,6 +5,9 @@ import { useMyAppointments } from '../hooks';
 import { Button } from '@/components/Button';
 import { AppointmentCard } from '../components/AppointmentCard';
 import { EmptyState, EmptyTitle, EmptyDescription, EmptyAction } from '@/components/EmptyState';
+import { PaginatedGrid } from '@/components/PaginatedGrid';
+import { usePagination } from '@/hooks/usePagination';
+import { Dropdown } from 'primereact/dropdown';
 
 const statusOptions = [
   { label: 'Pending', value: API.EntitiesAppointmentStatus.Pending },
@@ -12,61 +15,61 @@ const statusOptions = [
   { label: 'Completed', value: API.EntitiesAppointmentStatus.Completed },
   { label: 'Canceled', value: API.EntitiesAppointmentStatus.Canceled },
   { label: 'Expired', value: API.EntitiesAppointmentStatus.Expired },
-] as const;
+];
 
 export function MyAppointmentsPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<API.EntitiesAppointmentStatus[]>([]);
-  const { data, isLoading, error } = useMyAppointments({ statuses: selectedStatuses });
+  const pagination = usePagination(1, 10);
+  const { data, isLoading, error } = useMyAppointments({ 
+    statuses: selectedStatuses,
+    ...pagination.params 
+  });
   const navigate = useNavigate();
-  const hasFilters = selectedStatuses.length > 0;
-
-  const toggleStatus = (value: API.EntitiesAppointmentStatus) => {
-    setSelectedStatuses((prev) =>
-      prev.includes(value) ? prev.filter((status) => status !== value) : [...prev, value]
-    );
-  };
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>My Appointments</h1>
-        <Button variant="primary" onClick={() => navigate('/appointments/new')}>Create Appointment</Button>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>Status:</span>
-        {statusOptions.map((option) => {
-          const active = selectedStatuses.includes(option.value);
-          return (
-            <Button
-              key={option.value}
-              variant={active ? 'primary' : 'ghost'}
-              onClick={() => toggleStatus(option.value)}
-              style={{ padding: '4px 12px', fontSize: 12 }}
-            >
-              {option.label}
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8 bg-white rounded-2xl shadow-lg p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-gray-800">My Appointments</h1>
+            <Button variant="primary" onClick={() => navigate('/appointments/new')}>
+              Create Appointment
             </Button>
-          );
-        })}
-        {hasFilters && (
-          <Button variant="ghost" onClick={() => setSelectedStatuses([])} style={{ padding: '4px 12px', fontSize: 12 }}>
-            Clear
-          </Button>
-        )}
-      </div>
-      {isLoading && <div>Loading...</div>}
-      {error && <div style={{ color: 'var(--danger)' }}>Failed to load appointments.</div>}
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-        {data?.items?.length ? (
-          data.items.map((it: any) => <AppointmentCard key={it.id} item={it} />)
-        ) : (
-          <EmptyState>
-            <EmptyTitle>No appointments yet</EmptyTitle>
-            <EmptyDescription>Create your first appointment and share the code.</EmptyDescription>
-            <EmptyAction>
-              <Button variant="primary" onClick={() => navigate('/appointments/new')}>Create appointment</Button>
-            </EmptyAction>
-          </EmptyState>
-        )}
+          </div>
+          <div className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-semibold text-gray-600">Filter by Status:</span>
+            <Dropdown 
+              value={selectedStatuses[0] || null} 
+              onChange={(e) => setSelectedStatuses(e.value ? [e.value] : [])} 
+              options={statusOptions} 
+              optionLabel="label" 
+              showClear 
+              placeholder="All statuses"
+              className="min-w-48"
+            />
+          </div>
+        </div>
+        
+        <PaginatedGrid
+          data={data}
+          isLoading={isLoading}
+          error={error}
+          onPageChange={pagination.updatePage}
+          renderItem={(item: any) => <AppointmentCard key={item.id} item={item} />}
+          emptyState={
+            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+              <EmptyState>
+                <EmptyTitle>No appointments yet</EmptyTitle>
+                <EmptyDescription>Create your first appointment and share the code.</EmptyDescription>
+                <EmptyAction>
+                  <Button variant="primary" onClick={() => navigate('/appointments/new')}>
+                    Create appointment
+                  </Button>
+                </EmptyAction>
+              </EmptyState>
+            </div>
+          }
+        />
       </div>
     </div>
   );

@@ -2,8 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listNotifications, markAllNotificationsRead } from './api';
 import toast from 'react-hot-toast';
 
-export function useNotifications() {
-  return useQuery({ queryKey: ['notifications'], queryFn: listNotifications });
+export function useNotifications(params?: { page?: number; size?: number }) {
+  const page = params?.page ?? 1;
+  const size = params?.size ?? 10;
+  return useQuery({ 
+    queryKey: ['notifications', page, size], 
+    queryFn: () => listNotifications({ page, size }) 
+  });
 }
 
 export function useMarkAllRead() {

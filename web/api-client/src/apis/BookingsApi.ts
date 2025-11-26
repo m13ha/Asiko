@@ -45,15 +45,24 @@ export interface CancelBookingByCodeRequest {
 
 export interface GetAvailableSlotsRequest {
     appCode: string;
+    page?: number;
+    size?: number;
 }
 
 export interface GetAvailableSlotsByDayRequest {
     appCode: string;
     date: string;
+    page?: number;
+    size?: number;
 }
 
 export interface GetBookingByCodeRequest {
     bookingCode: string;
+}
+
+export interface GetUserRegisteredBookingsRequest {
+    page?: number;
+    size?: number;
 }
 
 export interface RejectBookingByCodeRequest {
@@ -209,6 +218,14 @@ export class BookingsApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
 
@@ -257,6 +274,14 @@ export class BookingsApi extends runtime.BaseAPI {
 
         if (requestParameters['date'] != null) {
             queryParameters['date'] = requestParameters['date'];
+        }
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -327,8 +352,16 @@ export class BookingsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of all bookings made by the currently authenticated user.
      * Get user\'s registered bookings
      */
-    async getUserRegisteredBookingsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetUserRegisteredBookings200Response>> {
+    async getUserRegisteredBookingsRaw(requestParameters: GetUserRegisteredBookingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetUserRegisteredBookings200Response>> {
         const queryParameters: any = {};
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -353,8 +386,8 @@ export class BookingsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of all bookings made by the currently authenticated user.
      * Get user\'s registered bookings
      */
-    async getUserRegisteredBookings(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetUserRegisteredBookings200Response> {
-        const response = await this.getUserRegisteredBookingsRaw(initOverrides);
+    async getUserRegisteredBookings(requestParameters: GetUserRegisteredBookingsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetUserRegisteredBookings200Response> {
+        const response = await this.getUserRegisteredBookingsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

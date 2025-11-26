@@ -29,6 +29,7 @@ docs/RequestsBanRequest.md
 docs/RequestsBookingRequest.md
 docs/RequestsDeviceTokenRequest.md
 docs/RequestsLoginRequest.md
+docs/RequestsRefreshTokenRequest.md
 docs/RequestsResendVerificationRequest.md
 docs/RequestsUserRequest.md
 docs/RequestsVerificationRequest.md
@@ -40,6 +41,7 @@ docs/ResponsesLoginResponse.md
 docs/ResponsesPaginatedResponse.md
 docs/ResponsesSimpleMessage.md
 docs/ResponsesTimeSeriesPoint.md
+docs/ResponsesTokenResponse.md
 docs/ResponsesTopAppointment.md
 docs/ResponsesUserResponse.md
 index.ts
@@ -60,6 +62,7 @@ models/RequestsBanRequest.ts
 models/RequestsBookingRequest.ts
 models/RequestsDeviceTokenRequest.ts
 models/RequestsLoginRequest.ts
+models/RequestsRefreshTokenRequest.ts
 models/RequestsResendVerificationRequest.ts
 models/RequestsUserRequest.ts
 models/RequestsVerificationRequest.ts
@@ -71,6 +74,7 @@ models/ResponsesLoginResponse.ts
 models/ResponsesPaginatedResponse.ts
 models/ResponsesSimpleMessage.ts
 models/ResponsesTimeSeriesPoint.ts
+models/ResponsesTokenResponse.ts
 models/ResponsesTopAppointment.ts
 models/ResponsesUserResponse.ts
 models/index.ts

@@ -1,38 +1,33 @@
-import styled from 'styled-components';
+import { ReactNode } from 'react';
 
-export const Field = styled.div`
-  display: grid;
-  gap: 6px;
-  @media (max-width: 768px) { gap: 4px; }
-`;
+export function Field({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`grid gap-1.5 ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-export const FieldLabel = styled.label`
-  font-size: 12px;
-  color: var(--text);
-`;
+export function FieldLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <label className={`text-xs text-gray-700 font-medium ${className}`}>
+      {children}
+    </label>
+  );
+}
 
-export const FieldRow = styled.div`
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 8px;
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-`;
+export function FieldRow({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`relative grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-1 sm:gap-1.5 ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-export const IconSlot = styled.span`
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: var(--text-muted);
-  pointer-events: none;
-`;
+export function IconSlot({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 text-gray-400 pointer-events-none ${className}`}>
+      {children}
+    </span>
+  );
+}

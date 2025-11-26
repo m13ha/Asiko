@@ -13,12 +13,24 @@ async function parseError(e: unknown): Promise<string> {
   return 'Something went wrong';
 }
 
-export function useAvailableSlots(appCode: string) {
-  return useQuery({ queryKey: ['slots', appCode], queryFn: () => getAvailableSlots(appCode), enabled: !!appCode });
+export function useAvailableSlots(appCode: string, params?: { page?: number; size?: number }) {
+  const page = params?.page ?? 1;
+  const size = params?.size ?? 500;
+  return useQuery({ 
+    queryKey: ['slots', appCode, page, size], 
+    queryFn: () => getAvailableSlots(appCode, { page, size }), 
+    enabled: !!appCode 
+  });
 }
 
-export function useAvailableSlotsByDay(appCode: string, date: string) {
-  return useQuery({ queryKey: ['slots-by-day', appCode, date], queryFn: () => getAvailableSlotsByDay(appCode, date), enabled: !!appCode && !!date });
+export function useAvailableSlotsByDay(appCode: string, date: string, params?: { page?: number; size?: number }) {
+  const page = params?.page ?? 1;
+  const size = params?.size ?? 200;
+  return useQuery({ 
+    queryKey: ['slots-by-day', appCode, date, page, size], 
+    queryFn: () => getAvailableSlotsByDay(appCode, date, { page, size }), 
+    enabled: !!appCode && !!date 
+  });
 }
 
 export function useBookGuest() {
@@ -73,8 +85,13 @@ export function useCancelBooking(bookingCode: string) {
   });
 }
 
-export function useMyBookings() {
-  return useQuery({ queryKey: ['my-bookings'], queryFn: () => getMyRegisteredBookings() });
+export function useMyBookings(params?: { page?: number; size?: number }) {
+  const page = params?.page ?? 1;
+  const size = params?.size ?? 10;
+  return useQuery({ 
+    queryKey: ['my-bookings', page, size], 
+    queryFn: () => getMyRegisteredBookings({ page, size }) 
+  });
 }
 
 export function useRejectBooking(appCode?: string) {

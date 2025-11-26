@@ -3,12 +3,12 @@ import { bookingsApi } from '@/services/api';
 
 export const bookingsClient: BookingsApi = bookingsApi;
 
-export function getAvailableSlots(appCode: string) {
-  return bookingsClient.getAvailableSlots({ appCode });
+export function getAvailableSlots(appCode: string, params?: { page?: number; size?: number }) {
+  return bookingsClient.getAvailableSlots({ appCode, ...params });
 }
 
-export function getAvailableSlotsByDay(appCode: string, date: string) {
-  return bookingsClient.getAvailableSlotsByDay({ appCode, date });
+export function getAvailableSlotsByDay(appCode: string, date: string, params?: { page?: number; size?: number }) {
+  return bookingsClient.getAvailableSlotsByDay({ appCode, date, ...params });
 }
 
 export function bookGuest(booking: RequestsBookingRequest) {
@@ -31,8 +31,8 @@ export function cancelBookingByCode(bookingCode: string) {
   return bookingsClient.cancelBookingByCode({ bookingCode });
 }
 
-export function getMyRegisteredBookings() {
-  return bookingsClient.getUserRegisteredBookings();
+export function getMyRegisteredBookings(params?: { page?: number; size?: number }) {
+  return bookingsClient.getUserRegisteredBookings(params);
 }
 
 export function rejectBookingByCode(bookingCode: string) {

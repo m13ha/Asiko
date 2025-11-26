@@ -2,6 +2,7 @@ package repository
 
 import (
     "context"
+    "net/http"
 
     "github.com/google/uuid"
     apperr "github.com/m13ha/asiko/errors"
@@ -12,7 +13,7 @@ import (
 
 type NotificationRepository interface {
 	Create(notification *entities.Notification) error
-	GetByUserID(ctx context.Context, userID uuid.UUID) paginate.Page
+	GetByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page
 	MarkAllAsRead(userID uuid.UUID) error
 }
 
@@ -31,10 +32,16 @@ func (r *gormNotificationRepository) Create(notification *entities.Notification)
     return nil
 }
 
-func (r *gormNotificationRepository) GetByUserID(ctx context.Context, userID uuid.UUID) paginate.Page {
+func (r *gormNotificationRepository) GetByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
 	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Notification{}).Where("user_id = ?", userID).Order("created_at DESC")
-	return pg.With(db).Request(ctx).Response(&[]entities.Notification{})
+	var request interface{}
+	if req != nil {
+		request = req
+	} else {
+		request = &paginate.Request{}
+	}
+	return pg.With(db).Request(request).Response(&[]entities.Notification{})
 }
 
 func (r *gormNotificationRepository) MarkAllAsRead(userID uuid.UUID) error {

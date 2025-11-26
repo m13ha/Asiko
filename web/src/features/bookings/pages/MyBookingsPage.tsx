@@ -1,39 +1,46 @@
 import { useMyBookings } from '../hooks';
-import { Card, CardHeader, CardTitle } from '@/components/Card';
-import { CopyButton } from '@/components/CopyButton';
+import { BookingCard } from '@/components/BookingCard';
+import { PaginatedGrid } from '@/components/PaginatedGrid';
+import { usePagination } from '@/hooks/usePagination';
 import { EmptyState, EmptyTitle, EmptyDescription } from '@/components/EmptyState';
 
 export function MyBookingsPage() {
-  const { data, isLoading, error } = useMyBookings();
+  const pagination = usePagination(1, 10);
+  const { data, isLoading, error } = useMyBookings(pagination.params);
+  
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1 style={{ margin: 0 }}>My Bookings</h1>
-      {isLoading && <div>Loading...</div>}
-      {error && <div style={{ color: 'var(--danger)' }}>Failed to load bookings.</div>}
-      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-        {data?.items?.length ? (
-          data.items.map((b: any) => (
-            <Card key={b.id}>
-              <CardHeader>
-                <CardTitle>{b.date} {b.startTime} - {b.endTime}</CardTitle>
-              </CardHeader>
-              <div style={{ display: 'grid', gap: 6 }}>
-                <div>
-                  <small>Code:</small> <strong>{b.bookingCode}</strong> <CopyButton value={b.bookingCode} ariaLabel="Copy booking code" />
-                </div>
-                <div>
-                  <small>Appointment:</small> <strong>{b.appCode}</strong> {b.appCode && <CopyButton value={b.appCode} ariaLabel="Copy appointment code" />}
-                </div>
-                <div><small>Status:</small> <strong>{b.status}</strong></div>
-              </div>
-            </Card>
-          ))
-        ) : (
-          <EmptyState>
-            <EmptyTitle>No bookings yet</EmptyTitle>
-            <EmptyDescription>When you book a slot, it will appear here.</EmptyDescription>
-          </EmptyState>
-        )}
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8 bg-white rounded-2xl shadow-lg p-6">
+          <h1 className="text-3xl font-bold text-gray-800">My Bookings</h1>
+          <p className="text-gray-600 mt-2">Manage your appointment bookings</p>
+        </div>
+        
+        <PaginatedGrid
+          data={data}
+          isLoading={isLoading}
+          error={error}
+          onPageChange={pagination.updatePage}
+          renderItem={(booking: any) => (
+            <BookingCard 
+              key={booking.id} 
+              booking={booking}
+              showActions={true}
+              onAction={(action, booking) => {
+                // Handle booking actions (view, update, cancel)
+                console.log(action, booking);
+              }}
+            />
+          )}
+          emptyState={
+            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+              <EmptyState>
+                <EmptyTitle>No bookings yet</EmptyTitle>
+                <EmptyDescription>When you book a slot, it will appear here.</EmptyDescription>
+              </EmptyState>
+            </div>
+          }
+        />
       </div>
     </div>
   );

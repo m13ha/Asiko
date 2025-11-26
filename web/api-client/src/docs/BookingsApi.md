@@ -230,7 +230,7 @@ No authorization required
 
 ## getAvailableSlots
 
-> GetUserRegisteredBookings200Response getAvailableSlots(appCode)
+> GetUserRegisteredBookings200Response getAvailableSlots(appCode, page, size)
 
 Get available slots for an appointment
 
@@ -252,6 +252,10 @@ async function example() {
   const body = {
     // string | Appointment identifier (app_code)
     appCode: appCode_example,
+    // number | Page number (default: 1) (optional)
+    page: 56,
+    // number | Page size (default: 500) (optional)
+    size: 56,
   } satisfies GetAvailableSlotsRequest;
 
   try {
@@ -272,6 +276,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **appCode** | `string` | Appointment identifier (app_code) | [Defaults to `undefined`] |
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **size** | `number` | Page size (default: 500) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -299,7 +305,7 @@ No authorization required
 
 ## getAvailableSlotsByDay
 
-> GetUserRegisteredBookings200Response getAvailableSlotsByDay(appCode, date)
+> GetUserRegisteredBookings200Response getAvailableSlotsByDay(appCode, date, page, size)
 
 Get available slots for a specific day
 
@@ -323,6 +329,10 @@ async function example() {
     appCode: appCode_example,
     // string | Date in YYYY-MM-DD format
     date: date_example,
+    // number | Page number (default: 1) (optional)
+    page: 56,
+    // number | Page size (default: 200) (optional)
+    size: 56,
   } satisfies GetAvailableSlotsByDayRequest;
 
   try {
@@ -344,6 +354,8 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **appCode** | `string` | Appointment identifier (app_code) | [Defaults to `undefined`] |
 | **date** | `string` | Date in YYYY-MM-DD format | [Defaults to `undefined`] |
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **size** | `number` | Page size (default: 200) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -440,7 +452,7 @@ No authorization required
 
 ## getUserRegisteredBookings
 
-> GetUserRegisteredBookings200Response getUserRegisteredBookings()
+> GetUserRegisteredBookings200Response getUserRegisteredBookings(page, size)
 
 Get user\&#39;s registered bookings
 
@@ -463,8 +475,15 @@ async function example() {
   });
   const api = new BookingsApi(config);
 
+  const body = {
+    // number | Page number (default: 1) (optional)
+    page: 56,
+    // number | Page size (default: 10) (optional)
+    size: 56,
+  } satisfies GetUserRegisteredBookingsRequest;
+
   try {
-    const data = await api.getUserRegisteredBookings();
+    const data = await api.getUserRegisteredBookings(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -477,7 +496,11 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **size** | `number` | Page size (default: 10) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 

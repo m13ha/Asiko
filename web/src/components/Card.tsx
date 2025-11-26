@@ -1,26 +1,30 @@
-import styled from 'styled-components';
-import type { CardProps as PrimeCardProps } from 'primereact/card';
-import { Card as PrimeCard } from 'primereact/card';
+import { ReactNode } from 'react';
 
-export type CardProps = PrimeCardProps;
+export interface CardProps {
+  children: ReactNode;
+  className?: string;
+}
 
-export function Card({ className, children, ...props }: CardProps) {
-  const computedClass = ['app-card', className].filter(Boolean).join(' ');
+export function Card({ className = '', children }: CardProps) {
   return (
-    <PrimeCard {...props} className={computedClass || undefined}>
+    <div className={`bg-white rounded-lg shadow-md border border-gray-200 ${className}`}>
       {children}
-    </PrimeCard>
+    </div>
   );
 }
 
-export const CardHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-`;
+export function CardHeader({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-center justify-between mb-3 ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-export const CardTitle = styled.h2`
-  margin: 0;
-  font-size: 18px;
-`;
+export function CardTitle({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <h2 className={`text-lg font-semibold text-gray-900 m-0 ${className}`}>
+      {children}
+    </h2>
+  );
+}

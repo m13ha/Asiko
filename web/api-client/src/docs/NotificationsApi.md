@@ -11,7 +11,7 @@ All URIs are relative to *http://localhost*
 
 ## getNotifications
 
-> GetNotifications200Response getNotifications()
+> GetNotifications200Response getNotifications(page, size)
 
 Get user notifications
 
@@ -34,8 +34,15 @@ async function example() {
   });
   const api = new NotificationsApi(config);
 
+  const body = {
+    // number | Page number (default: 1) (optional)
+    page: 56,
+    // number | Page size (default: 10) (optional)
+    size: 56,
+  } satisfies GetNotificationsRequest;
+
   try {
-    const data = await api.getNotifications();
+    const data = await api.getNotifications(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -48,7 +55,11 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **size** | `number` | Page size (default: 10) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 

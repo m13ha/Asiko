@@ -269,6 +269,18 @@
                         "description": "Filter by appointment status (pending, ongoing, completed, canceled, expired)",
                         "name": "status",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -318,6 +330,20 @@
                 ],
                 "summary": "Get user's registered bookings",
                 "operationId": "getUserRegisteredBookings",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -373,6 +399,18 @@
                         "name": "app_code",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 500)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -437,6 +475,18 @@
                         "name": "date",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 200)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -499,6 +549,18 @@
                         "name": "app_code",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -581,6 +643,59 @@
                     },
                     "400": {
                         "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not generate token",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Exchange a refresh token for a new access token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh access token",
+                "operationId": "refreshToken",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "refresh",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.TokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid refresh token",
                         "schema": {
                             "$ref": "#/definitions/errors.APIErrorResponse"
                         }
@@ -1130,6 +1245,20 @@
                 ],
                 "summary": "Get user notifications",
                 "operationId": "getNotifications",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1667,6 +1796,17 @@
                 }
             }
         },
+        "requests.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.ResendVerificationRequest": {
             "type": "object",
             "required": [
@@ -1885,6 +2025,12 @@
         "responses.LoginResponse": {
             "type": "object",
             "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
                 "token": {
                     "type": "string"
                 },
@@ -1931,6 +2077,20 @@
                     "type": "integer"
                 },
                 "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 }
             }

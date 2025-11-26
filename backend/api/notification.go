@@ -14,6 +14,8 @@ import (
 // @Tags Notifications
 // @Produce  application/json
 // @Security BearerAuth
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 10)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]entities.Notification}
 // @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
 // @Failure 500 {object} errors.APIErrorResponse "Internal server error"
@@ -26,7 +28,7 @@ func (h *Handler) GetNotificationsHandler(c *gin.Context) {
         return
     }
 
-    notifications, err := h.eventNotificationService.GetUserNotifications(c.Request.Context(), userID.String())
+    notifications, err := h.eventNotificationService.GetUserNotifications(c.Request.Context(), c.Request, userID.String())
     if err != nil {
         c.Error(errors.FromError(err))
         return

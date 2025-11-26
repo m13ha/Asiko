@@ -61,16 +61,16 @@ export interface LoginUserRequest {
     login: RequestsLoginRequest;
 }
 
+export interface RefreshTokenRequest {
+    refresh: RequestsRefreshTokenRequest;
+}
+
 export interface ResendVerificationRequest {
     resend: RequestsResendVerificationRequest;
 }
 
 export interface VerifyRegistrationRequest {
     verification: RequestsVerificationRequest;
-}
-
-export interface RefreshTokenRequest {
-    refresh: RequestsRefreshTokenRequest;
 }
 
 /**
@@ -202,7 +202,38 @@ export class AuthenticationApi extends runtime.BaseAPI {
     }
 
     /**
-     * Exchange a refresh token for a new access token.
+     * Invalidate the user\'s session.
+     * User Logout
+     */
+    async logoutUserRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/logout`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
+    }
+
+    /**
+     * Invalidate the user\'s session.
+     * User Logout
+     */
+    async logoutUser(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
+        const response = await this.logoutUserRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Exchange a refresh token for a new access token
      * Refresh access token
      */
     async refreshTokenRaw(requestParameters: RefreshTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesTokenResponse>> {
@@ -234,42 +265,11 @@ export class AuthenticationApi extends runtime.BaseAPI {
     }
 
     /**
-     * Exchange a refresh token for a new access token.
+     * Exchange a refresh token for a new access token
      * Refresh access token
      */
     async refreshToken(requestParameters: RefreshTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesTokenResponse> {
         const response = await this.refreshTokenRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Invalidate the user\'s session.
-     * User Logout
-     */
-    async logoutUserRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/logout`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
-    }
-
-    /**
-     * Invalidate the user\'s session.
-     * User Logout
-     */
-    async logoutUser(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
-        const response = await this.logoutUserRaw(initOverrides);
         return await response.value();
     }
 

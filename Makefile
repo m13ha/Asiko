@@ -62,8 +62,7 @@ docs-gen:
 	@cd $(BACKEND_DIR) && swag init -g main.go -o ../$(DOCS_DIR)
 
 docs-build: docs-gen
-	@echo "Building static documentation..."
-	@cd $(DOCS_DIR) && npm install && npm run build
+	@echo "Static documentation generated at $(DOCS_DIR)/swagger.json and $(DOCS_DIR)/swagger.yaml"
 
 client-gen: docs-gen
 	@echo "Generating TypeScript API client..."

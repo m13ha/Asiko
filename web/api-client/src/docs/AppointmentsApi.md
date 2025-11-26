@@ -86,7 +86,7 @@ example().catch(console.error);
 
 ## getMyAppointments
 
-> GetMyAppointments200Response getMyAppointments(status)
+> GetMyAppointments200Response getMyAppointments(status, page, size)
 
 Get appointments created by the user
 
@@ -112,6 +112,10 @@ async function example() {
   const body = {
     // Array<string> | Filter by appointment status (pending, ongoing, completed, canceled, expired) (optional)
     status: ...,
+    // number | Page number (default: 1) (optional)
+    page: 56,
+    // number | Page size (default: 10) (optional)
+    size: 56,
   } satisfies GetMyAppointmentsRequest;
 
   try {
@@ -132,6 +136,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **status** | `Array<string>` | Filter by appointment status (pending, ongoing, completed, canceled, expired) | [Optional] |
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **size** | `number` | Page size (default: 10) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -158,7 +164,7 @@ example().catch(console.error);
 
 ## getUsersRegisteredForAppointment
 
-> GetUserRegisteredBookings200Response getUsersRegisteredForAppointment(appCode)
+> GetUserRegisteredBookings200Response getUsersRegisteredForAppointment(appCode, page, size)
 
 Get all bookings for an appointment
 
@@ -184,6 +190,10 @@ async function example() {
   const body = {
     // string | Appointment identifier (app_code)
     appCode: appCode_example,
+    // number | Page number (default: 1) (optional)
+    page: 56,
+    // number | Page size (default: 10) (optional)
+    size: 56,
   } satisfies GetUsersRegisteredForAppointmentRequest;
 
   try {
@@ -204,6 +214,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **appCode** | `string` | Appointment identifier (app_code) | [Defaults to `undefined`] |
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **size** | `number` | Page size (default: 10) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 

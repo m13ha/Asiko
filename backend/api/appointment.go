@@ -100,6 +100,8 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 // @Produce  application/json
 // @Security BearerAuth
 // @Param status query []string false "Filter by appointment status (pending, ongoing, completed, canceled, expired)"
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 10)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]responses.AppointmentResponse}
 // @Failure 401 {object} errors.APIErrorResponse "Authentication required"
 // @Router /appointments/my [get]

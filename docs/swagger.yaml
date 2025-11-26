@@ -282,6 +282,13 @@ definitions:
     - email
     - password
     type: object
+  requests.RefreshTokenRequest:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
   requests.ResendVerificationRequest:
     properties:
       email:
@@ -429,6 +436,10 @@ definitions:
     type: object
   responses.LoginResponse:
     properties:
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
       token:
         type: string
       user:
@@ -460,6 +471,15 @@ definitions:
       count:
         type: integer
       date:
+        type: string
+    type: object
+  responses.TokenResponse:
+    properties:
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token:
         type: string
     type: object
   responses.TopAppointment:
@@ -663,6 +683,14 @@ paths:
           type: string
         name: status
         type: array
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -691,6 +719,15 @@ paths:
       description: Retrieves a paginated list of all bookings made by the currently
         authenticated user.
       operationId: getUserRegisteredBookings
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -729,6 +766,14 @@ paths:
         name: app_code
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 500)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -770,6 +815,14 @@ paths:
         name: date
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 200)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -806,6 +859,14 @@ paths:
         name: app_code
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -869,6 +930,41 @@ paths:
           schema:
             $ref: '#/definitions/errors.APIErrorResponse'
       summary: Generate Device Token
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchange a refresh token for a new access token
+      operationId: refreshToken
+      parameters:
+      - description: Refresh token
+        in: body
+        name: refresh
+        required: true
+        schema:
+          $ref: '#/definitions/requests.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.TokenResponse'
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "401":
+          description: Invalid refresh token
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "500":
+          description: Could not generate token
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      summary: Refresh access token
       tags:
       - Authentication
   /auth/resend-verification:
@@ -1217,6 +1313,15 @@ paths:
       description: Retrieves a paginated list of notifications for the currently authenticated
         user.
       operationId: getNotifications
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:

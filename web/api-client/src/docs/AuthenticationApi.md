@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost*
 | [**generateDeviceToken**](AuthenticationApi.md#generatedevicetoken) | **POST** /auth/device-token | Generate Device Token |
 | [**loginUser**](AuthenticationApi.md#loginuser) | **POST** /login | User Login |
 | [**logoutUser**](AuthenticationApi.md#logoutuser) | **POST** /logout | User Logout |
+| [**refreshToken**](AuthenticationApi.md#refreshtoken) | **POST** /auth/refresh | Refresh access token |
 | [**resendVerification**](AuthenticationApi.md#resendverification) | **POST** /auth/resend-verification | Resend verification code |
 | [**verifyRegistration**](AuthenticationApi.md#verifyregistration) | **POST** /auth/verify-registration | Verify user registration |
 
@@ -277,6 +278,76 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## refreshToken
+
+> ResponsesTokenResponse refreshToken(refresh)
+
+Refresh access token
+
+Exchange a refresh token for a new access token
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { RefreshTokenRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthenticationApi();
+
+  const body = {
+    // RequestsRefreshTokenRequest | Refresh token
+    refresh: ...,
+  } satisfies RefreshTokenRequest;
+
+  try {
+    const data = await api.refreshToken(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **refresh** | [RequestsRefreshTokenRequest](RequestsRefreshTokenRequest.md) | Refresh token | |
+
+### Return type
+
+[**ResponsesTokenResponse**](ResponsesTokenResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Invalid request body or validation error |  -  |
+| **401** | Invalid refresh token |  -  |
+| **500** | Could not generate token |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

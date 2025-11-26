@@ -29,6 +29,6 @@ export * from './ResponsesLoginResponse';
 export * from './ResponsesPaginatedResponse';
 export * from './ResponsesSimpleMessage';
 export * from './ResponsesTimeSeriesPoint';
+export * from './ResponsesTokenResponse';
 export * from './ResponsesTopAppointment';
 export * from './ResponsesUserResponse';
-export * from './ResponsesTokenResponse';

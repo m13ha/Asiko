@@ -6,6 +6,8 @@
 
 Name | Type
 ------------ | -------------
+`expiresIn` | number
+`refreshToken` | string
 `token` | string
 `user` | [ResponsesUserResponse](ResponsesUserResponse.md)
 
@@ -16,6 +18,8 @@ import type { ResponsesLoginResponse } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "expiresIn": null,
+  "refreshToken": null,
   "token": null,
   "user": null,
 } satisfies ResponsesLoginResponse

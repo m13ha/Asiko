@@ -14,6 +14,8 @@ import (
 // @Tags Bookings
 // @Produce  application/json
 // @Security BearerAuth
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 10)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]entities.Booking}
 // @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
 // @Failure 500 {object} errors.APIErrorResponse "Internal server error"
@@ -27,7 +29,7 @@ func (h *Handler) GetUserRegisteredBookings(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	bookings, err := h.bookingService.GetUserBookings(ctx, userID.String())
+	bookings, err := h.bookingService.GetUserBookings(ctx, c.Request, userID.String())
 	if err != nil {
 		c.Error(errors.FromError(err))
 		return
@@ -103,6 +105,8 @@ func (h *Handler) BookRegisteredUserAppointment(c *gin.Context) {
 // @Tags Bookings
 // @Produce  application/json
 // @Param   app_code  path   string  true  "Appointment identifier (app_code)"
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 500)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]entities.Booking}
 // @Failure 400 {object} errors.APIErrorResponse "Missing appointment code parameter"
 // @Failure 500 {object} errors.APIErrorResponse "Internal server error"
@@ -130,6 +134,8 @@ func (h *Handler) GetAvailableSlots(c *gin.Context) {
 // @Produce  application/json
 // @Param   app_code    path   string  true  "Appointment identifier (app_code)"
 // @Param   date  query  string  true  "Date in YYYY-MM-DD format"
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 200)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]entities.Booking}
 // @Failure 400 {object} errors.APIErrorResponse "Missing or invalid parameters"
 // @Failure 500 {object} errors.APIErrorResponse "Internal server error"
@@ -162,6 +168,8 @@ func (h *Handler) GetAvailableSlotsByDay(c *gin.Context) {
 // @Tags Appointments
 // @Produce  application/json
 // @Param   app_code  path   string  true  "Appointment identifier (app_code)"
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 10)"
 // @Security BearerAuth
 // @Success 200 {object} responses.PaginatedResponse{items=[]entities.Booking}
 // @Failure 400 {object} errors.APIErrorResponse "Missing appointment code parameter"
@@ -177,7 +185,7 @@ func (h *Handler) GetUsersRegisteredForAppointment(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	bookings, err := h.bookingService.GetAllBookingsForAppointment(ctx, appCode)
+	bookings, err := h.bookingService.GetAllBookingsForAppointment(ctx, c.Request, appCode)
 	if err != nil {
 		c.Error(errors.FromError(err))
 		return

@@ -40,10 +40,14 @@ export interface CreateAppointmentRequest {
 
 export interface GetMyAppointmentsRequest {
     status?: Array<string>;
+    page?: number;
+    size?: number;
 }
 
 export interface GetUsersRegisteredForAppointmentRequest {
     appCode: string;
+    page?: number;
+    size?: number;
 }
 
 /**
@@ -107,6 +111,14 @@ export class AppointmentsApi extends runtime.BaseAPI {
             queryParameters['status'] = requestParameters['status']!.join(runtime.COLLECTION_FORMATS["csv"]);
         }
 
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.apiKey) {
@@ -148,6 +160,14 @@ export class AppointmentsApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 

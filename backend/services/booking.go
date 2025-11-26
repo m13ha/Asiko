@@ -384,17 +384,17 @@ func (s *bookingServiceImpl) BookGuestAppointment(req requests.BookingRequest) (
 }
 
 // GetAllBookingsForAppointment returns all bookings for a specific appointment with pagination
-func (s *bookingServiceImpl) GetAllBookingsForAppointment(ctx context.Context, appcode string) (paginate.Page, error) {
-	return s.bookingRepo.GetBookingsByAppCode(ctx, appcode, false), nil
+func (s *bookingServiceImpl) GetAllBookingsForAppointment(ctx context.Context, req *http.Request, appcode string) (paginate.Page, error) {
+	return s.bookingRepo.GetBookingsByAppCode(ctx, req, appcode, false), nil
 }
 
 // GetUserBookings returns all bookings for a specific user with pagination
-func (s *bookingServiceImpl) GetUserBookings(ctx context.Context, userID string) (paginate.Page, error) {
+func (s *bookingServiceImpl) GetUserBookings(ctx context.Context, req *http.Request, userID string) (paginate.Page, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return paginate.Page{}, myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Invalid user ID.")
 	}
-	return s.bookingRepo.GetBookingsByUserID(ctx, uid), nil
+	return s.bookingRepo.GetBookingsByUserID(ctx, req, uid), nil
 }
 
 // GetAvailableSlots returns all available slots for an appointment with pagination

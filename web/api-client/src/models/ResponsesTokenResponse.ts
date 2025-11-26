@@ -13,7 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-
 /**
  * 
  * @export
@@ -22,10 +21,10 @@ import { mapValues } from '../runtime';
 export interface ResponsesTokenResponse {
     /**
      * 
-     * @type {string}
+     * @type {number}
      * @memberof ResponsesTokenResponse
      */
-    token?: string;
+    expiresIn?: number;
     /**
      * 
      * @type {string}
@@ -34,10 +33,10 @@ export interface ResponsesTokenResponse {
     refreshToken?: string;
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof ResponsesTokenResponse
      */
-    expiresIn?: number;
+    token?: string;
 }
 
 /**
@@ -57,9 +56,9 @@ export function ResponsesTokenResponseFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'token': json['token'] == null ? undefined : json['token'],
-        'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
         'expiresIn': json['expires_in'] == null ? undefined : json['expires_in'],
+        'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
+        'token': json['token'] == null ? undefined : json['token'],
     };
 }
 
@@ -74,9 +73,9 @@ export function ResponsesTokenResponseToJSONTyped(value?: ResponsesTokenResponse
 
     return {
         
-        'token': value['token'],
-        'refresh_token': value['refreshToken'],
         'expires_in': value['expiresIn'],
+        'refresh_token': value['refreshToken'],
+        'token': value['token'],
     };
 }
 

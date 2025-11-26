@@ -13,7 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-
 /**
  * 
  * @export
@@ -32,7 +31,8 @@ export interface RequestsRefreshTokenRequest {
  * Check if a given object implements the RequestsRefreshTokenRequest interface.
  */
 export function instanceOfRequestsRefreshTokenRequest(value: object): value is RequestsRefreshTokenRequest {
-    return "refreshToken" in value;
+    if (!('refreshToken' in value) || value['refreshToken'] === undefined) return false;
+    return true;
 }
 
 export function RequestsRefreshTokenRequestFromJSON(json: any): RequestsRefreshTokenRequest {
