@@ -45,7 +45,15 @@ export function useBookGuest() {
         qc.invalidateQueries({ queryKey: ['my-bookings'] }),
       ]);
     },
-    onError: async (e) => toast.error(await parseError(e)),
+    onError: async (e) => {
+      const error = await parseError(e);
+      // Check for specific device token errors to provide better UX
+      if (error.includes('device token is required')) {
+        toast.error('Appointment requires device verification. Please try again.');
+      } else {
+        toast.error(error);
+      }
+    },
   });
 }
 
@@ -61,7 +69,15 @@ export function useBookRegistered() {
         qc.invalidateQueries({ queryKey: ['my-bookings'] }),
       ]);
     },
-    onError: async (e) => toast.error(await parseError(e)),
+    onError: async (e) => {
+      const error = await parseError(e);
+      // Check for specific device token errors to provide better UX
+      if (error.includes('device token is required')) {
+        toast.error('Appointment requires device verification. Please try again.');
+      } else {
+        toast.error(error);
+      }
+    },
   });
 }
 

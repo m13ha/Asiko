@@ -5,26 +5,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/asiko/errors"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
 	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/models/requests"
 	"github.com/m13ha/asiko/utils"
 )
-
-// parseAndValidateRequest parses and validates the appointment request from the HTTP request
-func parseAndValidateRequest(c *gin.Context) (requests.AppointmentRequest, error) {
-	var req requests.AppointmentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		return req, errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("invalid request payload: " + err.Error())
-	}
-
-	if err := utils.Validate(req); err != nil {
-		return req, errors.FromValidation(err, "validation failed")
-	}
-
-	return req, nil
-}
 
 func parseStatusFilters(raw []string) []entities.AppointmentStatus {
 	values := make([]entities.AppointmentStatus, 0, len(raw))
@@ -75,19 +61,25 @@ func parseStatusFilters(raw []string) []entities.AppointmentStatus {
 func (h *Handler) CreateAppointment(c *gin.Context) {
 	userID, ok := middleware.GetUUIDFromContext(c)
 	if !ok {
-		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("authentication required"))
+		apierrors.UnauthorizedError(c, "authentication required")
 		return
 	}
 
-	req, err := parseAndValidateRequest(c)
-	if err != nil {
-		c.Error(errors.FromError(err))
+	// Parse and validate request manually to use the new error system
+	var req requests.AppointmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierrors.BadRequestError(c, "invalid request payload: "+err.Error())
+		return
+	}
+
+	if err := utils.Validate(req); err != nil {
+		apierrors.ValidationError(c, "validation failed")
 		return
 	}
 
 	appointment, err := h.appointmentService.CreateAppointment(req, userID)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.InternalServerError(c, "Failed to create appointment")
 		return
 	}
 
@@ -109,7 +101,7 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 func (h *Handler) GetAppointmentsCreatedByUser(c *gin.Context) {
 	uid, ok := middleware.GetUUIDFromContext(c)
 	if !ok {
-		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Authentication required"))
+		apierrors.UnauthorizedError(c, "Authentication required")
 		return
 	}
 
@@ -117,4 +109,30 @@ func (h *Handler) GetAppointmentsCreatedByUser(c *gin.Context) {
 	appointments := h.appointmentService.GetAllAppointmentsCreatedByUser(uid.String(), c.Request, statuses)
 
 	c.JSON(http.StatusOK, appointments)
+}
+
+// @Summary Get appointment by app code
+// @Description Retrieves appointment details by its unique app_code, public endpoint for booking flow
+// @Tags Appointments
+// @Produce  application/json
+// @Param   app_code  path   string  true  "Appointment identifier (app_code)"
+// @Success 200 {object} entities.Appointment
+// @Failure 400 {object} errors.APIErrorResponse "Missing app_code parameter"
+// @Failure 404 {object} errors.APIErrorResponse "Appointment not found"
+// @Router /appointments/code/{app_code} [get]
+// @ID getAppointmentByAppCode
+func (h *Handler) GetAppointmentByAppCode(c *gin.Context) {
+	appCode := c.Param("app_code")
+	if appCode == "" {
+		apierrors.BadRequestError(c, "Missing app_code parameter")
+		return
+	}
+
+	appointment, err := h.appointmentService.GetAppointmentByAppCode(appCode)
+	if err != nil {
+		apierrors.NotFoundError(c, "Appointment not found")
+		return
+	}
+
+	c.JSON(http.StatusOK, appointment)
 }

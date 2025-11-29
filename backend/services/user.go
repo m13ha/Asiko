@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	myerrors "github.com/m13ha/asiko/errors"
+	serviceerrors "github.com/m13ha/asiko/errors/serviceerrors"
 	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/models/requests"
@@ -44,21 +44,21 @@ func sanitizePhone(phone *string) *string {
 
 func (s *userServiceImpl) CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 	if err := utils.Validate(userReq); err != nil {
-		return nil, myerrors.New(myerrors.CodeValidationFailed).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Invalid user data.")
+		return nil, serviceerrors.ValidationError("Invalid user data.")
 	}
 
 	normalizedEmail := utils.NormalizeEmail(userReq.Email)
 
 	// Check if user already exists in main table
 	if _, err := s.userRepo.FindByEmail(normalizedEmail); err == nil {
-		return nil, myerrors.New(myerrors.CodeEmailAlreadyRegistered).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("Email already registered.")
+		return nil, serviceerrors.EmailAlreadyRegisteredError("Email already registered.")
 	} else if err != nil && !isNotFoundError(err) {
-		return nil, myerrors.FromError(err)
+		return nil, serviceerrors.FromError(err)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userReq.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, myerrors.New(myerrors.CodeInternalError).WithKind(myerrors.KindInternal).WithHTTP(500).WithMessage("Internal error").WithCause(err)
+		return nil, serviceerrors.InternalError("Internal error")
 	}
 
 	verificationCode := utils.GenerateRandomCode(6)
@@ -69,7 +69,7 @@ func (s *userServiceImpl) CreateUser(userReq requests.UserRequest) (*responses.U
 		if isNotFoundError(err) {
 			pendingUser = nil
 		} else {
-			return nil, myerrors.FromError(err)
+			return nil, serviceerrors.FromError(err)
 		}
 	}
 
@@ -81,7 +81,7 @@ func (s *userServiceImpl) CreateUser(userReq requests.UserRequest) (*responses.U
 		pendingUser.VerificationCode = verificationCode
 		pendingUser.VerificationCodeExpiresAt = expiresAt
 		if err := s.pendingUserRepo.Update(pendingUser); err != nil {
-			return nil, myerrors.FromError(err)
+			return nil, serviceerrors.FromError(err)
 		}
 	} else {
 		// Create new pending user
@@ -93,7 +93,7 @@ func (s *userServiceImpl) CreateUser(userReq requests.UserRequest) (*responses.U
 			VerificationCodeExpiresAt: expiresAt,
 		}
 		if err := s.pendingUserRepo.Create(pendingUser); err != nil {
-			return nil, myerrors.FromError(err)
+			return nil, serviceerrors.FromError(err)
 		}
 	}
 
@@ -119,15 +119,15 @@ func (s *userServiceImpl) VerifyRegistration(email, code string) (string, error)
 	normalizedEmail := utils.NormalizeEmail(email)
 	pendingUser, err := s.pendingUserRepo.FindByEmail(normalizedEmail)
 	if err != nil {
-		return "", myerrors.FromError(err)
+		return "", serviceerrors.FromError(err)
 	}
 
 	if time.Now().After(pendingUser.VerificationCodeExpiresAt) {
-		return "", myerrors.New(myerrors.CodeVerificationExpired).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Verification code expired. Request a new code.")
+		return "", serviceerrors.VerificationExpiredError("Verification code expired. Request a new code.")
 	}
 
 	if pendingUser.VerificationCode != code {
-		return "", myerrors.New(myerrors.CodeInvalidVerificationCode).WithKind(myerrors.KindValidation).WithHTTP(400).WithMessage("Invalid verification code.")
+		return "", serviceerrors.InvalidVerificationCodeError("Invalid verification code.")
 	}
 
 	cleanPhone := sanitizePhone(pendingUser.PhoneNumber)
@@ -141,7 +141,7 @@ func (s *userServiceImpl) VerifyRegistration(email, code string) (string, error)
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
-		return "", myerrors.FromError(err)
+		return "", serviceerrors.FromError(err)
 	}
 
 	// Delete from pending users table
@@ -150,7 +150,7 @@ func (s *userServiceImpl) VerifyRegistration(email, code string) (string, error)
 	// Generate JWT token for immediate login
 	token, err := middleware.GenerateToken(user.ID.String())
 	if err != nil {
-		return "", myerrors.New(myerrors.CodeInternalError).WithKind(myerrors.KindInternal).WithHTTP(500).WithMessage("Internal error")
+		return "", serviceerrors.InternalError("Internal error")
 	}
 
 	return token, nil
@@ -160,24 +160,24 @@ func (s *userServiceImpl) ResendVerificationCode(email string) error {
 	normalizedEmail := utils.NormalizeEmail(email)
 
 	if _, err := s.userRepo.FindByEmail(normalizedEmail); err == nil {
-		return myerrors.New(myerrors.CodeEmailAlreadyRegistered).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("Account already verified. Please login.")
+		return serviceerrors.EmailAlreadyRegisteredError("Account already verified. Please login.")
 	} else if err != nil && !isNotFoundError(err) {
-		return myerrors.FromError(err)
+		return serviceerrors.FromError(err)
 	}
 
 	pendingUser, err := s.pendingUserRepo.FindByEmail(normalizedEmail)
 	if err != nil {
 		if isNotFoundError(err) {
-			return myerrors.New(myerrors.CodeResourceNotFound).WithKind(myerrors.KindNotFound).WithHTTP(404).WithMessage("No pending verification found for this email.")
+			return serviceerrors.NotFoundError("No pending verification found for this email.")
 		}
-		return myerrors.FromError(err)
+		return serviceerrors.FromError(err)
 	}
 
 	pendingUser.PhoneNumber = sanitizePhone(pendingUser.PhoneNumber)
 	pendingUser.VerificationCode = utils.GenerateRandomCode(6)
 	pendingUser.VerificationCodeExpiresAt = time.Now().Add(15 * time.Minute)
 	if err := s.pendingUserRepo.Update(pendingUser); err != nil {
-		return myerrors.FromError(err)
+		return serviceerrors.FromError(err)
 	}
 
 	go func(email, code string) {
@@ -196,25 +196,25 @@ func (s *userServiceImpl) AuthenticateUser(email, password string) (*entities.Us
 	user, err := s.userRepo.FindByEmail(normalizedEmail)
 	if err != nil {
 		if !isNotFoundError(err) {
-			return nil, myerrors.FromError(err)
+			return nil, serviceerrors.FromError(err)
 		}
 
 		pendingUser, pendingErr := s.pendingUserRepo.FindByEmail(normalizedEmail)
 		if pendingErr != nil {
 			if isNotFoundError(pendingErr) {
-				return nil, myerrors.New(myerrors.CodeLoginInvalidCredentials).WithKind(myerrors.KindUnauthorized).WithHTTP(401).WithMessage("Invalid email or password.")
+				return nil, serviceerrors.LoginInvalidCredentialsError("Invalid email or password.")
 			}
-			return nil, myerrors.FromError(pendingErr)
+			return nil, serviceerrors.FromError(pendingErr)
 		}
 
 		if pendingUser != nil {
-			return nil, myerrors.New(myerrors.CodeUserPendingVerification).WithKind(myerrors.KindPrecondition).WithHTTP(202).WithMessage("Registration is pending verification. Please check your email for a verification code.")
+			return nil, serviceerrors.UserPendingVerificationError("Registration is pending verification. Please check your email for a verification code.")
 		}
-		return nil, myerrors.New(myerrors.CodeLoginInvalidCredentials).WithKind(myerrors.KindUnauthorized).WithHTTP(401).WithMessage("Invalid email or password.")
+		return nil, serviceerrors.LoginInvalidCredentialsError("Invalid email or password.")
 	}
 
 	if !user.CheckPassword(password) {
-		return nil, myerrors.New(myerrors.CodeLoginInvalidCredentials).WithKind(myerrors.KindUnauthorized).WithHTTP(401).WithMessage("Invalid email or password.")
+		return nil, serviceerrors.LoginInvalidCredentialsError("Invalid email or password.")
 	}
 
 	return user, nil
@@ -239,8 +239,9 @@ func isNotFoundError(err error) bool {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return true
 	}
-	if appErr := myerrors.FromError(err); appErr != nil {
-		return appErr.Kind == myerrors.KindNotFound
+	if serviceErr := serviceerrors.FromError(err); serviceErr != nil {
+		// Check for new error system
+		return serviceErr.Kind == "not_found"
 	}
 	return false
 }

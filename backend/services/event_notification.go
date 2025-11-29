@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	myerrors "github.com/m13ha/asiko/errors"
+	serviceerrors "github.com/m13ha/asiko/errors/serviceerrors"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/repository"
 	"github.com/morkid/paginate"
@@ -38,7 +38,7 @@ func (s *eventNotificationServiceImpl) CreateEventNotification(userID uuid.UUID,
 func (s *eventNotificationServiceImpl) GetUserNotifications(ctx context.Context, req *http.Request, userID string) (paginate.Page, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		return paginate.Page{}, myerrors.NewUserError("Invalid user ID.")
+		return paginate.Page{}, serviceerrors.ValidationError("Invalid user ID.")
 	}
 	return s.notificationRepo.GetByUserID(ctx, req, uid), nil
 }
@@ -46,7 +46,7 @@ func (s *eventNotificationServiceImpl) GetUserNotifications(ctx context.Context,
 func (s *eventNotificationServiceImpl) MarkAllNotificationsAsRead(userID string) error {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		return myerrors.NewUserError("Invalid user ID.")
+		return serviceerrors.ValidationError("Invalid user ID.")
 	}
 	return s.notificationRepo.MarkAllAsRead(uid)
 }

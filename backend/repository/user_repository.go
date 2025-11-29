@@ -1,7 +1,7 @@
 package repository
 
 import (
-    apperr "github.com/m13ha/asiko/errors"
+    repoerrors "github.com/m13ha/asiko/errors/repoerrors"
     "github.com/m13ha/asiko/models/entities"
     "gorm.io/gorm"
 )
@@ -24,7 +24,10 @@ func NewGormUserRepository(db *gorm.DB) UserRepository {
 func (r *gormUserRepository) FindByEmail(email string) (*entities.User, error) {
     var user entities.User
     if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
-        return nil, apperr.TranslateRepoError("repository.user.FindByEmail", err)
+        if err == gorm.ErrRecordNotFound {
+            return nil, repoerrors.NotFoundError("user not found with email: " + email)
+        }
+        return nil, repoerrors.InternalError("failed to find user by email: " + err.Error())
     }
     return &user, nil
 }
@@ -32,7 +35,10 @@ func (r *gormUserRepository) FindByEmail(email string) (*entities.User, error) {
 func (r *gormUserRepository) FindByPhone(phone string) (*entities.User, error) {
     var user entities.User
     if err := r.db.Where("phone_number = ?", phone).First(&user).Error; err != nil {
-        return nil, apperr.TranslateRepoError("repository.user.FindByPhone", err)
+        if err == gorm.ErrRecordNotFound {
+            return nil, repoerrors.NotFoundError("user not found with phone: " + phone)
+        }
+        return nil, repoerrors.InternalError("failed to find user by phone: " + err.Error())
     }
     return &user, nil
 }
@@ -40,14 +46,17 @@ func (r *gormUserRepository) FindByPhone(phone string) (*entities.User, error) {
 func (r *gormUserRepository) FindByID(id string) (*entities.User, error) {
     var user entities.User
     if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
-        return nil, apperr.TranslateRepoError("repository.user.FindByID", err)
+        if err == gorm.ErrRecordNotFound {
+            return nil, repoerrors.NotFoundError("user not found with id: " + id)
+        }
+        return nil, repoerrors.InternalError("failed to find user by id: " + err.Error())
     }
     return &user, nil
 }
 
 func (r *gormUserRepository) Create(user *entities.User) error {
     if err := r.db.Create(user).Error; err != nil {
-        return apperr.TranslateRepoError("repository.user.Create", err)
+        return repoerrors.InternalError("failed to create user: " + err.Error())
     }
     return nil
 }

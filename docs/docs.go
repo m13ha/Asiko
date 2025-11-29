@@ -85,6 +85,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/analytics/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get minimal analytics for dashboard display. Includes totals and daily series only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Get user dashboard analytics",
+                "operationId": "getDashboardAnalytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.DashboardAnalyticsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date format or missing parameters",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/appointments": {
             "post": {
                 "security": [
@@ -241,6 +301,48 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Slot unavailable or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointments/code/{app_code}": {
+            "get": {
+                "description": "Retrieves appointment details by its unique app_code, public endpoint for booking flow",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Get appointment by app code",
+                "operationId": "getAppointmentByAppCode",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Appointment"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing app_code parameter",
+                        "schema": {
+                            "$ref": "#/definitions/errors.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
                         "schema": {
                             "$ref": "#/definitions/errors.APIErrorResponse"
                         }
@@ -2024,6 +2126,35 @@ const docTemplate = `{
                 },
                 "key": {
                     "type": "string"
+                }
+            }
+        },
+        "responses.DashboardAnalyticsResponse": {
+            "type": "object",
+            "properties": {
+                "bookings_per_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
+                "cancellations_per_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "total_appointments": {
+                    "type": "integer"
+                },
+                "total_bookings": {
+                    "type": "integer"
                 }
             }
         },

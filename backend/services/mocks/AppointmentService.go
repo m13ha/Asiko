@@ -104,6 +104,36 @@ func (_m *AppointmentService) GetAllAppointmentsCreatedByUser(userID string, r *
 	return r0
 }
 
+// GetAppointmentByAppCode provides a mock function with given fields: appCode
+func (_m *AppointmentService) GetAppointmentByAppCode(appCode string) (*entities.Appointment, error) {
+	ret := _m.Called(appCode)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAppointmentByAppCode")
+	}
+
+	var r0 *entities.Appointment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (*entities.Appointment, error)); ok {
+		return rf(appCode)
+	}
+	if rf, ok := ret.Get(0).(func(string) *entities.Appointment); ok {
+		r0 = rf(appCode)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Appointment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(appCode)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // RefreshStatuses provides a mock function with given fields: ctx, now
 func (_m *AppointmentService) RefreshStatuses(ctx context.Context, now time.Time) (services.StatusRefreshSummary, error) {
 	ret := _m.Called(ctx, now)

@@ -3,7 +3,7 @@ package requests
 import (
 	"time"
 
-	myerrors "github.com/m13ha/asiko/errors"
+	serviceerrors "github.com/m13ha/asiko/errors/serviceerrors"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/utils"
 )
@@ -24,23 +24,23 @@ type AppointmentRequest struct {
 func (req *AppointmentRequest) Validate() error {
 
 	if err := utils.Validate(req); err != nil {
-		return myerrors.NewUserError("Invalid appointment data. Please check your input.")
+		return serviceerrors.UserError("Invalid appointment data. Please check your input.")
 	}
 
 	startClock := normalizeClock(req.StartTime)
 	endClock := normalizeClock(req.EndTime)
 
 	if !endClock.After(startClock) {
-		return myerrors.NewUserError("End time cannot be before start time.")
+		return serviceerrors.ValidationError("End time cannot be before start time.")
 	}
 
 	if req.EndDate.Before(req.StartDate) {
-		return myerrors.NewUserError("End date cannot be before start date.")
+		return serviceerrors.ValidationError("End date cannot be before start date.")
 	}
 
 	duration := endClock.Sub(startClock)
 	if duration.Minutes() < float64(req.BookingDuration) {
-		return myerrors.NewUserError("Booking duration exceeds available time window.")
+		return serviceerrors.ValidationError("Booking duration exceeds available time window.")
 	}
 
 	// Align times to the start date for downstream processing

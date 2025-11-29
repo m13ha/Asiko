@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/asiko/errors"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
 	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/requests"
 )
@@ -24,14 +24,14 @@ import (
 func (h *Handler) GetUserRegisteredBookings(c *gin.Context) {
 	userID, ok := middleware.GetUUIDFromContext(c)
 	if !ok {
-		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
+		apierrors.UnauthorizedError(c, "Unauthorized")
 		return
 	}
 
 	ctx := c.Request.Context()
 	bookings, err := h.bookingService.GetUserBookings(ctx, c.Request, userID.String())
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.InternalServerError(c, "Internal server error")
 		return
 	}
 
@@ -52,13 +52,14 @@ func (h *Handler) GetUserRegisteredBookings(c *gin.Context) {
 func (h *Handler) BookGuestAppointment(c *gin.Context) {
 	var req requests.BookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
+		apierrors.BadRequestError(c, "Invalid request payload")
 		return
 	}
 
 	booking, err := h.bookingService.BookAppointment(req, "")
 	if err != nil {
-		c.Error(errors.FromError(err))
+		// Assuming the error is due to a booking conflict (409) or internal error
+		apierrors.InternalServerError(c, "Failed to create booking")
 		return
 	}
 
@@ -81,19 +82,20 @@ func (h *Handler) BookGuestAppointment(c *gin.Context) {
 func (h *Handler) BookRegisteredUserAppointment(c *gin.Context) {
 	userID, ok := middleware.GetUUIDFromContext(c)
 	if !ok {
-		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
+		apierrors.UnauthorizedError(c, "Unauthorized")
 		return
 	}
 
 	var req requests.BookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
+		apierrors.BadRequestError(c, "Invalid request payload")
 		return
 	}
 
 	booking, err := h.bookingService.BookAppointment(req, userID.String())
 	if err != nil {
-		c.Error(errors.FromError(err))
+		// Assuming the error is due to a booking conflict (409) or internal error
+		apierrors.InternalServerError(c, "Failed to create booking")
 		return
 	}
 
@@ -115,13 +117,13 @@ func (h *Handler) BookRegisteredUserAppointment(c *gin.Context) {
 func (h *Handler) GetAvailableSlots(c *gin.Context) {
 	appcode := c.Param("app_code")
 	if appcode == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing appointment code parameter").WithFields(errors.Field("app_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing appointment code parameter")
 		return
 	}
 
 	slots, err := h.bookingService.GetAvailableSlots(c.Request, appcode)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.InternalServerError(c, "Internal server error")
 		return
 	}
 
@@ -144,19 +146,19 @@ func (h *Handler) GetAvailableSlots(c *gin.Context) {
 func (h *Handler) GetAvailableSlotsByDay(c *gin.Context) {
 	appcode := c.Param("app_code")
 	if appcode == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing appointment code parameter").WithFields(errors.Field("app_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing appointment code parameter")
 		return
 	}
 
 	dateStr := c.Query("date")
 	if dateStr == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing date parameter").WithFields(errors.Field("date", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing date parameter")
 		return
 	}
 
 	slots, err := h.bookingService.GetAvailableSlotsByDay(c.Request, appcode, dateStr)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.InternalServerError(c, "Internal server error")
 		return
 	}
 
@@ -180,14 +182,20 @@ func (h *Handler) GetAvailableSlotsByDay(c *gin.Context) {
 func (h *Handler) GetUsersRegisteredForAppointment(c *gin.Context) {
 	appCode := c.Param("app_code")
 	if appCode == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing appointment code parameter").WithFields(errors.Field("app_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing appointment code parameter")
 		return
 	}
+
+	// userID, ok := middleware.GetUUIDFromContext(c)
+	// if !ok {
+	// 	apierrors.UnauthorizedError(c, "Unauthorized")
+	// 	return
+	// }
 
 	ctx := c.Request.Context()
 	bookings, err := h.bookingService.GetAllBookingsForAppointment(ctx, c.Request, appCode)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.InternalServerError(c, "Internal server error")
 		return
 	}
 
@@ -207,13 +215,13 @@ func (h *Handler) GetUsersRegisteredForAppointment(c *gin.Context) {
 func (h *Handler) GetBookingByCodeHandler(c *gin.Context) {
 	code := c.Param("booking_code")
 	if code == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing booking_code parameter").WithFields(errors.Field("booking_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing booking_code parameter")
 		return
 	}
 
 	booking, err := h.bookingService.GetBookingByCode(code)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.NotFoundError(c, "Booking not found")
 		return
 	}
 
@@ -236,26 +244,26 @@ func (h *Handler) GetBookingByCodeHandler(c *gin.Context) {
 func (h *Handler) UpdateBookingByCodeHandler(c *gin.Context) {
 	code := c.Param("booking_code")
 	if code == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing booking_code parameter").WithFields(errors.Field("booking_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing booking_code parameter")
 		return
 	}
 
 	var req requests.BookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
+		apierrors.BadRequestError(c, "Invalid request payload")
 		return
 	}
 
 	// Validate the request using the BookingRequest's Validate method
 	if err := req.Validate(); err != nil {
-		c.Error(errors.FromValidation(err, "Validation failed"))
+		apierrors.ValidationError(c, "Validation failed")
 		return
 	}
 
 	booking, err := h.bookingService.UpdateBookingByCode(code, req)
 	if err != nil {
-		// Service now returns typed AppError (404/409/400); let middleware map it.
-		c.Error(errors.FromError(err))
+		// Determine error type based on business logic
+		apierrors.InternalServerError(c, "Failed to update booking")
 		return
 	}
 
@@ -275,13 +283,14 @@ func (h *Handler) UpdateBookingByCodeHandler(c *gin.Context) {
 func (h *Handler) CancelBookingByCodeHandler(c *gin.Context) {
 	code := c.Param("booking_code")
 	if code == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing booking_code parameter").WithFields(errors.Field("booking_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing booking_code parameter")
 		return
 	}
 
 	booking, err := h.bookingService.CancelBookingByCode(code)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		// Determine error type based on business logic
+		apierrors.NotFoundError(c, "Booking not found")
 		return
 	}
 
@@ -303,19 +312,20 @@ func (h *Handler) CancelBookingByCodeHandler(c *gin.Context) {
 func (h *Handler) RejectBookingHandler(c *gin.Context) {
 	code := c.Param("booking_code")
 	if code == "" {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Missing booking_code parameter").WithFields(errors.Field("booking_code", "is required", "required")))
+		apierrors.BadRequestError(c, "Missing booking_code parameter")
 		return
 	}
 
 	userID, ok := middleware.GetUUIDFromContext(c)
 	if !ok {
-		c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
+		apierrors.UnauthorizedError(c, "Unauthorized")
 		return
 	}
 
 	booking, err := h.bookingService.RejectBooking(code, userID)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		// Determine error type based on business logic
+		apierrors.NotFoundError(c, "Booking not found")
 		return
 	}
 

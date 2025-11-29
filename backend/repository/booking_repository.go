@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	apperr "github.com/m13ha/asiko/errors"
+	repoerrors "github.com/m13ha/asiko/errors/repoerrors"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/morkid/paginate"
 	"gorm.io/gorm"
@@ -44,7 +44,7 @@ func (r *gormBookingRepository) WithTx(tx *gorm.DB) BookingRepository {
 
 func (r *gormBookingRepository) Create(booking *entities.Booking) error {
 	if err := r.db.Create(booking).Error; err != nil {
-		return apperr.TranslateRepoError("repository.booking.Create", err)
+		return repoerrors.InternalError("failed to create booking: " + err.Error())
 	}
 	return nil
 }
@@ -53,7 +53,10 @@ func (r *gormBookingRepository) FindAvailableSlot(appCode string, date time.Time
 	var slot entities.Booking
 	if err := r.db.Where("app_code = ? AND date = ? AND start_time = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode, date, startTime).
 		First(&slot).Error; err != nil {
-		return nil, apperr.TranslateRepoError("repository.booking.FindAvailableSlot", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("no available slot found")
+		}
+		return nil, repoerrors.InternalError("failed to find available slot: " + err.Error())
 	}
 	return &slot, nil
 }
@@ -65,7 +68,10 @@ func (r *gormBookingRepository) FindAndLockAvailableSlot(appCode string, date ti
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("app_code = ? AND date = ? AND start_time = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode, date, startTime).
 		First(&slot).Error; err != nil {
-		return nil, apperr.TranslateRepoError("repository.booking.FindAndLockAvailableSlot", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("no available slot found for locking")
+		}
+		return nil, repoerrors.InternalError("failed to find and lock available slot: " + err.Error())
 	}
 	return &slot, nil
 }
@@ -76,14 +82,17 @@ func (r *gormBookingRepository) FindAndLockSlot(appCode string, date time.Time, 
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("app_code = ? AND date = ? AND start_time = ? AND is_slot = true", appCode, date, startTime).
 		First(&slot).Error; err != nil {
-		return nil, apperr.TranslateRepoError("repository.booking.FindAndLockSlot", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("slot not found for locking")
+		}
+		return nil, repoerrors.InternalError("failed to find and lock slot: " + err.Error())
 	}
 	return &slot, nil
 }
 
 func (r *gormBookingRepository) Update(booking *entities.Booking) error {
 	if err := r.db.Save(booking).Error; err != nil {
-		return apperr.TranslateRepoError("repository.booking.Update", err)
+		return repoerrors.InternalError("failed to update booking: " + err.Error())
 	}
 	return nil
 }
@@ -148,7 +157,10 @@ func (r *gormBookingRepository) GetBookingByCode(bookingCode string) (*entities.
 	var booking entities.Booking
 	err := r.db.Where("booking_code = ?", bookingCode).First(&booking).Error
 	if err != nil {
-		return nil, apperr.TranslateRepoError("repository.booking.GetByCode", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("booking not found with code: " + bookingCode)
+		}
+		return nil, repoerrors.InternalError("failed to get booking by code: " + err.Error())
 	}
 	return &booking, nil
 }
@@ -157,7 +169,10 @@ func (r *gormBookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID
 	var booking entities.Booking
 	err := r.db.Where("appointment_id = ? AND email = ? AND status = ?", appointmentID, email, "active").First(&booking).Error
 	if err != nil {
-		return nil, apperr.TranslateRepoError("repository.booking.FindActiveByEmail", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("active booking not found")
+		}
+		return nil, repoerrors.InternalError("failed to find active booking by email: " + err.Error())
 	}
 	return &booking, nil
 }
@@ -166,7 +181,10 @@ func (r *gormBookingRepository) FindActiveBookingByDevice(appointmentID uuid.UUI
 	var booking entities.Booking
 	err := r.db.Where("appointment_id = ? AND device_id = ? AND status = ?", appointmentID, deviceID, "active").First(&booking).Error
 	if err != nil {
-		return nil, apperr.TranslateRepoError("repository.booking.FindActiveByDevice", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("active booking not found for device")
+		}
+		return nil, repoerrors.InternalError("failed to find active booking by device: " + err.Error())
 	}
 	return &booking, nil
 }
@@ -176,7 +194,7 @@ func (r *gormBookingRepository) UpdateNotificationStatus(id uuid.UUID, status st
 		"notification_status":  status,
 		"notification_channel": channel,
 	}).Error; err != nil {
-		return apperr.TranslateRepoError("repository.booking.UpdateNotificationStatus", err)
+		return repoerrors.InternalError("failed to update notification status: " + err.Error())
 	}
 	return nil
 }

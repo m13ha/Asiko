@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	apperr "github.com/m13ha/asiko/errors"
+	repoerrors "github.com/m13ha/asiko/errors/repoerrors"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/models/responses"
 	"github.com/morkid/paginate"
@@ -42,7 +42,7 @@ func (r *gormAppointmentRepository) WithTx(tx *gorm.DB) AppointmentRepository {
 
 func (r *gormAppointmentRepository) Create(appointment *entities.Appointment) error {
 	if err := r.db.Create(appointment).Error; err != nil {
-		return apperr.TranslateRepoError("repository.appointment.Create", err)
+		return repoerrors.InternalError("failed to create appointment: " + err.Error())
 	}
 	return nil
 }
@@ -69,7 +69,10 @@ func (r *gormAppointmentRepository) GetAppointmentsByOwnerIDQuery(ctx context.Co
 func (r *gormAppointmentRepository) FindAppointmentByAppCode(appCode string) (*entities.Appointment, error) {
 	var appointment entities.Appointment
 	if err := r.db.Where("app_code = ?", appCode).First(&appointment).Error; err != nil {
-		return nil, apperr.TranslateRepoError("repository.appointment.FindByAppCode", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("appointment not found with app_code: " + appCode)
+		}
+		return nil, repoerrors.InternalError("failed to find appointment: " + err.Error())
 	}
 	return &appointment, nil
 }
@@ -77,7 +80,10 @@ func (r *gormAppointmentRepository) FindAppointmentByAppCode(appCode string) (*e
 func (r *gormAppointmentRepository) FindAndLock(appCode string, tx *gorm.DB) (*entities.Appointment, error) {
 	var appointment entities.Appointment
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("app_code = ?", appCode).First(&appointment).Error; err != nil {
-		return nil, apperr.TranslateRepoError("repository.appointment.FindAndLock", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("appointment not found with app_code: " + appCode)
+		}
+		return nil, repoerrors.InternalError("failed to find and lock appointment: " + err.Error())
 	}
 	return &appointment, nil
 }
@@ -85,14 +91,17 @@ func (r *gormAppointmentRepository) FindAndLock(appCode string, tx *gorm.DB) (*e
 func (r *gormAppointmentRepository) FindByIDAndOwner(ctx context.Context, id uuid.UUID, ownerID uuid.UUID) (*entities.Appointment, error) {
 	var appointment entities.Appointment
 	if err := r.db.WithContext(ctx).Where("id = ? AND owner_id = ?", id, ownerID).First(&appointment).Error; err != nil {
-		return nil, apperr.TranslateRepoError("repository.appointment.FindByIDAndOwner", err)
+		if err == gorm.ErrRecordNotFound {
+			return nil, repoerrors.NotFoundError("appointment not found or not owned by user")
+		}
+		return nil, repoerrors.InternalError("failed to find appointment by id and owner: " + err.Error())
 	}
 	return &appointment, nil
 }
 
 func (r *gormAppointmentRepository) Update(appointment *entities.Appointment) error {
 	if err := r.db.Save(appointment).Error; err != nil {
-		return apperr.TranslateRepoError("repository.appointment.Update", err)
+		return repoerrors.InternalError("failed to update appointment: " + err.Error())
 	}
 	return nil
 }
@@ -105,10 +114,10 @@ func (r *gormAppointmentRepository) UpdateStatus(ctx context.Context, appointmen
 			"updated_at": time.Now(),
 		})
 	if res.Error != nil {
-		return apperr.TranslateRepoError("repository.appointment.UpdateStatus", res.Error)
+		return repoerrors.InternalError("failed to update appointment status: " + res.Error.Error())
 	}
 	if res.RowsAffected == 0 {
-		return apperr.TranslateRepoError("repository.appointment.UpdateStatus", gorm.ErrRecordNotFound)
+		return repoerrors.NotFoundError("appointment not found for status update")
 	}
 	return nil
 }
@@ -122,7 +131,7 @@ func (r *gormAppointmentRepository) MarkAppointmentsOngoing(ctx context.Context,
 			"updated_at": now,
 		})
 	if res.Error != nil {
-		return 0, apperr.TranslateRepoError("repository.appointment.MarkAppointmentsOngoing", res.Error)
+		return 0, repoerrors.InternalError("failed to mark appointments ongoing: " + res.Error.Error())
 	}
 	return res.RowsAffected, nil
 }
@@ -138,7 +147,7 @@ func (r *gormAppointmentRepository) MarkAppointmentsCompleted(ctx context.Contex
 			"updated_at": now,
 		})
 	if res.Error != nil {
-		return 0, apperr.TranslateRepoError("repository.appointment.MarkAppointmentsCompleted", res.Error)
+		return 0, repoerrors.InternalError("failed to mark appointments completed: " + res.Error.Error())
 	}
 	return res.RowsAffected, nil
 }
@@ -154,7 +163,7 @@ func (r *gormAppointmentRepository) MarkAppointmentsExpired(ctx context.Context,
 			"updated_at": now,
 		})
 	if res.Error != nil {
-		return 0, apperr.TranslateRepoError("repository.appointment.MarkAppointmentsExpired", res.Error)
+		return 0, repoerrors.InternalError("failed to mark appointments expired: " + res.Error.Error())
 	}
 	return res.RowsAffected, nil
 }

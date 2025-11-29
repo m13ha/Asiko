@@ -48,10 +48,10 @@ func TestGetUserAnalytics(t *testing.T) {
 			queryParams:        "?start_date=2025-01-01",
 			userID:             uuid.New().String(),
 			setupMock:          func(mockService *mocks.AnalyticsService, userID string) {},
-			expectedStatusCode: http.StatusBadRequest,
+			expectedStatusCode: http.StatusUnprocessableEntity,
 			expectedError: &apiErrorPayload{
-				Status:  http.StatusBadRequest,
-				Code:    apperrors.CodeValidationFailed,
+				Status:  http.StatusUnprocessableEntity,
+				Code:    "VALIDATION_FAILED",
 				Message: "start_date and end_date query parameters are required",
 			},
 		},
@@ -61,16 +61,13 @@ func TestGetUserAnalytics(t *testing.T) {
 			userID:      uuid.New().String(),
 			setupMock: func(mockService *mocks.AnalyticsService, userID string) {
 				userUUID, _ := uuid.Parse(userID)
-				err := apperrors.New(apperrors.CodeInternalError).
-					WithKind(apperrors.KindInternal).
-					WithHTTP(http.StatusInternalServerError).
-					WithMessage("Internal server error")
-				mockService.On("GetUserAnalytics", userUUID, "2025-01-01", "2025-01-31").Return((*responses.AnalyticsResponse)(nil), err)
+				// Mock service returning an error, which the API layer now handles with specific error
+				mockService.On("GetUserAnalytics", userUUID, "2025-01-01", "2025-01-31").Return((*responses.AnalyticsResponse)(nil), apperrors.NewAppError(apperrors.CodeInternalError, "internal", http.StatusInternalServerError, "internal service error", nil))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedError: &apiErrorPayload{
 				Status:  http.StatusInternalServerError,
-				Code:    apperrors.CodeInternalError,
+				Code:    "INTERNAL_ERROR",
 				Message: "Internal server error",
 			},
 		},

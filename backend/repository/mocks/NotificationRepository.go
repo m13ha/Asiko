@@ -4,8 +4,10 @@ package mocks
 
 import (
 	context "context"
+	http "net/http"
 
 	entities "github.com/m13ha/asiko/models/entities"
+
 	mock "github.com/stretchr/testify/mock"
 
 	paginate "github.com/morkid/paginate"
@@ -36,17 +38,17 @@ func (_m *NotificationRepository) Create(notification *entities.Notification) er
 	return r0
 }
 
-// GetByUserID provides a mock function with given fields: ctx, userID
-func (_m *NotificationRepository) GetByUserID(ctx context.Context, userID uuid.UUID) paginate.Page {
-	ret := _m.Called(ctx, userID)
+// GetByUserID provides a mock function with given fields: ctx, req, userID
+func (_m *NotificationRepository) GetByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
+	ret := _m.Called(ctx, req, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetByUserID")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) paginate.Page); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, uuid.UUID) paginate.Page); ok {
+		r0 = rf(ctx, req, userID)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}

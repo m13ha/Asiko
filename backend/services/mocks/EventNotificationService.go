@@ -4,9 +4,11 @@ package mocks
 
 import (
 	context "context"
+	http "net/http"
+
+	mock "github.com/stretchr/testify/mock"
 
 	paginate "github.com/morkid/paginate"
-	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
 )
@@ -34,9 +36,9 @@ func (_m *EventNotificationService) CreateEventNotification(userID uuid.UUID, ev
 	return r0
 }
 
-// GetUserNotifications provides a mock function with given fields: ctx, userID
-func (_m *EventNotificationService) GetUserNotifications(ctx context.Context, userID string) (paginate.Page, error) {
-	ret := _m.Called(ctx, userID)
+// GetUserNotifications provides a mock function with given fields: ctx, req, userID
+func (_m *EventNotificationService) GetUserNotifications(ctx context.Context, req *http.Request, userID string) (paginate.Page, error) {
+	ret := _m.Called(ctx, req, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserNotifications")
@@ -44,17 +46,17 @@ func (_m *EventNotificationService) GetUserNotifications(ctx context.Context, us
 
 	var r0 paginate.Page
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (paginate.Page, error)); ok {
-		return rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) (paginate.Page, error)); ok {
+		return rf(ctx, req, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) paginate.Page); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) paginate.Page); ok {
+		r0 = rf(ctx, req, userID)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, userID)
+	if rf, ok := ret.Get(1).(func(context.Context, *http.Request, string) error); ok {
+		r1 = rf(ctx, req, userID)
 	} else {
 		r1 = ret.Error(1)
 	}

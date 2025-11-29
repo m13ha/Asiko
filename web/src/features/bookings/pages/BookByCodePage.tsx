@@ -10,11 +10,28 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
 import { SuccessBurst } from '@/components/SuccessBurst';
-import type { EntitiesBooking } from '@appointment-master/api-client';
+import type { EntitiesBooking, EntitiesAntiScalpingLevel } from '@appointment-master/api-client';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/Badge';
+import { useAppointmentByAppCode } from '@/features/appointments/hooks';
+import { useDeviceToken } from '@/features/auth/hooks';
+import FingerprintJS from '@sparkstone/fingerprintjs';
 import './bookingSteps.css';
+
+function normalizeDateOnly(value?: string | null) {
+  if (!value) return null;
+  try {
+    // By replacing space with 'T' and appending 'Z', we are treating the date as UTC.
+    // This prevents timezone shifts from accidentally changing the date.
+    const isoDateString = value.trim().replace(' ', 'T');
+    const date = parseISO(isoDateString.endsWith('Z') ? isoDateString : `${isoDatein-memory-contextg}Z`);
+    if (Number.isNaN(date.getTime())) return null;
+    return format(date, 'yyyy-MM-dd');
+  } catch {
+    return null;
+  }
+}
 
 export function BookByCodePage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -25,14 +42,18 @@ export function BookByCodePage() {
   const [date, setDate] = useState('');
   const [slot, setSlot] = useState<EntitiesBooking | null>(null);
   const [registeredCount, setRegisteredCount] = useState(1);
+  const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const isValidCode = appCode.trim().length > 0;
   const { isAuthed } = useAuth();
   const navigate = useNavigate();
 
+  // Fetch appointment details to check anti-scalping level
+  const appointmentDetails = useAppointmentByAppCode(appCode);
   const allSlots = useAvailableSlots(isValidCode ? appCode : '');
   const slots = useAvailableSlotsByDay(isValidCode ? appCode : '', date);
   const bookGuest = useBookGuest();
   const bookReg = useBookRegistered();
+  const generateDeviceToken = useDeviceToken();
   const [showBurst, setShowBurst] = useState(false);
 
   const proceedToSummary = () => setStep(4);
@@ -87,6 +108,55 @@ export function BookByCodePage() {
     }
   }, [prefill]);
 
+  // Generate device token if the appointment requires strict anti-scalping
+  useEffect(() => {
+    if (appointmentDetails.data && appointmentDetails.data.antiScalpingLevel === 'strict') {
+      // Generate a unique device ID using FingerprintJS
+      FingerprintJS.load()
+        .then(fp => fp.get())
+        .then(result => {
+          const uniqueDeviceId = result.visitorId; // Use the visitorId as the device ID
+
+          generateDeviceToken.mutate(
+            { deviceId: uniqueDeviceId },
+            {
+              onSuccess: (response) => {
+                if (response.device_token) {
+                  setDeviceToken(response.device_token);
+                }
+              },
+              onError: (error) => {
+                console.error('Failed to generate device token:', error);
+                // Don't prevent booking, but notify user
+              }
+            }
+          );
+        })
+        .catch(error => {
+          console.error('Failed to generate device fingerprint:', error);
+          // Fallback to a random device ID if fingerprinting fails
+          const fallbackDeviceId = `web-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+          generateDeviceToken.mutate(
+            { deviceId: fallbackDeviceId },
+            {
+              onSuccess: (response) => {
+                if (response.device_token) {
+                  setDeviceToken(response.device_token);
+                }
+              },
+              onError: (error) => {
+                console.error('Failed to generate fallback device token:', error);
+              }
+            }
+          );
+        });
+    } else if (appointmentDetails.data && appointmentDetails.data.antiScalpingLevel !== 'strict') {
+      // Clear device token if anti-scalping level is not strict
+      setDeviceToken(null);
+    }
+  }, [appointmentDetails.data]);
+
   const goToCalendarStep = () => {
     if (!isValidCode) return;
     setLastSuccessfulStep(1);
@@ -98,6 +168,13 @@ export function BookByCodePage() {
 
   const onSubmitGuest = (v: BookingFormValues) => {
     if (!slot) return;
+
+    // Check if appointment requires device token but it's not available
+    if (appointmentDetails.data?.antiScalpingLevel === 'strict' && !deviceToken) {
+      console.error('Device token is required but not available');
+      return;
+    }
+
     bookGuest.mutate(
       {
         appCode,
@@ -109,6 +186,7 @@ export function BookByCodePage() {
         email: v.email,
         phone: v.phone,
         description: v.description,
+        deviceToken: deviceToken || undefined,
       },
       {
         onSuccess: () => {
@@ -123,6 +201,13 @@ export function BookByCodePage() {
 
   const onSubmitRegistered = () => {
     if (!slot) return;
+
+    // Check if appointment requires device token but it's not available
+    if (appointmentDetails.data?.antiScalpingLevel === 'strict' && !deviceToken) {
+      console.error('Device token is required but not available');
+      return;
+    }
+
     bookReg.mutate(
       {
         appCode,
@@ -130,6 +215,7 @@ export function BookByCodePage() {
         startTime: slot.startTime!,
         endTime: slot.endTime!,
         attendeeCount: registeredCount,
+        deviceToken: deviceToken || undefined,
       },
       {
         onSuccess: () => {
@@ -180,9 +266,21 @@ export function BookByCodePage() {
                       <IconSlot><i className="pi pi-hashtag" aria-hidden="true" /></IconSlot>
                       <Input value={appCode} onChange={(e) => setAppCode(e.target.value)} placeholder="AP-XXXXX" style={{ paddingLeft: 36 }} />
                     </div>
-                    <Button variant="primary" disabled={!isValidCode} onClick={goToCalendarStep} size="lg">Continue</Button>
+                    <Button
+                      variant="primary"
+                      disabled={!isValidCode || appointmentDetails.isFetching}
+                      onClick={goToCalendarStep}
+                      size="lg"
+                    >
+                      {appointmentDetails.isFetching ? 'Loading...' : 'Continue'}
+                    </Button>
                   </FieldRow>
                 </Field>
+                {(appointmentDetails.isFetching || generateDeviceToken.isPending) && (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div>Checking appointment details...</div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -194,10 +292,15 @@ export function BookByCodePage() {
                 </Field>
                 {allSlots.isFetching && <div>Loading availability...</div>}
                 {allSlots.error && <div style={{ color: 'var(--danger)' }}>Failed to load availability.</div>}
+                {(appointmentDetails.isFetching || generateDeviceToken.isPending) && (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div>Preparing booking options...</div>
+                  </div>
+                )}
                 {!allSlots.isFetching && !allSlots.error && !availableDates.length && (
                   <div style={{ color: 'var(--text-muted)' }}>No open days for this code.</div>
                 )}
-                {availableDates.length > 0 && (
+                {availableDates.length > 0 && !appointmentDetails.isFetching && !generateDeviceToken.isPending && (
                   <AvailabilityCalendar
                     availableDates={availableDates}
                     selectedDate={date}
@@ -231,7 +334,12 @@ export function BookByCodePage() {
                   </div>
                   {slots.isFetching && <div>Loading slots...</div>}
                   {slots.error && <div style={{ color: 'var(--danger)' }}>Failed to load slots.</div>}
-                  {slots.data && (
+                  {(appointmentDetails.isFetching || generateDeviceToken.isPending) && (
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                      <div>Preparing booking options...</div>
+                    </div>
+                  )}
+                  {slots.data && !appointmentDetails.isFetching && !generateDeviceToken.isPending && (
                     <SlotPicker
                       slots={slots.data.items || []}
                       selected={slot}
@@ -316,12 +424,4 @@ function formatSlotSummary(slot?: EntitiesBooking | null) {
   return `${format(start, 'p')} – ${format(end, 'p')}`;
 }
 
-function normalizeDateOnly(value?: string | null) {
-  if (!value) return null;
-  const trimmed = value.trim();
-  const isoLike = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
-  const withZone = isoLike.endsWith('Z') ? isoLike : `${isoLike}Z`;
-  const date = new Date(withZone);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
-}
+

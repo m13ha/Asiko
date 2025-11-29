@@ -5,7 +5,7 @@ import (
     "net/http"
 
     "github.com/google/uuid"
-    apperr "github.com/m13ha/asiko/errors"
+    repoerrors "github.com/m13ha/asiko/errors/repoerrors"
     "github.com/m13ha/asiko/models/entities"
     "github.com/morkid/paginate"
     "gorm.io/gorm"
@@ -27,7 +27,7 @@ func NewGormNotificationRepository(db *gorm.DB) NotificationRepository {
 
 func (r *gormNotificationRepository) Create(notification *entities.Notification) error {
     if err := r.db.Create(notification).Error; err != nil {
-        return apperr.TranslateRepoError("repository.notification.Create", err)
+        return repoerrors.InternalError("failed to create notification: " + err.Error())
     }
     return nil
 }
@@ -46,7 +46,7 @@ func (r *gormNotificationRepository) GetByUserID(ctx context.Context, req *http.
 
 func (r *gormNotificationRepository) MarkAllAsRead(userID uuid.UUID) error {
     if err := r.db.Model(&entities.Notification{}).Where("user_id = ? AND is_read = false", userID).Update("is_read", true).Error; err != nil {
-        return apperr.TranslateRepoError("repository.notification.MarkAllAsRead", err)
+        return repoerrors.InternalError("failed to mark all notifications as read: " + err.Error())
     }
     return nil
 }

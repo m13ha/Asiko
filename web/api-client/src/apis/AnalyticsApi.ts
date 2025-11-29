@@ -17,13 +17,21 @@ import * as runtime from '../runtime';
 import type {
   ErrorsAPIErrorResponse,
   ResponsesAnalyticsResponse,
+  ResponsesDashboardAnalyticsResponse,
 } from '../models/index';
 import {
     ErrorsAPIErrorResponseFromJSON,
     ErrorsAPIErrorResponseToJSON,
     ResponsesAnalyticsResponseFromJSON,
     ResponsesAnalyticsResponseToJSON,
+    ResponsesDashboardAnalyticsResponseFromJSON,
+    ResponsesDashboardAnalyticsResponseToJSON,
 } from '../models/index';
+
+export interface GetDashboardAnalyticsRequest {
+    startDate: string;
+    endDate: string;
+}
 
 export interface GetUserAnalyticsRequest {
     startDate: string;
@@ -34,6 +42,63 @@ export interface GetUserAnalyticsRequest {
  * 
  */
 export class AnalyticsApi extends runtime.BaseAPI {
+
+    /**
+     * Get minimal analytics for dashboard display. Includes totals and daily series only.
+     * Get user dashboard analytics
+     */
+    async getDashboardAnalyticsRaw(requestParameters: GetDashboardAnalyticsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesDashboardAnalyticsResponse>> {
+        if (requestParameters['startDate'] == null) {
+            throw new runtime.RequiredError(
+                'startDate',
+                'Required parameter "startDate" was null or undefined when calling getDashboardAnalytics().'
+            );
+        }
+
+        if (requestParameters['endDate'] == null) {
+            throw new runtime.RequiredError(
+                'endDate',
+                'Required parameter "endDate" was null or undefined when calling getDashboardAnalytics().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['startDate'] != null) {
+            queryParameters['start_date'] = requestParameters['startDate'];
+        }
+
+        if (requestParameters['endDate'] != null) {
+            queryParameters['end_date'] = requestParameters['endDate'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+
+        let urlPath = `/analytics/dashboard`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesDashboardAnalyticsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get minimal analytics for dashboard display. Includes totals and daily series only.
+     * Get user dashboard analytics
+     */
+    async getDashboardAnalytics(requestParameters: GetDashboardAnalyticsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesDashboardAnalyticsResponse> {
+        const response = await this.getDashboardAnalyticsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Get analytics for the authenticated user over a date window. Includes totals, breakdowns (by type/status, guest vs registered), utilization, lead-time stats, daily series, peak hours/days, and top appointments.

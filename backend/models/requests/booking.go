@@ -3,7 +3,7 @@ package requests
 import (
 	"time"
 
-	myerrors "github.com/m13ha/asiko/errors"
+	serviceerrors "github.com/m13ha/asiko/errors/serviceerrors"
 	"github.com/m13ha/asiko/utils"
 )
 
@@ -22,11 +22,11 @@ type BookingRequest struct {
 
 func (req *BookingRequest) Validate() error {
 	if err := utils.Validate(req); err != nil {
-		return myerrors.NewUserError("Invalid booking data. Please check your input.")
+		return serviceerrors.UserError("Invalid booking data. Please check your input.")
 	}
 
 	if req.Name == "" || (req.Email == "" && req.Phone == "") {
-		return myerrors.NewUserError("Name and either email or phone are required for guest bookings.")
+		return serviceerrors.ValidationError("Name and either email or phone are required for guest bookings.")
 	}
 	return nil
 }

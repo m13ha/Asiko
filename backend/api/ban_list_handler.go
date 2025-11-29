@@ -1,13 +1,13 @@
 package api
 
 import (
-    "net/http"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
-    "github.com/m13ha/asiko/errors"
-    "github.com/m13ha/asiko/middleware"
-    "github.com/m13ha/asiko/models/requests"
-    "github.com/m13ha/asiko/models/responses"
+	"github.com/gin-gonic/gin"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/requests"
+	"github.com/m13ha/asiko/models/responses"
 )
 
 // @Summary Add email to ban list
@@ -24,25 +24,26 @@ import (
 // @Router /ban-list [post]
 // @ID addToBanList
 func (h *Handler) AddToBanList(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
 
-    var req requests.BanRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
-        return
-    }
+	var req requests.BanRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierrors.BadRequestError(c, "Invalid request payload")
+		return
+	}
 
-    entry, err := h.banService.AddToBanList(userID, req.Email)
-    if err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	entry, err := h.banService.AddToBanList(userID, req.Email)
+	if err != nil {
+		// Check for specific errors like 409 (conflict) if needed
+		apierrors.InternalServerError(c, "Failed to add to ban list")
+		return
+	}
 
-    c.JSON(http.StatusCreated, entry)
+	c.JSON(http.StatusCreated, entry)
 }
 
 // @Summary Remove email from ban list
@@ -58,24 +59,24 @@ func (h *Handler) AddToBanList(c *gin.Context) {
 // @Router /ban-list [delete]
 // @ID removeFromBanList
 func (h *Handler) RemoveFromBanList(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
 
-    var req requests.BanRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
-        return
-    }
+	var req requests.BanRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierrors.BadRequestError(c, "Invalid request payload")
+		return
+	}
 
-    if err := h.banService.RemoveFromBanList(userID, req.Email); err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	if err := h.banService.RemoveFromBanList(userID, req.Email); err != nil {
+		apierrors.InternalServerError(c, "Failed to remove from ban list")
+		return
+	}
 
-    c.JSON(http.StatusOK, responses.SimpleMessage{Message: "Email removed from ban list"})
+	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "Email removed from ban list"})
 }
 
 // @Summary Get user's ban list
@@ -88,17 +89,17 @@ func (h *Handler) RemoveFromBanList(c *gin.Context) {
 // @Router /ban-list [get]
 // @ID getBanList
 func (h *Handler) GetBanList(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
 
-    banList, err := h.banService.GetBanList(userID)
-    if err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	banList, err := h.banService.GetBanList(userID)
+	if err != nil {
+		apierrors.InternalServerError(c, "Failed to retrieve ban list")
+		return
+	}
 
-    c.JSON(http.StatusOK, banList)
+	c.JSON(http.StatusOK, banList)
 }

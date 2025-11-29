@@ -13,6 +13,7 @@
   "dependencies": {
     "@appointment-master/api-client": "file:./api-client",
     "@hookform/resolvers": "^3.9.0",
+    "@sparkstone/fingerprintjs": "^3.5.1",
     "@tanstack/react-query": "^5.50.0",
     "chart.js": "^4.5.1",
     "date-fns": "^3.6.0",

@@ -1,12 +1,12 @@
 package api
 
 import (
-    "net/http"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
-    "github.com/m13ha/asiko/errors"
-    "github.com/m13ha/asiko/middleware"
-    "github.com/m13ha/asiko/models/responses"
+	"github.com/gin-gonic/gin"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
+	"github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/models/responses"
 )
 
 // @Summary Get user notifications
@@ -22,19 +22,19 @@ import (
 // @Router /notifications [get]
 // @ID getNotifications
 func (h *Handler) GetNotificationsHandler(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
 
-    notifications, err := h.eventNotificationService.GetUserNotifications(c.Request.Context(), c.Request, userID.String())
-    if err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	notifications, err := h.eventNotificationService.GetUserNotifications(c.Request.Context(), c.Request, userID.String())
+	if err != nil {
+		apierrors.InternalServerError(c, "Internal server error")
+		return
+	}
 
-    c.JSON(http.StatusOK, notifications)
+	c.JSON(http.StatusOK, notifications)
 }
 
 // @Summary Mark all notifications as read
@@ -48,16 +48,16 @@ func (h *Handler) GetNotificationsHandler(c *gin.Context) {
 // @Router /notifications/read-all [put]
 // @ID markAllNotificationsAsRead
 func (h *Handler) MarkAllNotificationsAsReadHandler(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
 
-    if err := h.eventNotificationService.MarkAllNotificationsAsRead(userID.String()); err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	if err := h.eventNotificationService.MarkAllNotificationsAsRead(userID.String()); err != nil {
+		apierrors.InternalServerError(c, "Internal server error")
+		return
+	}
 
-    c.JSON(http.StatusOK, responses.SimpleMessage{Message: "All notifications marked as read."})
+	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "All notifications marked as read."})
 }

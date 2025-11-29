@@ -37,6 +37,7 @@ docs/ResponsesAnalyticsResponse.md
 docs/ResponsesAnalyticsResponsePartyCapacity.md
 docs/ResponsesAppointmentResponse.md
 docs/ResponsesBucketCount.md
+docs/ResponsesDashboardAnalyticsResponse.md
 docs/ResponsesLoginResponse.md
 docs/ResponsesPaginatedResponse.md
 docs/ResponsesSimpleMessage.md
@@ -70,6 +71,7 @@ models/ResponsesAnalyticsResponse.ts
 models/ResponsesAnalyticsResponsePartyCapacity.ts
 models/ResponsesAppointmentResponse.ts
 models/ResponsesBucketCount.ts
+models/ResponsesDashboardAnalyticsResponse.ts
 models/ResponsesLoginResponse.ts
 models/ResponsesPaginatedResponse.ts
 models/ResponsesSimpleMessage.ts

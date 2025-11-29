@@ -45,7 +45,7 @@ export function MyAppointmentsPage() {
               optionLabel="label" 
               showClear 
               placeholder="All statuses"
-              className="min-w-48"
+              className="w-fit"
             />
           </div>
         </div>

@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	appErr "github.com/m13ha/asiko/errors"
+	"github.com/m13ha/asiko/errors/apierrors" // New import
 )
 
 // ErrorHandler captures panics and writes standardized JSON errors for any
@@ -17,25 +17,8 @@ func ErrorHandler() gin.HandlerFunc {
 
 		// Pick the last error
 		ge := c.Errors.Last()
-		ae := appErr.FromError(ge.Err)
-		status := ae.HTTP
-		if status == 0 {
-			status = appErr.StatusFromKind(ae.Kind)
-		}
-		reqID := c.Writer.Header().Get("X-Request-ID")
-		if reqID == "" {
-			reqID = c.GetHeader("X-Request-ID")
-		}
-		resp := appErr.APIErrorResponse{
-			Status:    status,
-			Code:      ae.Code,
-			Message:   ae.Message,
-			Fields:    ae.Fields,
-			RequestID: reqID,
-			Meta:      ae.Meta,
-		}
-		c.JSON(status, resp)
-		// Stop other handlers from writing
-		c.Abort()
+		apierrors.HandleAppError(c, ge.Err) // Use the centralized error handler
+		// c.Abort() is handled within HandleAppError implicitly through c.JSON which writes the header and body,
+		// and the current Gin context stops further processing implicitly.
 	}
 }

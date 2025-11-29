@@ -72,9 +72,45 @@ small { color: var(--text-muted); }
 .form-grid { display: grid; gap: 12px; }
 @media (max-width: 768px) { .form-grid { gap: 8px; } }
 
+/* Form containers */
+.booking-form {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.form-grid-two {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.field-error {
+  color: var(--danger, #dc2626);
+  font-size: 12px;
+}
+
+.field-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* Field spacing tweaks on small screens */
 @media (max-width: 768px) {
   .field { gap: 4px; }
+}
+
+/* Ensure form elements fit properly within containers */
+input, select, textarea, button {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* Ensure all form components take full width of their containers */
+.w-full {
+  width: 100% !important;
+  max-width: 100%;
 }
 
 .pi {

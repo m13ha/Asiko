@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import * as API from '@appointment-master/api-client';
 import toast from 'react-hot-toast';
-import { createAppointment, getUsersForAppointment, listMyAppointments } from './api';
+import { createAppointment, getAppointmentByAppCode, getUsersForAppointment, listMyAppointments } from './api';
 
 async function parseError(e: unknown): Promise<string> {
   if (e instanceof API.ResponseError) {
@@ -11,7 +11,7 @@ async function parseError(e: unknown): Promise<string> {
   return 'Something went wrong';
 }
 
-export function useMyAppointments(filters?: { 
+export function useMyAppointments(filters?: {
   statuses?: API.EntitiesAppointmentStatus[];
   page?: number;
   size?: number;
@@ -36,4 +36,12 @@ export function useCreateAppointment() {
 
 export function useAppointmentUsers(id: string) {
   return useQuery({ queryKey: ['appointment-users', id], queryFn: () => getUsersForAppointment(id), enabled: !!id });
+}
+
+export function useAppointmentByAppCode(appCode: string) {
+  return useQuery({
+    queryKey: ['appointment', appCode],
+    queryFn: () => getAppointmentByAppCode(appCode),
+    enabled: !!appCode,
+  });
 }

@@ -44,7 +44,7 @@ func TestCreateAppointmentAPI(t *testing.T) {
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedError: &apiErrorPayload{
 				Status:  http.StatusUnauthorized,
-				Code:    apperrors.CodeUnauthorized,
+				Code:    "AUTH_UNAUTHORIZED",
 				Message: "authentication required",
 			},
 		},
@@ -53,11 +53,11 @@ func TestCreateAppointmentAPI(t *testing.T) {
 			body:               `{"title": ""}`,
 			tokenUserID:        uuid.New().String(),
 			setupMock:          func(mockService *mocks.AppointmentService) {},
-			expectedStatusCode: http.StatusBadRequest,
+			expectedStatusCode: http.StatusUnprocessableEntity,
 			expectedError: &apiErrorPayload{
-				Status:  http.StatusBadRequest,
-				Code:    apperrors.CodeValidationFailed,
-				Message: "Validation failed",
+				Status:  http.StatusUnprocessableEntity,
+				Code:    "VALIDATION_FAILED",
+				Message: "validation failed", // note: this is the new error message from the updated API layer
 			},
 		},
 	}
@@ -123,17 +123,14 @@ func TestCancelBookingAPI(t *testing.T) {
 			name:        "Failure - Booking Not Found",
 			bookingCode: "NOTFOUND",
 			setupMock: func(mockService *mocks.BookingService) {
-				err := apperrors.New(apperrors.CodeBookingNotFound).
-					WithKind(apperrors.KindNotFound).
-					WithHTTP(http.StatusNotFound).
-					WithMessage("Booking not found")
-				mockService.On("CancelBookingByCode", "NOTFOUND").Return((*entities.Booking)(nil), err).Once()
+				// Mock service returning an error that will trigger the API error handling
+				mockService.On("CancelBookingByCode", "NOTFOUND").Return((*entities.Booking)(nil), apperrors.NewAppError(apperrors.CodeBookingNotFound, "resource_not_found", http.StatusNotFound, "booking not found", nil)).Once()
 			},
 			expectedStatusCode: http.StatusNotFound,
 			expectedError: &apiErrorPayload{
 				Status:  http.StatusNotFound,
-				Code:    apperrors.CodeBookingNotFound,
-				Message: "Booking not found",
+				Code:    "RESOURCE_NOT_FOUND",
+				Message: "Booking not found", // This message is from the updated API layer error handling
 			},
 		},
 	}

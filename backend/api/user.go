@@ -1,12 +1,10 @@
 package api
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/asiko/errors"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
 	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/requests"
 	"github.com/m13ha/asiko/models/responses"
@@ -25,27 +23,20 @@ import (
 // @Router /users [post]
 // @ID createUser
 func (h *Handler) CreateUser(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Failed to read request body"))
-		return
-	}
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-
 	var req requests.UserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
+		apierrors.BadRequestError(c, "Invalid request payload")
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		c.Error(errors.FromValidation(err, "Validation failed"))
+		apierrors.ValidationError(c, "Validation failed")
 		return
 	}
 
 	user, err := h.userService.CreateUser(req)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.HandleAppError(c, err)
 		return
 	}
 
@@ -69,25 +60,25 @@ func (h *Handler) CreateUser(c *gin.Context) {
 func (h *Handler) VerifyRegistrationHandler(c *gin.Context) {
 	var req requests.VerificationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
+		apierrors.BadRequestError(c, "Invalid request payload")
 		return
 	}
 
 	token, err := h.userService.VerifyRegistration(req.Email, req.Code)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		apierrors.HandleAppError(c, err)
 		return
 	}
 
 	userID, err := middleware.ParseUserIDFromToken(token)
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not parse token"))
+		apierrors.InternalServerError(c, "Could not parse token")
 		return
 	}
 
 	refreshToken, err := middleware.GenerateRefreshToken(userID)
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate refresh token"))
+		apierrors.InternalServerError(c, "Could not generate refresh token")
 		return
 	}
 
@@ -114,17 +105,18 @@ func (h *Handler) VerifyRegistrationHandler(c *gin.Context) {
 func (h *Handler) ResendVerificationHandler(c *gin.Context) {
 	var req requests.ResendVerificationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request payload"))
+		apierrors.BadRequestError(c, "Invalid request payload")
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		c.Error(errors.FromValidation(err, "Validation failed"))
+		apierrors.ValidationError(c, "Validation failed")
 		return
 	}
 
-	if err := h.userService.ResendVerificationCode(req.Email); err != nil {
-		c.Error(errors.FromError(err))
+	err := h.userService.ResendVerificationCode(req.Email)
+	if err != nil {
+		apierrors.HandleAppError(c, err)
 		return
 	}
 

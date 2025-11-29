@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	myerrors "github.com/m13ha/asiko/errors"
+	serviceerrors "github.com/m13ha/asiko/errors/serviceerrors"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/models/requests"
 	"github.com/m13ha/asiko/models/responses"
@@ -54,7 +54,7 @@ func (s *appointmentServiceImpl) CreateAppointment(req requests.AppointmentReque
 
 	if err := s.appointmentRepo.Create(appointment); err != nil {
 		log.Printf("[CreateAppointment] DB error: %v", err)
-		return nil, myerrors.FromError(err)
+		return nil, serviceerrors.FromError(err)
 	}
 
 	message := fmt.Sprintf("New appointment '%s' created.", appointment.Title)
@@ -87,11 +87,11 @@ func (s *appointmentServiceImpl) CancelAppointment(ctx context.Context, appointm
 	}
 
 	if appointment.Status == entities.AppointmentStatusCanceled {
-		return nil, myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("appointment already canceled")
+		return nil, serviceerrors.ConflictError("appointment already canceled")
 	}
 
 	if appointment.Status == entities.AppointmentStatusCompleted || appointment.Status == entities.AppointmentStatusExpired {
-		return nil, myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("finished appointments cannot be canceled")
+		return nil, serviceerrors.ConflictError("finished appointments cannot be canceled")
 	}
 
 	if err := s.appointmentRepo.UpdateStatus(ctx, appointment.ID, entities.AppointmentStatusCanceled); err != nil {
@@ -133,4 +133,12 @@ func (s *appointmentServiceImpl) RefreshStatuses(ctx context.Context, now time.T
 	summary.Expired = updated
 
 	return summary, nil
+}
+
+func (s *appointmentServiceImpl) GetAppointmentByAppCode(appCode string) (*entities.Appointment, error) {
+	appointment, err := s.appointmentRepo.FindAppointmentByAppCode(appCode)
+	if err != nil {
+		return nil, err
+	}
+	return appointment, nil
 }

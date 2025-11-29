@@ -434,6 +434,25 @@ definitions:
       key:
         type: string
     type: object
+  responses.DashboardAnalyticsResponse:
+    properties:
+      bookings_per_day:
+        items:
+          $ref: '#/definitions/responses.TimeSeriesPoint'
+        type: array
+      cancellations_per_day:
+        items:
+          $ref: '#/definitions/responses.TimeSeriesPoint'
+        type: array
+      end_date:
+        type: string
+      start_date:
+        type: string
+      total_appointments:
+        type: integer
+      total_bookings:
+        type: integer
+    type: object
   responses.LoginResponse:
     properties:
       expires_in:
@@ -563,6 +582,46 @@ paths:
       summary: Get user analytics
       tags:
       - Analytics
+  /analytics/dashboard:
+    get:
+      description: Get minimal analytics for dashboard display. Includes totals and
+        daily series only.
+      operationId: getDashboardAnalytics
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.DashboardAnalyticsResponse'
+        "400":
+          description: Invalid date format or missing parameters
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user dashboard analytics
+      tags:
+      - Analytics
   /appointments:
     post:
       consumes:
@@ -669,6 +728,35 @@ paths:
       summary: Book an appointment (Registered User)
       tags:
       - Bookings
+  /appointments/code/{app_code}:
+    get:
+      description: Retrieves appointment details by its unique app_code, public endpoint
+        for booking flow
+      operationId: getAppointmentByAppCode
+      parameters:
+      - description: Appointment identifier (app_code)
+        in: path
+        name: app_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Appointment'
+        "400":
+          description: Missing app_code parameter
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+        "404":
+          description: Appointment not found
+          schema:
+            $ref: '#/definitions/errors.APIErrorResponse'
+      summary: Get appointment by app code
+      tags:
+      - Appointments
   /appointments/my:
     get:
       description: Retrieves a paginated list of appointments created by the currently

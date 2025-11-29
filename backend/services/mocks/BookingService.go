@@ -142,9 +142,9 @@ func (_m *BookingService) CancelBookingByCode(bookingCode string) (*entities.Boo
 	return r0, r1
 }
 
-// GetAllBookingsForAppointment provides a mock function with given fields: ctx, appcode
-func (_m *BookingService) GetAllBookingsForAppointment(ctx context.Context, appcode string) (paginate.Page, error) {
-	ret := _m.Called(ctx, appcode)
+// GetAllBookingsForAppointment provides a mock function with given fields: ctx, req, appcode
+func (_m *BookingService) GetAllBookingsForAppointment(ctx context.Context, req *http.Request, appcode string) (paginate.Page, error) {
+	ret := _m.Called(ctx, req, appcode)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAllBookingsForAppointment")
@@ -152,17 +152,17 @@ func (_m *BookingService) GetAllBookingsForAppointment(ctx context.Context, appc
 
 	var r0 paginate.Page
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (paginate.Page, error)); ok {
-		return rf(ctx, appcode)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) (paginate.Page, error)); ok {
+		return rf(ctx, req, appcode)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) paginate.Page); ok {
-		r0 = rf(ctx, appcode)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) paginate.Page); ok {
+		r0 = rf(ctx, req, appcode)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, appcode)
+	if rf, ok := ret.Get(1).(func(context.Context, *http.Request, string) error); ok {
+		r1 = rf(ctx, req, appcode)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -256,9 +256,9 @@ func (_m *BookingService) GetBookingByCode(bookingCode string) (*entities.Bookin
 	return r0, r1
 }
 
-// GetUserBookings provides a mock function with given fields: ctx, userID
-func (_m *BookingService) GetUserBookings(ctx context.Context, userID string) (paginate.Page, error) {
-	ret := _m.Called(ctx, userID)
+// GetUserBookings provides a mock function with given fields: ctx, req, userID
+func (_m *BookingService) GetUserBookings(ctx context.Context, req *http.Request, userID string) (paginate.Page, error) {
+	ret := _m.Called(ctx, req, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserBookings")
@@ -266,17 +266,17 @@ func (_m *BookingService) GetUserBookings(ctx context.Context, userID string) (p
 
 	var r0 paginate.Page
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (paginate.Page, error)); ok {
-		return rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) (paginate.Page, error)); ok {
+		return rf(ctx, req, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) paginate.Page); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string) paginate.Page); ok {
+		r0 = rf(ctx, req, userID)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, userID)
+	if rf, ok := ret.Get(1).(func(context.Context, *http.Request, string) error); ok {
+		r1 = rf(ctx, req, userID)
 	} else {
 		r1 = ret.Error(1)
 	}

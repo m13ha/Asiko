@@ -1,11 +1,11 @@
 package api
 
 import (
-    "net/http"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
-    "github.com/m13ha/asiko/errors"
-    "github.com/m13ha/asiko/middleware"
+	"github.com/gin-gonic/gin"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
+	"github.com/m13ha/asiko/middleware"
 )
 
 // @Summary Get user analytics
@@ -24,25 +24,26 @@ import (
 // @Router /analytics [get]
 // @ID getUserAnalytics
 func (h *Handler) GetUserAnalytics(c *gin.Context) {
-    userID, ok := middleware.GetUUIDFromContext(c)
-    if !ok {
-        c.Error(errors.New(errors.CodeUnauthorized).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Unauthorized"))
-        return
-    }
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 
-    if startDate == "" || endDate == "" {
-        c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("start_date and end_date query parameters are required"))
-        return
-    }
+	if startDate == "" || endDate == "" {
+		apierrors.ValidationError(c, "start_date and end_date query parameters are required")
+		return
+	}
 
-    analytics, err := h.analyticsService.GetUserAnalytics(userID, startDate, endDate)
-    if err != nil {
-        c.Error(errors.FromError(err))
-        return
-    }
+	analytics, err := h.analyticsService.GetUserAnalytics(userID, startDate, endDate)
+	if err != nil {
+		// For service errors, we'll use internal server error unless we have specific error handling
+		apierrors.InternalServerError(c, "Internal server error")
+		return
+	}
 
 	c.JSON(http.StatusOK, analytics)
 }

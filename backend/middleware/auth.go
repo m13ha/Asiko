@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/m13ha/asiko/errors"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
 )
 
 var (
@@ -63,7 +63,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := extractToken(c.Request)
 		if tokenString == "" {
-			errors.Unauthorized(c.Writer, "")
+			apierrors.UnauthorizedError(c, "")
 			c.Abort()
 			return
 		}
@@ -74,7 +74,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			errors.Unauthorized(c.Writer, "Invalid token")
+			apierrors.UnauthorizedError(c, "Invalid token")
 			c.Abort()
 			return
 		}
@@ -82,7 +82,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Parse and store strongly-typed UUID; if invalid, treat as unauthorized
 		uid, err := uuid.Parse(claims.UserID)
 		if err != nil {
-			errors.Unauthorized(c.Writer, "Invalid token")
+			apierrors.UnauthorizedError(c, "Invalid token")
 			c.Abort()
 			return
 		}
@@ -176,7 +176,7 @@ func ParseUserIDFromToken(tokenString string) (string, error) {
 func RefreshToken(c *gin.Context) {
 	tokenString := extractToken(c.Request)
 	if tokenString == "" {
-		errors.Unauthorized(c.Writer, "Missing token")
+		apierrors.UnauthorizedError(c, "Missing token")
 		return
 	}
 
@@ -186,18 +186,18 @@ func RefreshToken(c *gin.Context) {
 	})
 
 	if err != nil {
-		errors.Unauthorized(c.Writer, "Invalid token")
+		apierrors.UnauthorizedError(c, "Invalid token")
 		return
 	}
 
 	if claims.ExpiresAt != nil && time.Until(claims.ExpiresAt.Time) > 30*time.Minute {
-		errors.BadRequest(c.Writer, "Token not near expiration")
+		apierrors.BadRequestError(c, "Token not near expiration")
 		return
 	}
 
 	newToken, err := GenerateToken(claims.UserID)
 	if err != nil {
-		errors.InternalServerError(c.Writer, "Could not generate token")
+		apierrors.InternalServerError(c, "Could not generate token")
 		return
 	}
 

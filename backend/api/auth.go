@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m13ha/asiko/errors"
+	apierrors "github.com/m13ha/asiko/errors/apierrors"
 	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/requests"
 	"github.com/m13ha/asiko/models/responses"
@@ -27,30 +27,31 @@ import (
 func (h *Handler) Login(c *gin.Context) {
 	var req requests.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request body"))
+		apierrors.BadRequestError(c, "Invalid request body")
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		c.Error(errors.FromValidation(err, "Validation failed"))
+		apierrors.ValidationError(c, "Validation failed")
 		return
 	}
 
 	userEntity, err := h.userService.AuthenticateUser(utils.NormalizeEmail(req.Email), req.Password)
 	if err != nil {
-		c.Error(errors.FromError(err))
+		// Assuming authentication errors are unauthorized
+		apierrors.UnauthorizedError(c, "Invalid email or password")
 		return
 	}
 
 	accessToken, err := middleware.GenerateToken(userEntity.ID.String())
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate token"))
+		apierrors.InternalServerError(c, "Could not generate token")
 		return
 	}
 
 	refreshToken, err := middleware.GenerateRefreshToken(userEntity.ID.String())
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate refresh token"))
+		apierrors.InternalServerError(c, "Could not generate refresh token")
 		return
 	}
 
@@ -92,30 +93,30 @@ func (h *Handler) Logout(c *gin.Context) {
 func (h *Handler) Refresh(c *gin.Context) {
 	var req requests.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request body"))
+		apierrors.BadRequestError(c, "Invalid request body")
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		c.Error(errors.FromValidation(err, "Validation failed"))
+		apierrors.ValidationError(c, "Validation failed")
 		return
 	}
 
 	userID, err := middleware.ValidateRefreshToken(req.RefreshToken)
 	if err != nil {
-		c.Error(errors.New(errors.CodeLoginInvalidCredentials).WithKind(errors.KindUnauthorized).WithHTTP(401).WithMessage("Invalid refresh token"))
+		apierrors.UnauthorizedError(c, "Invalid refresh token")
 		return
 	}
 
 	accessToken, err := middleware.GenerateToken(userID)
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate token"))
+		apierrors.InternalServerError(c, "Could not generate token")
 		return
 	}
 
 	newRefreshToken, err := middleware.GenerateRefreshToken(userID)
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate refresh token"))
+		apierrors.InternalServerError(c, "Could not generate refresh token")
 		return
 	}
 
@@ -140,18 +141,18 @@ func (h *Handler) Refresh(c *gin.Context) {
 func (h *Handler) GenerateDeviceTokenHandler(c *gin.Context) {
 	var req requests.DeviceTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(errors.New(errors.CodeValidationFailed).WithKind(errors.KindValidation).WithHTTP(400).WithMessage("Invalid request body"))
+		apierrors.BadRequestError(c, "Invalid request body")
 		return
 	}
 
 	if err := utils.Validate(req); err != nil {
-		c.Error(errors.FromValidation(err, "Validation failed"))
+		apierrors.ValidationError(c, "Validation failed")
 		return
 	}
 
 	token, err := middleware.GenerateDeviceToken(req.DeviceID)
 	if err != nil {
-		c.Error(errors.New(errors.CodeInternalError).WithKind(errors.KindInternal).WithHTTP(500).WithMessage("Could not generate device token"))
+		apierrors.InternalServerError(c, "Could not generate device token")
 		return
 	}
 

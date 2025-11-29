@@ -1,5 +1,6 @@
 import type {
   AppointmentsApi,
+  EntitiesAppointment,
   EntitiesAppointmentStatus,
   GetMyAppointments200Response,
   RequestsAppointmentRequest,
@@ -12,7 +13,7 @@ export type CreateAppointmentInput = RequestsAppointmentRequest;
 
 export const appointmentsClient: AppointmentsApi = appointmentsApi as unknown as AppointmentsApi;
 
-export function listMyAppointments(params?: { 
+export function listMyAppointments(params?: {
   statuses?: EntitiesAppointmentStatus[];
   page?: number;
   size?: number;
@@ -30,4 +31,8 @@ export function createAppointment(input: CreateAppointmentInput) {
 
 export function getUsersForAppointment(appCode: string) {
   return appointmentsClient.getUsersRegisteredForAppointment({ appCode });
+}
+
+export function getAppointmentByAppCode(appCode: string): Promise<EntitiesAppointment> {
+  return appointmentsClient.getAppointmentByAppCode({ appCode });
 }

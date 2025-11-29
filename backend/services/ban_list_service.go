@@ -2,7 +2,7 @@ package services
 
 import (
     "github.com/google/uuid"
-    myerrors "github.com/m13ha/asiko/errors"
+    serviceerrors "github.com/m13ha/asiko/errors/serviceerrors"
     "github.com/m13ha/asiko/models/entities"
     "github.com/m13ha/asiko/repository"
     "github.com/m13ha/asiko/utils"
@@ -26,7 +26,7 @@ func (s *banListServiceImpl) AddToBanList(userID uuid.UUID, email string) (*enti
     normalizedEmail := utils.NormalizeEmail(email)
     _, err := s.banListRepo.FindByUserAndEmail(userID, normalizedEmail)
     if err == nil {
-        return nil, myerrors.New(myerrors.CodeConflict).WithKind(myerrors.KindConflict).WithHTTP(409).WithMessage("email already on ban list")
+        return nil, serviceerrors.ConflictError("email already on ban list")
     }
 
 	entry := &entities.BanListEntry{
@@ -35,7 +35,7 @@ func (s *banListServiceImpl) AddToBanList(userID uuid.UUID, email string) (*enti
 	}
 
     if err := s.banListRepo.Create(entry); err != nil {
-        return nil, myerrors.FromError(err)
+        return nil, serviceerrors.FromError(err)
     }
 
 	return entry, nil
@@ -44,7 +44,7 @@ func (s *banListServiceImpl) AddToBanList(userID uuid.UUID, email string) (*enti
 func (s *banListServiceImpl) RemoveFromBanList(userID uuid.UUID, email string) error {
     normalizedEmail := utils.NormalizeEmail(email)
     if err := s.banListRepo.Delete(userID, normalizedEmail); err != nil {
-        return myerrors.FromError(err)
+        return serviceerrors.FromError(err)
     }
     return nil
 }
@@ -52,7 +52,7 @@ func (s *banListServiceImpl) RemoveFromBanList(userID uuid.UUID, email string) e
 func (s *banListServiceImpl) GetBanList(userID uuid.UUID) ([]entities.BanListEntry, error) {
     entries, err := s.banListRepo.GetAllByUser(userID)
     if err != nil {
-        return nil, myerrors.FromError(err)
+        return nil, serviceerrors.FromError(err)
     }
     return entries, nil
 }

@@ -50,7 +50,7 @@ func TestCreateAppointment(t *testing.T) {
 			},
 			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
 			},
-			expectedError: "Invalid appointment data. Please check your input.",
+			expectedError: "USER_ERROR: Invalid appointment data. Please check your input.",
 		},
 		{
 			name: "Failure - Repository Error",
@@ -67,7 +67,7 @@ func TestCreateAppointment(t *testing.T) {
 			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
 				mockRepo.On("Create", mock.AnythingOfType("*entities.Appointment")).Return(fmt.Errorf("db error")).Once()
 			},
-			expectedError: "INTERNAL_ERROR: Internal server error",
+			expectedError: "INTERNAL_ERROR: db error (caused by: db error)",
 		},
 	}
 

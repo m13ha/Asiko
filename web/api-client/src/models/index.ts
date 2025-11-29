@@ -25,6 +25,7 @@ export * from './ResponsesAnalyticsResponse';
 export * from './ResponsesAnalyticsResponsePartyCapacity';
 export * from './ResponsesAppointmentResponse';
 export * from './ResponsesBucketCount';
+export * from './ResponsesDashboardAnalyticsResponse';
 export * from './ResponsesLoginResponse';
 export * from './ResponsesPaginatedResponse';
 export * from './ResponsesSimpleMessage';

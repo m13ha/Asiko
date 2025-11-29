@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 export function Field({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`grid gap-1.5 ${className}`}>
+    <div className={`w-full grid gap-1.5 ${className}`}>
       {children}
     </div>
   );
@@ -18,7 +18,7 @@ export function FieldLabel({ children, className = '' }: { children: ReactNode; 
 
 export function FieldRow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`relative grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-1 sm:gap-1.5 ${className}`}>
+    <div className={`w-full relative grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-1 sm:gap-1.5 ${className}`}>
       {children}
     </div>
   );

@@ -38,6 +38,10 @@ export interface CreateAppointmentRequest {
     appointment: RequestsAppointmentRequest;
 }
 
+export interface GetAppointmentByAppCodeRequest {
+    appCode: string;
+}
+
 export interface GetMyAppointmentsRequest {
     status?: Array<string>;
     page?: number;
@@ -97,6 +101,45 @@ export class AppointmentsApi extends runtime.BaseAPI {
      */
     async createAppointment(requestParameters: CreateAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesAppointment> {
         const response = await this.createAppointmentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Retrieves appointment details by its unique app_code, public endpoint for booking flow
+     * Get appointment by app code
+     */
+    async getAppointmentByAppCodeRaw(requestParameters: GetAppointmentByAppCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EntitiesAppointment>> {
+        if (requestParameters['appCode'] == null) {
+            throw new runtime.RequiredError(
+                'appCode',
+                'Required parameter "appCode" was null or undefined when calling getAppointmentByAppCode().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/appointments/code/{app_code}`;
+        urlPath = urlPath.replace(`{${"app_code"}}`, encodeURIComponent(String(requestParameters['appCode'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EntitiesAppointmentFromJSON(jsonValue));
+    }
+
+    /**
+     * Retrieves appointment details by its unique app_code, public endpoint for booking flow
+     * Get appointment by app code
+     */
+    async getAppointmentByAppCode(requestParameters: GetAppointmentByAppCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesAppointment> {
+        const response = await this.getAppointmentByAppCodeRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

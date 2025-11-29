@@ -1,7 +1,7 @@
 package repository
 
 import (
-    apperr "github.com/m13ha/asiko/errors"
+    repoerrors "github.com/m13ha/asiko/errors/repoerrors"
     "github.com/m13ha/asiko/models/entities"
     "gorm.io/gorm"
 )
@@ -23,7 +23,7 @@ func NewGormPendingUserRepository(db *gorm.DB) PendingUserRepository {
 
 func (r *gormPendingUserRepository) Create(user *entities.PendingUser) error {
     if err := r.db.Create(user).Error; err != nil {
-        return apperr.TranslateRepoError("repository.pending.Create", err)
+        return repoerrors.InternalError("failed to create pending user: " + err.Error())
     }
     return nil
 }
@@ -31,21 +31,24 @@ func (r *gormPendingUserRepository) Create(user *entities.PendingUser) error {
 func (r *gormPendingUserRepository) FindByEmail(email string) (*entities.PendingUser, error) {
 	var user entities.PendingUser
     if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
-        return nil, apperr.TranslateRepoError("repository.pending.FindByEmail", err)
+        if err == gorm.ErrRecordNotFound {
+            return nil, repoerrors.NotFoundError("pending user not found with email: " + email)
+        }
+        return nil, repoerrors.InternalError("failed to find pending user by email: " + err.Error())
     }
     return &user, nil
 }
 
 func (r *gormPendingUserRepository) Update(user *entities.PendingUser) error {
     if err := r.db.Save(user).Error; err != nil {
-        return apperr.TranslateRepoError("repository.pending.Update", err)
+        return repoerrors.InternalError("failed to update pending user: " + err.Error())
     }
     return nil
 }
 
 func (r *gormPendingUserRepository) Delete(email string) error {
     if err := r.db.Where("email = ?", email).Delete(&entities.PendingUser{}).Error; err != nil {
-        return apperr.TranslateRepoError("repository.pending.Delete", err)
+        return repoerrors.InternalError("failed to delete pending user: " + err.Error())
     }
     return nil
 }

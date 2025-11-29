@@ -152,7 +152,7 @@ func TestAuthenticateUser(t *testing.T) {
 			email:    "error@example.com",
 			password: "password123",
 			setupMocks: func(userRepo *repoMocks.UserRepository, pendingRepo *repoMocks.PendingUserRepository) {
-				repoErr := myerrors.New(myerrors.CodeInternalError).WithKind(myerrors.KindInternal).WithHTTP(500).WithMessage("repository failure")
+				repoErr := myerrors.NewAppError(myerrors.CodeInternalError, "internal", 500, "repository failure", nil)
 				userRepo.On("FindByEmail", "error@example.com").Return(nil, repoErr).Once()
 			},
 			expectedError: "INTERNAL_ERROR: repository failure",
@@ -179,10 +179,7 @@ func TestAuthenticateUser(t *testing.T) {
 }
 
 func repoNotFoundError() error {
-	return myerrors.New(myerrors.CodeResourceNotFound).
-		WithKind(myerrors.KindNotFound).
-		WithHTTP(404).
-		WithMessage("Resource not found")
+	return myerrors.NewAppError(myerrors.CodeResourceNotFound, "not_found", 404, "Resource not found", nil)
 }
 
 func TestVerifyRegistration(t *testing.T) {

@@ -260,17 +260,17 @@ func (_m *BookingRepository) GetBookingByCode(bookingCode string) (*entities.Boo
 	return r0, r1
 }
 
-// GetBookingsByAppCode provides a mock function with given fields: ctx, appCode, available
-func (_m *BookingRepository) GetBookingsByAppCode(ctx context.Context, appCode string, available bool) paginate.Page {
-	ret := _m.Called(ctx, appCode, available)
+// GetBookingsByAppCode provides a mock function with given fields: ctx, req, appCode, available
+func (_m *BookingRepository) GetBookingsByAppCode(ctx context.Context, req *http.Request, appCode string, available bool) paginate.Page {
+	ret := _m.Called(ctx, req, appCode, available)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetBookingsByAppCode")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool) paginate.Page); ok {
-		r0 = rf(ctx, appCode, available)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, string, bool) paginate.Page); ok {
+		r0 = rf(ctx, req, appCode, available)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
@@ -278,17 +278,17 @@ func (_m *BookingRepository) GetBookingsByAppCode(ctx context.Context, appCode s
 	return r0
 }
 
-// GetBookingsByUserID provides a mock function with given fields: ctx, userID
-func (_m *BookingRepository) GetBookingsByUserID(ctx context.Context, userID uuid.UUID) paginate.Page {
-	ret := _m.Called(ctx, userID)
+// GetBookingsByUserID provides a mock function with given fields: ctx, req, userID
+func (_m *BookingRepository) GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
+	ret := _m.Called(ctx, req, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetBookingsByUserID")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) paginate.Page); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, uuid.UUID) paginate.Page); ok {
+		r0 = rf(ctx, req, userID)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}

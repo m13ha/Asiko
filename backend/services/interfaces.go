@@ -38,4 +38,5 @@ type AppointmentService interface {
 	GetAllAppointmentsCreatedByUser(userID string, r *http.Request, statuses []entities.AppointmentStatus) paginate.Page
 	CancelAppointment(ctx context.Context, appointmentID uuid.UUID, ownerID uuid.UUID) (*entities.Appointment, error)
 	RefreshStatuses(ctx context.Context, now time.Time) (StatusRefreshSummary, error)
+	GetAppointmentByAppCode(appCode string) (*entities.Appointment, error)
 }

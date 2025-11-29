@@ -37,6 +37,7 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 	r.POST("/auth/device-token", h.GenerateDeviceTokenHandler)
 	r.POST("/auth/refresh", h.Refresh)
 	r.POST("/appointments/book", h.BookGuestAppointment)
+	r.GET("/appointments/code/:app_code", h.GetAppointmentByAppCode)
 	r.GET("/appointments/slots/:app_code", h.GetAvailableSlots)
 	r.GET("/appointments/slots/:app_code/by-day", h.GetAvailableSlotsByDay)
 	r.GET("/bookings/:booking_code", h.GetBookingByCodeHandler)
