@@ -1,11 +1,13 @@
+import React, { type ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAppointmentByAppCode } from './hooks';
+import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import * as api from './api';
 
 // Mock the API module
-jest.mock('./api', () => ({
-  getAppointmentByAppCode: jest.fn(),
+vi.mock('./api', () => ({
+  getAppointmentByAppCode: vi.fn(),
 }));
 
 const queryClient = new QueryClient({
@@ -17,13 +19,12 @@ const queryClient = new QueryClient({
   },
 });
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) =>
+  React.createElement(QueryClientProvider, { client: queryClient }, children);
 
 describe('useAppointmentByAppCode', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     queryClient.clear();
   });
 
@@ -44,7 +45,7 @@ describe('useAppointmentByAppCode', () => {
       updatedAt: '2024-01-01T00:00:00Z',
     };
 
-    (api.getAppointmentByAppCode as jest.Mock).mockResolvedValue(mockAppointment);
+    (api.getAppointmentByAppCode as Mock).mockResolvedValue(mockAppointment);
 
     const { result } = renderHook(() => useAppointmentByAppCode('TEST123'), {
       wrapper,
@@ -70,7 +71,7 @@ describe('useAppointmentByAppCode', () => {
 
   it('should handle API errors', async () => {
     const mockError = new Error('Failed to fetch appointment');
-    (api.getAppointmentByAppCode as jest.Mock).mockRejectedValue(mockError);
+    (api.getAppointmentByAppCode as Mock).mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useAppointmentByAppCode('TEST123'), {
       wrapper,

@@ -9,8 +9,8 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import type { EntitiesAppointmentStatus } from './EntitiesAppointmentStatus';
 import type { EntitiesAppointmentType } from './EntitiesAppointmentType';
+import type { EntitiesAppointmentStatus } from './EntitiesAppointmentStatus';
 /**
  *
  * @export
@@ -79,16 +79,16 @@ export interface ResponsesAppointmentResponse {
     startTime?: string;
     /**
      *
-     * @type {string}
-     * @memberof ResponsesAppointmentResponse
-     */
-    title?: string;
-    /**
-     *
      * @type {EntitiesAppointmentStatus}
      * @memberof ResponsesAppointmentResponse
      */
     status?: EntitiesAppointmentStatus;
+    /**
+     *
+     * @type {string}
+     * @memberof ResponsesAppointmentResponse
+     */
+    title?: string;
     /**
      *
      * @type {EntitiesAppointmentType}

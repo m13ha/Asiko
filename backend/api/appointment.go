@@ -53,9 +53,9 @@ func parseStatusFilters(raw []string) []entities.AppointmentStatus {
 // @Param   appointment  body   requests.AppointmentRequest  true  "Appointment Details"
 // @Security BearerAuth
 // @Success 201 {object} entities.Appointment
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request payload or validation error"
-// @Failure 401 {object} errors.APIErrorResponse "Authentication required"
-// @Failure 500 {object} errors.APIErrorResponse "Failed to create appointment"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request payload or validation error"
+// @Failure 401 {object} responses.APIErrorResponse "Authentication required"
+// @Failure 500 {object} responses.APIErrorResponse "Failed to create appointment"
 // @Router /appointments [post]
 // @ID createAppointment
 func (h *Handler) CreateAppointment(c *gin.Context) {
@@ -95,7 +95,7 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 // @Param page query int false "Page number (default: 1)"
 // @Param size query int false "Page size (default: 10)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]responses.AppointmentResponse}
-// @Failure 401 {object} errors.APIErrorResponse "Authentication required"
+// @Failure 401 {object} responses.APIErrorResponse "Authentication required"
 // @Router /appointments/my [get]
 // @ID getMyAppointments
 func (h *Handler) GetAppointmentsCreatedByUser(c *gin.Context) {
@@ -117,8 +117,8 @@ func (h *Handler) GetAppointmentsCreatedByUser(c *gin.Context) {
 // @Produce  application/json
 // @Param   app_code  path   string  true  "Appointment identifier (app_code)"
 // @Success 200 {object} entities.Appointment
-// @Failure 400 {object} errors.APIErrorResponse "Missing app_code parameter"
-// @Failure 404 {object} errors.APIErrorResponse "Appointment not found"
+// @Failure 400 {object} responses.APIErrorResponse "Missing app_code parameter"
+// @Failure 404 {object} responses.APIErrorResponse "Appointment not found"
 // @Router /appointments/code/{app_code} [get]
 // @ID getAppointmentByAppCode
 func (h *Handler) GetAppointmentByAppCode(c *gin.Context) {

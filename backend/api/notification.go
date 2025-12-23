@@ -17,8 +17,8 @@ import (
 // @Param page query int false "Page number (default: 1)"
 // @Param size query int false "Page size (default: 10)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]entities.Notification}
-// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
-// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
 // @Router /notifications [get]
 // @ID getNotifications
 func (h *Handler) GetNotificationsHandler(c *gin.Context) {
@@ -43,8 +43,8 @@ func (h *Handler) GetNotificationsHandler(c *gin.Context) {
 // @Produce  application/json
 // @Security BearerAuth
 // @Success 200 {object} responses.SimpleMessage
-// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
-// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
 // @Router /notifications/read-all [put]
 // @ID markAllNotificationsAsRead
 func (h *Handler) MarkAllNotificationsAsReadHandler(c *gin.Context) {
@@ -60,4 +60,30 @@ func (h *Handler) MarkAllNotificationsAsReadHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, responses.SimpleMessage{Message: "All notifications marked as read."})
+}
+
+// @Summary Get unread notifications count
+// @Description Retrieves the number of unread notifications for the currently authenticated user.
+// @Tags Notifications
+// @Produce  application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]int64 "count"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
+// @Router /notifications/unread-count [get]
+// @ID getUnreadNotificationsCount
+func (h *Handler) GetUnreadNotificationsCountHandler(c *gin.Context) {
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
+
+	count, err := h.eventNotificationService.GetUserUnreadNotificationsCount(userID.String())
+	if err != nil {
+		apierrors.InternalServerError(c, "Internal server error")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"count": count})
 }

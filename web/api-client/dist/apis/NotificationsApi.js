@@ -21,8 +21,14 @@ export class NotificationsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of notifications for the currently authenticated user.
      * Get user notifications
      */
-    async getNotificationsRaw(initOverrides) {
+    async getNotificationsRaw(requestParameters, initOverrides) {
         const queryParameters = {};
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
         const headerParameters = {};
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
@@ -40,8 +46,35 @@ export class NotificationsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of notifications for the currently authenticated user.
      * Get user notifications
      */
-    async getNotifications(initOverrides) {
-        const response = await this.getNotificationsRaw(initOverrides);
+    async getNotifications(requestParameters = {}, initOverrides) {
+        const response = await this.getNotificationsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
+     * Retrieves the number of unread notifications for the currently authenticated user.
+     * Get unread notifications count
+     */
+    async getUnreadNotificationsCountRaw(initOverrides) {
+        const queryParameters = {};
+        const headerParameters = {};
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+        let urlPath = `/notifications/unread-count`;
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response);
+    }
+    /**
+     * Retrieves the number of unread notifications for the currently authenticated user.
+     * Get unread notifications count
+     */
+    async getUnreadNotificationsCount(initOverrides) {
+        const response = await this.getUnreadNotificationsCountRaw(initOverrides);
         return await response.value();
     }
     /**

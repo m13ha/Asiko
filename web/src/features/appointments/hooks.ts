@@ -17,7 +17,7 @@ export function useMyAppointments(filters?: {
   size?: number;
 }) {
   const statuses = filters?.statuses ?? [];
-  const page = filters?.page ?? 1;
+  const page = filters?.page ?? 0;
   const size = filters?.size ?? 10;
   const key = `${statuses.length ? statuses.slice().sort().join(',') : 'all'}-${page}-${size}`;
   return useQuery({
@@ -34,8 +34,14 @@ export function useCreateAppointment() {
   });
 }
 
-export function useAppointmentUsers(id: string) {
-  return useQuery({ queryKey: ['appointment-users', id], queryFn: () => getUsersForAppointment(id), enabled: !!id });
+export function useAppointmentUsers(id: string, params?: { page?: number; size?: number }, options?: { enabled?: boolean }) {
+  const page = params?.page ?? 1;
+  const size = params?.size ?? 10;
+  return useQuery({
+    queryKey: ['appointment-users', id, page, size],
+    queryFn: () => getUsersForAppointment(id, { page, size }),
+    enabled: !!id && (options?.enabled ?? true),
+  });
 }
 
 export function useAppointmentByAppCode(appCode: string) {

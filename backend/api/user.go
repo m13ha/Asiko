@@ -18,8 +18,8 @@ import (
 // @Produce  application/json
 // @Param   user  body   requests.UserRequest  true  "User Registration Details"
 // @Success 202 {object} responses.SimpleMessage
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request payload or validation error"
-// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request payload or validation error"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
 // @Router /users [post]
 // @ID createUser
 func (h *Handler) CreateUser(c *gin.Context) {
@@ -53,8 +53,8 @@ func (h *Handler) CreateUser(c *gin.Context) {
 // @Produce  application/json
 // @Param   verification  body   requests.VerificationRequest  true  "Email and Verification Code"
 // @Success 201 {object} responses.LoginResponse
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request payload or verification error"
-// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request payload or verification error"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
 // @Router /auth/verify-registration [post]
 // @ID verifyRegistration
 func (h *Handler) VerifyRegistrationHandler(c *gin.Context) {
@@ -96,10 +96,10 @@ func (h *Handler) VerifyRegistrationHandler(c *gin.Context) {
 // @Produce  application/json
 // @Param   resend  body   requests.ResendVerificationRequest  true  "Email to resend verification code to"
 // @Success 202 {object} responses.SimpleMessage
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request payload"
-// @Failure 404 {object} errors.APIErrorResponse "Pending registration not found"
-// @Failure 409 {object} errors.APIErrorResponse "Account already verified"
-// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request payload"
+// @Failure 404 {object} responses.APIErrorResponse "Pending registration not found"
+// @Failure 409 {object} responses.APIErrorResponse "Account already verified"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
 // @Router /auth/resend-verification [post]
 // @ID resendVerification
 func (h *Handler) ResendVerificationHandler(c *gin.Context) {

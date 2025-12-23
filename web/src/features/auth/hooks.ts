@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/services/api';
 import * as API from '@appointment-master/api-client';
 import toast from 'react-hot-toast';
-import { useAuth } from './AuthProvider';
+import { useAuthStore } from '@/stores/authStore';
 
 function computeExpiresAt(token?: string, expiresIn?: number) {
   if (expiresIn && expiresIn > 0) return Date.now() + expiresIn * 1000;
@@ -32,7 +32,7 @@ async function parseError(e: unknown): Promise<string> {
 }
 
 export function useLogin() {
-  const { setTokens } = useAuth();
+  const setTokens = useAuthStore((s) => s.setTokens);
   return useMutation({
     mutationFn: async (vars: { email: string; password: string }) =>
       authApi.loginUser({ login: { email: vars.email, password: vars.password } }),
@@ -51,11 +51,11 @@ export function useLogin() {
 }
 
 export function useLogout() {
-  const { logout } = useAuth();
+  const clearTokens = useAuthStore((s) => s.clearTokens);
   return useMutation({
     mutationFn: async () => authApi.logoutUser(),
     onSettled: () => {
-      logout();
+      clearTokens();
       toast.success('Logged out');
     },
   });
@@ -71,7 +71,7 @@ export function useSignup() {
 }
 
 export function useVerify() {
-  const { setTokens } = useAuth();
+  const setTokens = useAuthStore((s) => s.setTokens);
   return useMutation({
     mutationFn: async (vars: { email: string; code: string }) =>
       authApi.verifyRegistration({ verification: { email: vars.email, code: vars.code } }),
@@ -102,5 +102,31 @@ export function useDeviceToken() {
   return useMutation({
     mutationFn: async (vars: { deviceId: string }) =>
       authApi.generateDeviceToken({ device: { deviceId: vars.deviceId } }),
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) => authApi.forgotPassword({ request: { email } }),
+    onSuccess: (res) => toast.success(res?.message || 'If an account exists, a code has been sent.'),
+    onError: async (e) => toast.error(await parseError(e)),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (vars: { token: string; newPassword: string }) =>
+      authApi.resetPassword({ request: { token: vars.token, newPassword: vars.newPassword } }),
+    onSuccess: (res) => toast.success(res?.message || 'Password reset successfully'),
+    onError: async (e) => toast.error(await parseError(e)),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (vars: { oldPassword: string; newPassword: string }) =>
+      authApi.changePassword({ request: { oldPassword: vars.oldPassword, newPassword: vars.newPassword } }),
+    onSuccess: (res) => toast.success(res?.message || 'Password changed successfully'),
+    onError: async (e) => toast.error(await parseError(e)),
   });
 }

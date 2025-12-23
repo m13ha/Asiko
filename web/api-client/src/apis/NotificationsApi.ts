@@ -15,15 +15,15 @@
 
 import * as runtime from '../runtime';
 import type {
-  ErrorsAPIErrorResponse,
   GetNotifications200Response,
+  ResponsesAPIErrorResponse,
   ResponsesSimpleMessage,
 } from '../models/index';
 import {
-    ErrorsAPIErrorResponseFromJSON,
-    ErrorsAPIErrorResponseToJSON,
     GetNotifications200ResponseFromJSON,
     GetNotifications200ResponseToJSON,
+    ResponsesAPIErrorResponseFromJSON,
+    ResponsesAPIErrorResponseToJSON,
     ResponsesSimpleMessageFromJSON,
     ResponsesSimpleMessageToJSON,
 } from '../models/index';
@@ -78,6 +78,41 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async getNotifications(requestParameters: GetNotificationsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetNotifications200Response> {
         const response = await this.getNotificationsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Retrieves the number of unread notifications for the currently authenticated user.
+     * Get unread notifications count
+     */
+    async getUnreadNotificationsCountRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: number; }>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+
+        let urlPath = `/notifications/unread-count`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Retrieves the number of unread notifications for the currently authenticated user.
+     * Get unread notifications count
+     */
+    async getUnreadNotificationsCount(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: number; }> {
+        const response = await this.getUnreadNotificationsCountRaw(initOverrides);
         return await response.value();
     }
 

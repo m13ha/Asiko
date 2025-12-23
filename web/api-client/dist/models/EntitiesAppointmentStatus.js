@@ -16,11 +16,11 @@
  * @export
  */
 export const EntitiesAppointmentStatus = {
-    Pending: 'pending',
-    Ongoing: 'ongoing',
-    Completed: 'completed',
-    Canceled: 'canceled',
-    Expired: 'expired'
+    AppointmentStatusPending: 'pending',
+    AppointmentStatusOngoing: 'ongoing',
+    AppointmentStatusCompleted: 'completed',
+    AppointmentStatusCanceled: 'canceled',
+    AppointmentStatusExpired: 'expired'
 };
 export function instanceOfEntitiesAppointmentStatus(value) {
     for (const key in EntitiesAppointmentStatus) {

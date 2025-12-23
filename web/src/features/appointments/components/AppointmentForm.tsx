@@ -1,19 +1,39 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { SyntheticEvent } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import styled from 'styled-components';
+
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { differenceInCalendarDays } from 'date-fns';
-import { Steps } from 'primereact/steps';
-import type { StepsSelectEvent } from 'primereact/steps';
-import type { MenuItem } from 'primereact/menuitem';
+import { differenceInCalendarDays, format } from 'date-fns';
+import { Stepper } from '@/components/Stepper';
 import { Input } from '@/components/Input';
 import { Textarea } from '@/components/Textarea';
 import { Select } from '@/components/Select';
 import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
+import { TimePicker } from '@/components/TimePicker';
+import { DatePicker } from '@/components/DatePicker';
 import * as API from '@appointment-master/api-client';
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="m-0 text-base font-semibold text-[var(--text)]">{children}</h3>
+);
+
+const Helper = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <p className={`m-0 text-xs text-[var(--text-muted)] ${className}`}>{children}</p>
+);
+
+const FormSection = ({ children }: { children: React.ReactNode }) => (
+  <section className="p-5 sm:p-8 bg-[var(--bg-elevated)] border-y sm:border border-[var(--border)] sm:rounded-2xl shadow-[var(--elev-1)]">
+    {children}
+  </section>
+);
+
+const SummaryBox = ({ children }: { children: React.ReactNode }) => (
+  <div className="p-4 border border-dashed border-[color-mix(in_oklab,var(--primary)_30%,var(--border))] rounded-xl bg-[color-mix(in_oklab,var(--primary)_4%,var(--bg-elevated))] grid gap-3">
+    {children}
+  </div>
+);
 
 const parseDateOnly = (value?: string) => {
   if (!value) return null;
@@ -30,7 +50,7 @@ const normalizeTimeString = (time: string) => {
 
 const parseTimeOnly = (value?: string) => {
   if (!value) return null;
-  const t = new Date(`1970-01-01T${normalizeTimeString(value)}Z`);
+  const t = new Date(`1970-01-01T${normalizeTimeString(value)}`);
   return Number.isNaN(t.getTime()) ? null : t;
 };
 
@@ -153,6 +173,13 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
   }, [type, maxAttendees, setValue]);
 
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
+  const labelClass = 'text-sm font-semibold text-[var(--text)]';
+  const inputClass = 'pl-10 py-2.5 text-sm w-full';
+  const selectInputClass = 'pl-10 py-2.5 text-sm';
+  const textareaClass = 'w-full min-h-[120px] border p-3 text-sm';
+  
+  const timeValue = (value?: string) => parseTimeOnly(value);
+  const toTimeString = (value: Date | null) => (value ? format(value, 'HH:mm') : '');
 
   const summary = useMemo(() => {
     if (!startDate || !endDate || !startTime || !endTime || !bookingDuration) {
@@ -168,19 +195,10 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
     return { days, windowMinutes, slotsPerDay };
   }, [startDate, endDate, startTime, endTime, bookingDuration]);
 
-  const stepItems = useMemo<MenuItem[]>(
-    () =>
-      steps.map((step, index) => ({
-        id: step.key,
-        label: step.label,
-        disabled: index > currentStep + 1,
-      })),
-    [currentStep]
-  );
 
-  const handleStepSelect = (event: StepsSelectEvent) => {
-    if (event.index <= currentStep) {
-      setCurrentStep(event.index);
+  const handleStepSelect = (index: number) => {
+    if (index <= currentStep) {
+      setCurrentStep(index);
     }
   };
 
@@ -196,312 +214,282 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <StyledForm onSubmit={handleSubmit(onSubmit)}>
-      <StepperWrapper>
-        <Steps
-          model={stepItems}
-          activeIndex={currentStep}
-          onSelect={handleStepSelect}
-          readOnly={false}
-          className="appointment-steps"
+    <div className="py-4 sm:py-8 px-4 sm:px-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 sm:gap-8">
+      <div className="mb-4 sm:mb-8">
+        <Stepper
+          steps={steps}
+          activeStep={currentStep}
+          onStepClick={handleStepSelect}
         />
-      </StepperWrapper>
+      </div>
 
-      {currentStep === 0 && (
-        <FormSection>
-        <SectionHeader>
-          <SectionTitle>Basics</SectionTitle>
-          <Helper>Tell attendees what this booking is about.</Helper>
-        </SectionHeader>
-        <GridTwo>
-          <Field>
-            <FieldLabel>Title</FieldLabel>
-            <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-list" aria-hidden="true" /></IconSlot>
-                <Input {...register('title')} style={{ paddingLeft: 36 }} placeholder="Consultation, Office Hours..." />
-              </div>
-            </FieldRow>
-            {errors.title && <ErrorText>{errors.title.message}</ErrorText>}
-          </Field>
-          <Field>
-            <FieldLabel>Type</FieldLabel>
-            <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-list" aria-hidden="true" /></IconSlot>
-                <Controller
-                  name="type"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onChange={(event) => field.onChange(event.value)}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      options={appointmentTypeOptions}
-                      optionLabel="label"
-                      optionValue="value"
-                      pt={{ input: { style: { paddingLeft: '36px' } } }}
-                    />
-                  )}
-                />
-              </div>
-            </FieldRow>
-          </Field>
-        </GridTwo>
-        <Field>
-          <FieldLabel>Description <small>(optional)</small></FieldLabel>
-          <FieldRow>
-            <div style={{ position: 'relative' }}>
-              <IconSlot><i className="pi pi-file" aria-hidden="true" /></IconSlot>
-              <Textarea {...register('description')} style={{ paddingLeft: 36 }} placeholder="Share agenda, location, prep info..." />
+        {currentStep === 0 && (
+          <FormSection>
+            <div className="flex flex-col gap-1 mb-6">
+              <SectionTitle>Basics</SectionTitle>
+              <Helper>Tell attendees what this booking is about.</Helper>
             </div>
-          </FieldRow>
-        </Field>
-        </FormSection>
-      )}
-
-      {currentStep === 1 && (
-        <FormSection>
-        <SectionHeader>
-          <SectionTitle>Schedule</SectionTitle>
-          <Helper>Times are saved in {timezone}. Attendees convert automatically.</Helper>
-        </SectionHeader>
-        <GridTwo>
-          <Field>
-            <FieldLabel>Start date</FieldLabel>
-            <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-calendar" aria-hidden="true" /></IconSlot>
-                <Input type="date" {...register('startDate')} style={{ paddingLeft: 36 }} />
-              </div>
-            </FieldRow>
-            {errors.startDate && <ErrorText>{errors.startDate.message}</ErrorText>}
-          </Field>
-          <Field>
-            <FieldLabel>End date</FieldLabel>
-            <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-calendar" aria-hidden="true" /></IconSlot>
-                <Input type="date" {...register('endDate')} style={{ paddingLeft: 36 }} disabled={!startDate} min={startDate} />
-              </div>
-            </FieldRow>
-            {errors.endDate && <ErrorText>{errors.endDate.message}</ErrorText>}
-          </Field>
-        </GridTwo>
-        <GridTwo>
-          <Field>
-            <FieldLabel>Start time</FieldLabel>
-            <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-clock" aria-hidden="true" /></IconSlot>
-                <Input type="time" {...register('startTime')} style={{ paddingLeft: 36 }} />
-              </div>
-            </FieldRow>
-            {errors.startTime && <ErrorText>{errors.startTime.message}</ErrorText>}
-          </Field>
-          <Field>
-            <FieldLabel>End time</FieldLabel>
-            <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-clock" aria-hidden="true" /></IconSlot>
-                <Input type="time" {...register('endTime')} style={{ paddingLeft: 36 }} disabled={!startTime} min={startTime} />
-              </div>
-            </FieldRow>
-            {errors.endTime && <ErrorText>{errors.endTime.message}</ErrorText>}
-          </Field>
-        </GridTwo>
-        <Field>
-          <FieldLabel>Booking duration (minutes)</FieldLabel>
-          <FieldRow>
-            <div style={{ position: 'relative' }}>
-              <IconSlot><i className="pi pi-stopwatch" aria-hidden="true" /></IconSlot>
-              <Input type="number" min={5} step={5} {...register('bookingDuration', { valueAsNumber: true })} style={{ paddingLeft: 36 }} />
-            </div>
-          </FieldRow>
-          <Helper>Slot length determines how many bookings fit inside your daily window.</Helper>
-          {errors.bookingDuration && <ErrorText>{errors.bookingDuration.message}</ErrorText>}
-        </Field>
-        </FormSection>
-      )}
-
-      {currentStep === 2 && (
-        <FormSection>
-        <SectionHeader>
-          <SectionTitle>Capacity & Rules</SectionTitle>
-          <Helper>Keep control over how people book your time.</Helper>
-        </SectionHeader>
-        <GridTwo>
-          {(type === API.EntitiesAppointmentType.Group || type === API.EntitiesAppointmentType.Party) && (
-            <Field>
-              <FieldLabel>Max attendees per slot</FieldLabel>
+            
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Field>
+              <FieldLabel className={labelClass}>Title</FieldLabel>
               <FieldRow>
-                <div style={{ position: 'relative' }}>
-                  <IconSlot><i className="pi pi-users" aria-hidden="true" /></IconSlot>
-                  <Input type="number" min={1} {...register('maxAttendees', { valueAsNumber: true })} style={{ paddingLeft: 36 }} placeholder="e.g. 5" />
+                <IconSlot className="left-3"><i className="pi pi-bookmark" aria-hidden="true" /></IconSlot>
+                <Input {...register('title')} className={inputClass} placeholder="Consultation, Office Hours..." />
+              </FieldRow>
+              {errors.title && <small className="text-red-500">{errors.title.message}</small>}
+            </Field>
+            
+            <Field>
+              <FieldLabel className={labelClass}>Type</FieldLabel>
+              <FieldRow>
+                <IconSlot className="left-3"><i className="pi pi-tag" aria-hidden="true" /></IconSlot>
+                <div className="w-full">
+                  <Controller
+                    name="type"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.value)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        options={appointmentTypeOptions}
+                        optionLabel="label"
+                        optionValue="value"
+                        className="w-full"
+                      />
+                    )}
+                  />
                 </div>
               </FieldRow>
-              <Helper>Only shown to invitees if capacity is limited.</Helper>
-              {errors.maxAttendees && <ErrorText>{errors.maxAttendees.message}</ErrorText>}
             </Field>
-          )}
+          </div>
+
           <Field>
-            <FieldLabel>Anti-scalping level</FieldLabel>
+            <FieldLabel className={labelClass}>Description <small className="text-[var(--text-muted)] font-medium">(optional)</small></FieldLabel>
             <FieldRow>
-              <div style={{ position: 'relative' }}>
-                <IconSlot><i className="pi pi-shield" aria-hidden="true" /></IconSlot>
-                <Controller
-                  name="antiScalpingLevel"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onChange={(event) => field.onChange(event.value)}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      options={antiScalpingOptions}
-                      optionLabel="label"
-                      optionValue="value"
-                      pt={{ input: { style: { paddingLeft: '36px' } } }}
-                    />
-                  )}
-                />
-              </div>
+              <Textarea {...register('description')} className={textareaClass} placeholder="Share agenda, location, prep info..." />
             </FieldRow>
           </Field>
-        </GridTwo>
-        <SummaryCard>
-          <SummaryHeader>
-            <i className="pi pi-info-circle" aria-hidden="true" />
-            <strong>Appointment Summary</strong>
-          </SummaryHeader>
-          <SummaryRow>
-            <span>Date range</span>
-            <strong>{startDate && endDate ? `${startDate} → ${endDate}` : 'Pending selection'}</strong>
-          </SummaryRow>
-          <SummaryRow>
-            <span>Window per day</span>
-            <strong>
-              {summary.windowMinutes ? `${summary.windowMinutes} mins` : 'Choose start/end times'}
-            </strong>
-          </SummaryRow>
-          <SummaryRow>
-            <span>Slots per day</span>
-            <strong>{summary.slotsPerDay ? summary.slotsPerDay : '-'}</strong>
-          </SummaryRow>
-          <SummaryRow>
-            <span>Total days</span>
-            <strong>{summary.days ? summary.days : '-'}</strong>
-          </SummaryRow>
-          <SummaryRow>
-            <span>Guest experience</span>
-            <strong>{type === API.EntitiesAppointmentType.Single ? '1:1 bookings' : 'Shared slots'}</strong>
-          </SummaryRow>
-        </SummaryCard>
-      </FormSection>
-      )}
+          </FormSection>
+        )}
 
-      <StickyActions>
-        {currentStep > 0 && (
-          <Button type="button" onClick={handleBack}>
-            Back
-          </Button>
+        {currentStep === 1 && (
+          <FormSection>
+            <div className="flex flex-col gap-1 mb-6">
+              <SectionTitle>Schedule</SectionTitle>
+              <Helper>Times are saved in {timezone}. Attendees convert automatically.</Helper>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Field>
+              <FieldLabel className={labelClass}>Start date</FieldLabel>
+              <FieldRow>
+                <div className="w-full">
+                  <Controller
+                    name="startDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        value={field.value}
+                        onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                        placeholder="Select start date"
+                        className="w-full"
+                      />
+                    )}
+                  />
+                </div>
+              </FieldRow>
+              {errors.startDate && <small className="text-red-500">{errors.startDate.message}</small>}
+            </Field>
+            
+            <Field>
+              <FieldLabel className={labelClass}>End date</FieldLabel>
+              <FieldRow>
+                <div className="w-full">
+                  <Controller
+                    name="endDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        value={field.value}
+                        onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                        placeholder="Select end date"
+                        disabled={!startDate}
+                        minDate={startDate}
+                        className="w-full"
+                      />
+                    )}
+                  />
+                </div>
+              </FieldRow>
+              {errors.endDate && <small className="text-red-500">{errors.endDate.message}</small>}
+            </Field>
+          </div>
+
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Field>
+                <FieldLabel className={labelClass}>Start time</FieldLabel>
+                <FieldRow>
+                  <IconSlot className="left-3"><i className="pi pi-clock" aria-hidden="true" /></IconSlot>
+                  <div className="w-full">
+                    <Controller
+                      name="startTime"
+                      control={control}
+                      render={({ field }) => (
+                        <TimePicker
+                          value={timeValue(field.value)}
+                          onChange={(value) => field.onChange(toTimeString(value))}
+                          placeholder="Select start time"
+                          className="w-full"
+                        />
+                      )}
+                    />
+                  </div>
+                </FieldRow>
+                {errors.startTime && <small className="text-red-500">{errors.startTime.message}</small>}
+              </Field>
+              
+              <Field>
+                <FieldLabel className={labelClass}>End time</FieldLabel>
+                <FieldRow>
+                  <IconSlot className="left-3"><i className="pi pi-clock" aria-hidden="true" /></IconSlot>
+                  <div className="w-full">
+                    <Controller
+                      name="endTime"
+                      control={control}
+                      render={({ field }) => (
+                        <TimePicker
+                          value={timeValue(field.value)}
+                          onChange={(value) => field.onChange(toTimeString(value))}
+                          placeholder="Select end time"
+                          disabled={!startTime}
+                          minTime={timeValue(startTime)}
+                          className="w-full"
+                        />
+                      )}
+                    />
+                  </div>
+                </FieldRow>
+                {errors.endTime && <small className="text-red-500">{errors.endTime.message}</small>}
+              </Field>
+            </div>
+
+          <Field>
+            <FieldLabel className={labelClass}>Booking duration (minutes)</FieldLabel>
+            <FieldRow>
+              <IconSlot className="left-3"><i className="pi pi-stopwatch" aria-hidden="true" /></IconSlot>
+              <Input type="number" min={5} step={5} {...register('bookingDuration', { valueAsNumber: true })} className={inputClass} />
+            </FieldRow>
+            <Helper className="mt-1">Slot length determines how many bookings fit inside your daily window.</Helper>
+            {errors.bookingDuration && <small className="text-red-500">{errors.bookingDuration.message}</small>}
+          </Field>
+          </FormSection>
         )}
-        {!isLastStep && (
-          <Button type="button" variant="primary" onClick={handleNext}>
-            Next
-          </Button>
+
+        {currentStep === 2 && (
+          <FormSection>
+            <div className="flex flex-col gap-1 mb-6">
+              <SectionTitle>Capacity & Rules</SectionTitle>
+              <Helper>Keep control over how people book your time.</Helper>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-2 mb-8">
+              {(type === API.EntitiesAppointmentType.Group || type === API.EntitiesAppointmentType.Party) && (
+                <Field>
+                  <FieldLabel className={labelClass}>Max attendees per slot</FieldLabel>
+                  <FieldRow>
+                    <IconSlot className="left-3"><i className="pi pi-users" aria-hidden="true" /></IconSlot>
+                    <Input type="number" min={1} {...register('maxAttendees', { valueAsNumber: true })} className={inputClass} placeholder="e.g. 5" />
+                  </FieldRow>
+                  <Helper className="mt-1">Only shown to invitees if capacity is limited.</Helper>
+                  {errors.maxAttendees && <small className="text-red-500">{errors.maxAttendees.message}</small>}
+                </Field>
+              )}
+              
+              <Field>
+                <FieldLabel className={labelClass}>Anti-scalping level</FieldLabel>
+                <FieldRow>
+                  <IconSlot className="left-3"><i className="pi pi-shield" aria-hidden="true" /></IconSlot>
+                  <div className="w-full">
+                    <Controller
+                      name="antiScalpingLevel"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onChange={(event) => field.onChange(event.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          options={antiScalpingOptions}
+                          optionLabel="label"
+                          optionValue="value"
+                          className="w-full"
+                        />
+                      )}
+                    />
+                  </div>
+                </FieldRow>
+              </Field>
+            </div>
+
+            <SummaryBox>
+              <div className="flex items-center gap-2 text-sm font-semibold mb-1 text-[var(--primary)]">
+                <i className="pi pi-info-circle" aria-hidden="true" />
+                Appointment Summary
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[var(--text-muted)]">Date range</span>
+                <strong className="text-[var(--text)]">{startDate && endDate ? `${startDate} → ${endDate}` : 'Pending selection'}</strong>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[var(--text-muted)]">Window per day</span>
+                <strong className="text-[var(--text)]">
+                  {summary.windowMinutes ? `${summary.windowMinutes} mins` : 'Choose start/end times'}
+                </strong>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[var(--text-muted)]">Slots per day</span>
+                <strong className="text-[var(--text)]">{summary.slotsPerDay ? summary.slotsPerDay : '-'}</strong>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[var(--text-muted)]">Total days</span>
+                <strong className="text-[var(--text)]">{summary.days ? summary.days : '-'}</strong>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[var(--text-muted)]">Guest experience</span>
+                <strong className="text-[var(--text)]">{type === API.EntitiesAppointmentType.Single ? '1:1 bookings' : 'Shared slots'}</strong>
+              </div>
+            </SummaryBox>
+          </FormSection>
         )}
-        {isLastStep && (
-          <Button variant="primary" disabled={pending} style={{ minWidth: 200 }}>
-            {pending ? (
-              <>
-                <Spinner /> Saving…
-              </>
-            ) : (
-              'Create appointment'
-            )}
-          </Button>
-        )}
-      </StickyActions>
-    </StyledForm>
+
+        <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-4">
+          {currentStep > 0 && (
+            <Button type="button" onClick={handleBack} variant="outline" className="w-full sm:w-auto">
+              Back
+            </Button>
+          )}
+          {!isLastStep && (
+            <Button type="button" variant="primary" onClick={handleNext} className="w-full sm:w-auto">
+              Next
+            </Button>
+          )}
+          {isLastStep && (
+            <Button variant="primary" disabled={pending} className="w-full sm:w-auto px-10">
+              {pending ? (
+                <>
+                  <Spinner size="sm" /> Saving…
+                </>
+              ) : (
+                'Create appointment'
+              )}
+            </Button>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }
-
-const StyledForm = styled.form`
-  display: grid;
-  gap: 20px;
-`;
-
-const FormSection = styled.section`
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  padding: 18px;
-  display: grid;
-  gap: 20px;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: 16px;
-`;
-
-const Helper = styled.p`
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-`;
-
-const GridTwo = styled.div`
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-`;
-
-const ErrorText = styled.small`
-  color: var(--danger);
-`;
-
-const SummaryCard = styled.div`
-  border: 1px dashed color-mix(in oklab, var(--primary) 30%, var(--border));
-  border-radius: var(--radius);
-  padding: 12px;
-  background: color-mix(in oklab, var(--primary) 4%, var(--bg));
-  display: grid;
-  gap: 8px;
-`;
-
-const SummaryHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text);
-  font-size: 14px;
-`;
-
-const SummaryRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--text);
-`;
-
-const StickyActions = styled.div`
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  margin-top: 12px;
-`;
-
-const StepperWrapper = styled.div`
-  padding: 8px 0 4px;
-`;

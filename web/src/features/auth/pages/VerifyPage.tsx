@@ -37,10 +37,10 @@ export function VerifyPage() {
   };
 
   return (
-    <div style={{ maxWidth: 480, margin: '24px auto' }}>
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="max-w-xl mx-auto my-6">
+      <h1 className="flex items-center gap-2 text-2xl font-semibold text-[var(--text)]">
         Verify your email
-        <span className="hand" style={{ color: 'var(--accent)' }}>
+        <span className="font-['Caveat',cursive] tracking-[0.2px]" style={{ color: 'var(--accent)' }}>
           <HandUnderline />
         </span>
       </h1>
@@ -48,22 +48,22 @@ export function VerifyPage() {
         <CardHeader>
           <CardTitle>Verification</CardTitle>
         </CardHeader>
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div className="grid gap-3">
           <Field>
             <FieldLabel>Email</FieldLabel>
             <FieldRow>
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <IconSlot><i className="pi pi-envelope" aria-hidden="true" /></IconSlot>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ paddingLeft: 36 }} />
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-9" />
               </div>
             </FieldRow>
           </Field>
           <Field>
             <FieldLabel>Verification code</FieldLabel>
             <FieldRow>
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <IconSlot><i className="pi pi-key" aria-hidden="true" /></IconSlot>
-                <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" style={{ paddingLeft: 36 }} />
+                <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" className="pl-9" />
               </div>
             </FieldRow>
           </Field>

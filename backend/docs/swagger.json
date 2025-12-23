@@ -18,7 +18,6 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8888",
     "basePath": "/",
     "paths": {
         "/analytics": {
@@ -28,7 +27,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get analytics data for the authenticated user including total appointments created and total bookings received",
+                "description": "Get analytics for the authenticated user over a date window.\nIncludes totals, breakdowns (by type/status, guest vs registered), utilization,\nlead-time stats, daily series, peak hours/days, and top appointments.",
                 "produces": [
                     "application/json"
                 ],
@@ -63,19 +62,19 @@
                     "400": {
                         "description": "Invalid date format or missing parameters",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -121,19 +120,19 @@
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Failed to create appointment",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -172,9 +171,15 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request payload, validation error, or capacity exceeded",
+                        "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Slot unavailable or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -218,15 +223,108 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request payload, validation error, or capacity exceeded",
+                        "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Slot unavailable or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointments/code/{app_code}": {
+            "get": {
+                "description": "Retrieves appointment details by its unique app_code, public endpoint for booking flow",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Get appointment by app code",
+                "operationId": "getAppointmentByAppCode",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Appointment"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing app_code parameter",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Appointment not found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointments/dates/{app_code}": {
+            "get": {
+                "description": "Retrieves a list of dates that have at least one available slot.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Get available dates for an appointment",
+                "operationId": "getAvailableDates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing appointment code parameter",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -248,6 +346,30 @@
                 ],
                 "summary": "Get appointments created by the user",
                 "operationId": "getMyAppointments",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by appointment status (pending, ongoing, completed, canceled, expired)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -273,7 +395,7 @@
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -295,6 +417,30 @@
                 ],
                 "summary": "Get user's registered bookings",
                 "operationId": "getUserRegisteredBookings",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by booking status (active, pending, cancelled, etc.)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -320,19 +466,19 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/appointments/slots/{id}": {
+        "/appointments/slots/{app_code}": {
             "get": {
                 "description": "Retrieves a paginated list of all available booking slots for a given appointment.",
                 "produces": [
@@ -346,10 +492,22 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment Code (app_code)",
-                        "name": "id",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 500)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -377,19 +535,19 @@
                     "400": {
                         "description": "Missing appointment code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/appointments/slots/{id}/by-day": {
+        "/appointments/slots/{app_code}/by-day": {
             "get": {
                 "description": "Retrieves a paginated list of available slots for an appointment on a specific day.",
                 "produces": [
@@ -403,8 +561,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment Code (app_code)",
-                        "name": "id",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
                         "in": "path",
                         "required": true
                     },
@@ -414,6 +572,18 @@
                         "name": "date",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 200)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -441,19 +611,19 @@
                     "400": {
                         "description": "Missing or invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/appointments/users/{id}": {
+        "/appointments/users/{app_code}": {
             "get": {
                 "security": [
                     {
@@ -472,10 +642,22 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Appointment Code (app_code)",
-                        "name": "id",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -503,19 +685,528 @@
                     "400": {
                         "description": "Missing appointment code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/change-password": {
+            "post": {
+                "description": "Change password for authenticated user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change Password",
+                "operationId": "changePassword",
+                "parameters": [
+                    {
+                        "description": "Old and New Password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Incorrect old password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not change password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/device-token": {
+            "post": {
+                "description": "Generate a short-lived token for a given device ID to be used in booking requests.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Generate Device Token",
+                "operationId": "generateDeviceToken",
+                "parameters": [
+                    {
+                        "description": "Device ID",
+                        "name": "device",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.DeviceTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not generate token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Request a password reset email.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Forgot Password",
+                "operationId": "forgotPassword",
+                "parameters": [
+                    {
+                        "description": "Email",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not initiate password reset",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Exchange a refresh token for a new access token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh access token",
+                "operationId": "refreshToken",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "refresh",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.TokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not generate token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/resend-verification": {
+            "post": {
+                "description": "Resend a verification code for a pending user registration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Resend verification code",
+                "operationId": "resendVerification",
+                "parameters": [
+                    {
+                        "description": "Email to resend verification code to",
+                        "name": "resend",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ResendVerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pending registration not found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Account already verified",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Reset password using a valid token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Reset Password",
+                "operationId": "resetPassword",
+                "parameters": [
+                    {
+                        "description": "Token and New Password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid or expired reset token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not reset password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-registration": {
+            "post": {
+                "description": "Verify a user's email address with a code to complete registration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify user registration",
+                "operationId": "verifyRegistration",
+                "parameters": [
+                    {
+                        "description": "Email and Verification Code",
+                        "name": "verification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.VerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload or verification error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ban-list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all emails on the user's personal ban list.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BanList"
+                ],
+                "summary": "Get user's ban list",
+                "operationId": "getBanList",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entities.BanListEntry"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add an email to the user's personal ban list.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BanList"
+                ],
+                "summary": "Add email to ban list",
+                "operationId": "addToBanList",
+                "parameters": [
+                    {
+                        "description": "Email to ban",
+                        "name": "ban_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.BanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entities.BanListEntry"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Email already on ban list",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove an email from the user's personal ban list.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BanList"
+                ],
+                "summary": "Remove email from ban list",
+                "operationId": "removeFromBanList",
+                "parameters": [
+                    {
+                        "description": "Email to unban",
+                        "name": "ban_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.BanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -551,13 +1242,13 @@
                     "400": {
                         "description": "Missing booking_code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -603,13 +1294,19 @@
                     "400": {
                         "description": "Invalid request, validation error, or slot not available",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Requested slot not available or capacity exceeded",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -643,13 +1340,66 @@
                     "400": {
                         "description": "Error while cancelling booking",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/bookings/{booking_code}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rejects a booking by its unique booking_code. This is a soft delete.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Reject a booking",
+                "operationId": "rejectBookingByCode",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Unique Booking Code",
+                        "name": "booking_code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Booking"
+                        }
+                    },
+                    "400": {
+                        "description": "Error while rejecting booking",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Booking not found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -687,22 +1437,28 @@
                             "$ref": "#/definitions/responses.LoginResponse"
                         }
                     },
+                    "202": {
+                        "description": "Registration pending verification",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid email or password",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Could not generate token",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -723,113 +1479,153 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.SimpleMessageResponse"
+                            "$ref": "#/definitions/responses.SimpleMessage"
                         }
                     }
                 }
             }
         },
-        "/auth/verify-registration": {
-            "post": {
-                "description": "Verify a user's email address with a code to complete registration.",
-                "consumes": [
-                    "application/json"
+        "/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
                 ],
+                "description": "Retrieves a paginated list of notifications for the currently authenticated user.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Authentication"
+                    "Notifications"
                 ],
-                "summary": "Verify user registration",
-                "operationId": "verifyRegistration",
+                "summary": "Get user notifications",
+                "operationId": "getNotifications",
                 "parameters": [
                     {
-                        "description": "Email and Verification Code",
-                        "name": "verification",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.VerificationRequest"
-                        }
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 10)",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.LoginResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/responses.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/entities.Notification"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
-                    "400": {
-                        "description": "Invalid request payload or verification error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/auth/resend-verification": {
-            "post": {
-                "description": "Resend a verification code for a pending registration.",
-                "consumes": [
-                    "application/json"
+        "/notifications/read-all": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
                 ],
+                "description": "Marks all notifications for the currently authenticated user as read.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Authentication"
+                    "Notifications"
                 ],
-                "summary": "Resend verification code",
-                "operationId": "resendVerification",
-                "parameters": [
-                    {
-                        "description": "Email to resend verification code to",
-                        "name": "resend",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requests.ResendVerificationRequest"
-                        }
-                    }
-                ],
+                "summary": "Mark all notifications as read",
+                "operationId": "markAllNotificationsAsRead",
                 "responses": {
-                    "202": {
-                        "description": "Accepted",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.SimpleMessageResponse"
+                            "$ref": "#/definitions/responses.SimpleMessage"
                         }
                     },
-                    "400": {
-                        "description": "Invalid request payload",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Pending registration not found",
-                        "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Account already verified",
-                        "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/unread-count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves the number of unread notifications for the currently authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Get unread notifications count",
+                "operationId": "getUnreadNotificationsCount",
+                "responses": {
+                    "200": {
+                        "description": "count",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -837,7 +1633,7 @@
         },
         "/users": {
             "post": {
-                "description": "Register a new user in the system.",
+                "description": "Register a new user in the system. This will trigger an email verification.",
                 "consumes": [
                     "application/json"
                 ],
@@ -847,7 +1643,7 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Create a new user",
+                "summary": "Create a new user (initiate registration)",
                 "operationId": "createUser",
                 "parameters": [
                     {
@@ -861,22 +1657,22 @@
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/responses.UserResponse"
+                            "$ref": "#/definitions/responses.SimpleMessage"
                         }
                     },
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.ApiErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -884,9 +1680,25 @@
         }
     },
     "definitions": {
+        "entities.AntiScalpingLevel": {
+            "type": "string",
+            "enum": [
+                "none",
+                "standard",
+                "strict"
+            ],
+            "x-enum-varnames": [
+                "ScalpingNone",
+                "ScalpingStandard",
+                "ScalpingStrict"
+            ]
+        },
         "entities.Appointment": {
             "type": "object",
             "properties": {
+                "anti_scalping_level": {
+                    "$ref": "#/definitions/entities.AntiScalpingLevel"
+                },
                 "app_code": {
                     "type": "string"
                 },
@@ -936,6 +1748,9 @@
                 "start_time": {
                     "type": "string"
                 },
+                "status": {
+                    "$ref": "#/definitions/entities.AppointmentStatus"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -946,6 +1761,23 @@
                     "type": "string"
                 }
             }
+        },
+        "entities.AppointmentStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "ongoing",
+                "completed",
+                "canceled",
+                "expired"
+            ],
+            "x-enum-varnames": [
+                "AppointmentStatusPending",
+                "AppointmentStatusOngoing",
+                "AppointmentStatusCompleted",
+                "AppointmentStatusCanceled",
+                "AppointmentStatusExpired"
+            ]
         },
         "entities.AppointmentType": {
             "type": "string",
@@ -959,6 +1791,23 @@
                 "Group",
                 "Party"
             ]
+        },
+        "entities.BanListEntry": {
+            "type": "object",
+            "properties": {
+                "banned_email": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
         },
         "entities.Booking": {
             "type": "object",
@@ -975,18 +1824,12 @@
                 "available": {
                     "type": "boolean"
                 },
-                "is_slot": {
-                    "type": "boolean"
-                },
-                "capacity": {
-                    "type": "integer"
-                },
-                "seats_booked": {
-                    "type": "integer"
-                },
                 "booking_code": {
                     "description": "Permanent booking code for all bookings",
                     "type": "string"
+                },
+                "capacity": {
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
@@ -1011,6 +1854,9 @@
                 "id": {
                     "type": "string"
                 },
+                "is_slot": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -1022,6 +1868,9 @@
                 },
                 "phone": {
                     "type": "string"
+                },
+                "seats_booked": {
+                    "type": "integer"
                 },
                 "start_time": {
                     "type": "string"
@@ -1038,16 +1887,28 @@
                 }
             }
         },
-        "errors.ApiErrorResponse": {
+        "entities.Notification": {
             "type": "object",
             "properties": {
-                "code": {
+                "created_at": {
                     "type": "string"
                 },
-                "details": {
+                "event_type": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_read": {
+                    "type": "boolean"
                 },
                 "message": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }
@@ -1064,6 +1925,18 @@
                 "type"
             ],
             "properties": {
+                "anti_scalping_level": {
+                    "enum": [
+                        "none",
+                        "standard",
+                        "strict"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entities.AntiScalpingLevel"
+                        }
+                    ]
+                },
                 "booking_duration": {
                     "type": "integer"
                 },
@@ -1103,6 +1976,17 @@
                 }
             }
         },
+        "requests.BanRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.BookingRequest": {
             "type": "object",
             "required": [
@@ -1116,7 +2000,6 @@
                     "type": "string"
                 },
                 "attendee_count": {
-                    "description": "Number of attendees to reserve in this booking (must not exceed remaining capacity)",
                     "type": "integer",
                     "minimum": 1
                 },
@@ -1124,6 +2007,9 @@
                     "type": "string"
                 },
                 "description": {
+                    "type": "string"
+                },
+                "device_token": {
                     "type": "string"
                 },
                 "email": {
@@ -1143,6 +2029,44 @@
                 }
             }
         },
+        "requests.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.DeviceTokenRequest": {
+            "type": "object",
+            "required": [
+                "device_id"
+            ],
+            "properties": {
+                "device_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.LoginRequest": {
             "type": "object",
             "required": [
@@ -1154,6 +2078,44 @@
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.ResendVerificationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "token": {
                     "type": "string"
                 }
             }
@@ -1183,25 +2145,28 @@
         "requests.VerificationRequest": {
             "type": "object",
             "required": [
-                "email",
-                "code"
+                "code",
+                "email"
             ],
             "properties": {
-                "email": {
+                "code": {
                     "type": "string"
                 },
-                "code": {
+                "email": {
                     "type": "string"
                 }
             }
         },
-        "requests.ResendVerificationRequest": {
+        "responses.APIErrorResponse": {
             "type": "object",
-            "required": [
-                "email"
-            ],
             "properties": {
-                "email": {
+                "code": {
+                    "type": "string"
+                },
+                "http": {
+                    "type": "integer"
+                },
+                "message": {
                     "type": "string"
                 }
             }
@@ -1209,6 +2174,27 @@
         "responses.AnalyticsResponse": {
             "type": "object",
             "properties": {
+                "avg_bookings_per_day": {
+                    "description": "derived from total bookings / days in range",
+                    "type": "number"
+                },
+                "bookings_per_day": {
+                    "description": "Time series",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
+                "cancellation_rate": {
+                    "description": "percent 0-100",
+                    "type": "number"
+                },
+                "cancellations_per_day": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responses.TimeSeriesPoint"
+                    }
+                },
                 "end_date": {
                     "type": "string"
                 },
@@ -1216,9 +2202,13 @@
                     "type": "string"
                 },
                 "total_appointments": {
+                    "description": "Summary",
                     "type": "integer"
                 },
                 "total_bookings": {
+                    "type": "integer"
+                },
+                "total_cancellations": {
                     "type": "integer"
                 }
             }
@@ -1256,6 +2246,9 @@
                 "start_time": {
                     "type": "string"
                 },
+                "status": {
+                    "$ref": "#/definitions/entities.AppointmentStatus"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -1270,6 +2263,12 @@
         "responses.LoginResponse": {
             "type": "object",
             "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
                 "token": {
                     "type": "string"
                 },
@@ -1299,12 +2298,38 @@
                 }
             }
         },
-        "responses.SimpleMessageResponse": {
+        "responses.SimpleMessage": {
             "type": "object",
             "properties": {
+                "data": {},
                 "message": {
                     "type": "string",
                     "example": "Action completed successfully"
+                }
+            }
+        },
+        "responses.TimeSeriesPoint": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         },

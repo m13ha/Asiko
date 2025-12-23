@@ -11,10 +11,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { ResponsesAnalyticsResponsePartyCapacityFromJSON, ResponsesAnalyticsResponsePartyCapacityToJSON, } from './ResponsesAnalyticsResponsePartyCapacity';
-import { ResponsesBucketCountFromJSON, ResponsesBucketCountToJSON, } from './ResponsesBucketCount';
 import { ResponsesTimeSeriesPointFromJSON, ResponsesTimeSeriesPointToJSON, } from './ResponsesTimeSeriesPoint';
-import { ResponsesTopAppointmentFromJSON, ResponsesTopAppointmentToJSON, } from './ResponsesTopAppointment';
 /**
  * Check if a given object implements the ResponsesAnalyticsResponse interface.
  */
@@ -29,26 +26,15 @@ export function ResponsesAnalyticsResponseFromJSONTyped(json, ignoreDiscriminato
         return json;
     }
     return {
-        'appointmentsByType': json['appointments_by_type'] == null ? undefined : json['appointments_by_type'],
-        'avgAttendeesPerBooking': json['avg_attendees_per_booking'] == null ? undefined : json['avg_attendees_per_booking'],
-        'avgLeadTimeHours': json['avg_lead_time_hours'] == null ? undefined : json['avg_lead_time_hours'],
-        'bookingsByStatus': json['bookings_by_status'] == null ? undefined : json['bookings_by_status'],
+        'avgBookingsPerDay': json['avg_bookings_per_day'] == null ? undefined : json['avg_bookings_per_day'],
         'bookingsPerDay': json['bookings_per_day'] == null ? undefined : (json['bookings_per_day'].map(ResponsesTimeSeriesPointFromJSON)),
+        'cancellationRate': json['cancellation_rate'] == null ? undefined : json['cancellation_rate'],
         'cancellationsPerDay': json['cancellations_per_day'] == null ? undefined : (json['cancellations_per_day'].map(ResponsesTimeSeriesPointFromJSON)),
-        'distinctCustomers': json['distinct_customers'] == null ? undefined : json['distinct_customers'],
         'endDate': json['end_date'] == null ? undefined : json['end_date'],
-        'guestVsRegistered': json['guest_vs_registered'] == null ? undefined : json['guest_vs_registered'],
-        'medianLeadTimeHours': json['median_lead_time_hours'] == null ? undefined : json['median_lead_time_hours'],
-        'partyCapacity': json['party_capacity'] == null ? undefined : ResponsesAnalyticsResponsePartyCapacityFromJSON(json['party_capacity']),
-        'peakDays': json['peak_days'] == null ? undefined : (json['peak_days'].map(ResponsesBucketCountFromJSON)),
-        'peakHours': json['peak_hours'] == null ? undefined : (json['peak_hours'].map(ResponsesBucketCountFromJSON)),
-        'rejectionsPerDay': json['rejections_per_day'] == null ? undefined : (json['rejections_per_day'].map(ResponsesTimeSeriesPointFromJSON)),
-        'repeatCustomers': json['repeat_customers'] == null ? undefined : json['repeat_customers'],
-        'slotUtilizationPercent': json['slot_utilization_percent'] == null ? undefined : json['slot_utilization_percent'],
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
-        'topAppointments': json['top_appointments'] == null ? undefined : (json['top_appointments'].map(ResponsesTopAppointmentFromJSON)),
         'totalAppointments': json['total_appointments'] == null ? undefined : json['total_appointments'],
         'totalBookings': json['total_bookings'] == null ? undefined : json['total_bookings'],
+        'totalCancellations': json['total_cancellations'] == null ? undefined : json['total_cancellations'],
     };
 }
 export function ResponsesAnalyticsResponseToJSON(json) {
@@ -59,26 +45,15 @@ export function ResponsesAnalyticsResponseToJSONTyped(value, ignoreDiscriminator
         return value;
     }
     return {
-        'appointments_by_type': value['appointmentsByType'],
-        'avg_attendees_per_booking': value['avgAttendeesPerBooking'],
-        'avg_lead_time_hours': value['avgLeadTimeHours'],
-        'bookings_by_status': value['bookingsByStatus'],
+        'avg_bookings_per_day': value['avgBookingsPerDay'],
         'bookings_per_day': value['bookingsPerDay'] == null ? undefined : (value['bookingsPerDay'].map(ResponsesTimeSeriesPointToJSON)),
+        'cancellation_rate': value['cancellationRate'],
         'cancellations_per_day': value['cancellationsPerDay'] == null ? undefined : (value['cancellationsPerDay'].map(ResponsesTimeSeriesPointToJSON)),
-        'distinct_customers': value['distinctCustomers'],
         'end_date': value['endDate'],
-        'guest_vs_registered': value['guestVsRegistered'],
-        'median_lead_time_hours': value['medianLeadTimeHours'],
-        'party_capacity': ResponsesAnalyticsResponsePartyCapacityToJSON(value['partyCapacity']),
-        'peak_days': value['peakDays'] == null ? undefined : (value['peakDays'].map(ResponsesBucketCountToJSON)),
-        'peak_hours': value['peakHours'] == null ? undefined : (value['peakHours'].map(ResponsesBucketCountToJSON)),
-        'rejections_per_day': value['rejectionsPerDay'] == null ? undefined : (value['rejectionsPerDay'].map(ResponsesTimeSeriesPointToJSON)),
-        'repeat_customers': value['repeatCustomers'],
-        'slot_utilization_percent': value['slotUtilizationPercent'],
         'start_date': value['startDate'],
-        'top_appointments': value['topAppointments'] == null ? undefined : (value['topAppointments'].map(ResponsesTopAppointmentToJSON)),
         'total_appointments': value['totalAppointments'],
         'total_bookings': value['totalBookings'],
+        'total_cancellations': value['totalCancellations'],
     };
 }
 //# sourceMappingURL=ResponsesAnalyticsResponse.js.map

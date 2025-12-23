@@ -20,6 +20,7 @@ func TestGetUserAnalytics(t *testing.T) {
 		endDate          string
 		appointmentCount int64
 		bookingCount     int64
+		cancellationCount int64
 		setupMock        func(mockRepo *mocks.AnalyticsRepository, userID uuid.UUID)
 		expectedError    string
 	}{
@@ -30,6 +31,7 @@ func TestGetUserAnalytics(t *testing.T) {
 			endDate:          "2025-01-31",
 			appointmentCount: 5,
 			bookingCount:     12,
+			cancellationCount: 3,
 			setupMock: func(mockRepo *mocks.AnalyticsRepository, userID uuid.UUID) {
 				start, _ := time.Parse("2006-01-02", "2025-01-01")
 				end, _ := time.Parse("2006-01-02", "2025-01-31")
@@ -38,6 +40,8 @@ func TestGetUserAnalytics(t *testing.T) {
 				mockRepo.On("GetUserAppointmentCount", userID, start, end).Return(int64(5), nil)
 				mockRepo.On("GetUserBookingCount", userID, start, end).Return(int64(12), nil)
 				mockRepo.On("GetBookingsPerDay", userID, start, end).Return([]repository.DateCount{}, nil)
+				mockRepo.On("GetUserCancellationCount", userID, start, end).Return(int64(3), nil)
+				mockRepo.On("GetCancellationsPerDay", userID, start, end).Return([]repository.DateCount{}, nil)
 			},
 			expectedError: "",
 		},
@@ -84,6 +88,7 @@ func TestGetUserAnalytics(t *testing.T) {
 				assert.NotNil(t, result)
 				assert.Equal(t, int(tc.appointmentCount), result.TotalAppointments)
 				assert.Equal(t, int(tc.bookingCount), result.TotalBookings)
+				assert.Equal(t, int(tc.cancellationCount), result.TotalCancellations)
 			}
 
 			mockRepo.AssertExpectations(t)
@@ -107,6 +112,9 @@ func TestGetUserAnalytics_DetailedSuccess(t *testing.T) {
 
 	bookingsPerDay := []repository.DateCount{{Date: "2025-01-01", Count: 2}, {Date: "2025-01-02", Count: 3}}
 	mockRepo.On("GetBookingsPerDay", userID, start, end).Return(bookingsPerDay, nil)
+	mockRepo.On("GetUserCancellationCount", userID, start, end).Return(int64(4), nil)
+	cancellationsPerDay := []repository.DateCount{{Date: "2025-01-05", Count: 1}, {Date: "2025-01-06", Count: 2}}
+	mockRepo.On("GetCancellationsPerDay", userID, start, end).Return(cancellationsPerDay, nil)
 
 	svc := services.NewAnalyticsService(mockRepo)
 	resp, err := svc.GetUserAnalytics(userID, startDate, endDate)
@@ -115,7 +123,9 @@ func TestGetUserAnalytics_DetailedSuccess(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, 5, resp.TotalAppointments)
 	assert.Equal(t, 12, resp.TotalBookings)
+	assert.Equal(t, 4, resp.TotalCancellations)
 	assert.Len(t, resp.BookingsPerDay, 2)
+	assert.Len(t, resp.CancellationsPerDay, 2)
 
 	mockRepo.AssertExpectations(t)
 }

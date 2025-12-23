@@ -278,22 +278,78 @@ func (_m *BookingRepository) GetBookingsByAppCode(ctx context.Context, req *http
 	return r0
 }
 
-// GetBookingsByUserID provides a mock function with given fields: ctx, req, userID
-func (_m *BookingRepository) GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
-	ret := _m.Called(ctx, req, userID)
+// GetBookingsByUserID provides a mock function with given fields: ctx, req, userID, statuses
+func (_m *BookingRepository) GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID, statuses []string) paginate.Page {
+	ret := _m.Called(ctx, req, userID, statuses)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetBookingsByUserID")
 	}
 
 	var r0 paginate.Page
-	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, uuid.UUID) paginate.Page); ok {
-		r0 = rf(ctx, req, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *http.Request, uuid.UUID, []string) paginate.Page); ok {
+		r0 = rf(ctx, req, userID, statuses)
 	} else {
 		r0 = ret.Get(0).(paginate.Page)
 	}
 
 	return r0
+}
+
+// MarkBookingsOngoing provides a mock function with given fields: ctx, now
+func (_m *BookingRepository) MarkBookingsOngoing(ctx context.Context, now time.Time) (int64, error) {
+	ret := _m.Called(ctx, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkBookingsOngoing")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) (int64, error)); ok {
+		return rf(ctx, now)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) int64); ok {
+		r0 = rf(ctx, now)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MarkBookingsExpired provides a mock function with given fields: ctx, now
+func (_m *BookingRepository) MarkBookingsExpired(ctx context.Context, now time.Time) (int64, error) {
+	ret := _m.Called(ctx, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkBookingsExpired")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) (int64, error)); ok {
+		return rf(ctx, now)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) int64); ok {
+		r0 = rf(ctx, now)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Update provides a mock function with given fields: booking

@@ -67,79 +67,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid date format or missing parameters",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/analytics/dashboard": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get minimal analytics for dashboard display. Includes totals and daily series only.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Analytics"
-                ],
-                "summary": "Get user dashboard analytics",
-                "operationId": "getDashboardAnalytics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Start date (YYYY-MM-DD)",
-                        "name": "start_date",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "End date (YYYY-MM-DD)",
-                        "name": "end_date",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/responses.DashboardAnalyticsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid date format or missing parameters",
-                        "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -185,19 +125,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Failed to create appointment",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -238,13 +178,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Slot unavailable or capacity exceeded",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -290,19 +230,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Slot unavailable or capacity exceeded",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -338,13 +278,58 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing app_code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Appointment not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/appointments/dates/{app_code}": {
+            "get": {
+                "description": "Retrieves a list of dates that have at least one available slot.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bookings"
+                ],
+                "summary": "Get available dates for an appointment",
+                "operationId": "getAvailableDates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment identifier (app_code)",
+                        "name": "app_code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing appointment code parameter",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -415,7 +400,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -438,6 +423,16 @@ const docTemplate = `{
                 "summary": "Get user's registered bookings",
                 "operationId": "getUserRegisteredBookings",
                 "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by booking status (active, pending, cancelled, etc.)",
+                        "name": "status",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "Page number (default: 1)",
@@ -476,13 +471,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -545,13 +540,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing appointment code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -621,13 +616,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing or invalid parameters",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -695,19 +690,78 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing appointment code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/change-password": {
+            "post": {
+                "description": "Change password for authenticated user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change Password",
+                "operationId": "changePassword",
+                "parameters": [
+                    {
+                        "description": "Old and New Password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Incorrect old password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not change password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -751,13 +805,60 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Could not generate token",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Request a password reset email.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Forgot Password",
+                "operationId": "forgotPassword",
+                "parameters": [
+                    {
+                        "description": "Email",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not initiate password reset",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -798,19 +899,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid refresh token",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Could not generate token",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -851,25 +952,78 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Pending registration not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Account already verified",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Reset password using a valid token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Reset Password",
+                "operationId": "resetPassword",
+                "parameters": [
+                    {
+                        "description": "Token and New Password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.SimpleMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid or expired reset token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not reset password",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -910,13 +1064,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload or verification error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -951,7 +1105,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -995,19 +1149,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already on ban list",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1051,13 +1205,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1093,13 +1247,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing booking_code parameter",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1145,19 +1299,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request, validation error, or slot not available",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Requested slot not available or capacity exceeded",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1191,13 +1345,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Error while cancelling booking",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1238,19 +1392,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Error while rejecting booking",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Booking not found",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1291,25 +1445,25 @@ const docTemplate = `{
                     "202": {
                         "description": "Registration pending verification",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request body or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid email or password",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Could not generate token",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1391,13 +1545,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1429,13 +1583,54 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/unread-count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves the number of unread notifications for the currently authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Get unread notifications count",
+                "operationId": "getUnreadNotificationsCount",
+                "responses": {
+                    "200": {
+                        "description": "count",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1476,13 +1671,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/errors.APIErrorResponse"
+                            "$ref": "#/definitions/responses.APIErrorResponse"
                         }
                     }
                 }
@@ -1723,44 +1918,6 @@ const docTemplate = `{
                 }
             }
         },
-        "errors.APIErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "fields": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/errors.FieldError"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "meta": {},
-                "request_id": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "integer"
-                }
-            }
-        },
-        "errors.FieldError": {
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "rule": {
-                    "type": "string"
-                }
-            }
-        },
         "requests.AppointmentRequest": {
             "type": "object",
             "required": [
@@ -1877,6 +2034,22 @@ const docTemplate = `{
                 }
             }
         },
+        "requests.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.DeviceTokenRequest": {
             "type": "object",
             "required": [
@@ -1884,6 +2057,17 @@ const docTemplate = `{
             ],
             "properties": {
                 "device_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }
@@ -1925,6 +2109,22 @@ const docTemplate = `{
                 }
             }
         },
+        "requests.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "requests.UserRequest": {
             "type": "object",
             "required": [
@@ -1962,28 +2162,26 @@ const docTemplate = `{
                 }
             }
         },
+        "responses.APIErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "http": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "responses.AnalyticsResponse": {
             "type": "object",
             "properties": {
-                "appointments_by_type": {
-                    "description": "Breakdowns",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                },
-                "avg_attendees_per_booking": {
+                "avg_bookings_per_day": {
+                    "description": "derived from total bookings / days in range",
                     "type": "number"
-                },
-                "avg_lead_time_hours": {
-                    "description": "Timing",
-                    "type": "number"
-                },
-                "bookings_by_status": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
                 },
                 "bookings_per_day": {
                     "description": "Time series",
@@ -1992,81 +2190,30 @@ const docTemplate = `{
                         "$ref": "#/definitions/responses.TimeSeriesPoint"
                     }
                 },
+                "cancellation_rate": {
+                    "description": "percent 0-100",
+                    "type": "number"
+                },
                 "cancellations_per_day": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/responses.TimeSeriesPoint"
                     }
                 },
-                "distinct_customers": {
-                    "type": "integer"
-                },
                 "end_date": {
                     "type": "string"
                 },
-                "guest_vs_registered": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                },
-                "median_lead_time_hours": {
-                    "type": "number"
-                },
-                "party_capacity": {
-                    "type": "object",
-                    "properties": {
-                        "percent": {
-                            "type": "number"
-                        },
-                        "total": {
-                            "type": "integer"
-                        },
-                        "used": {
-                            "type": "integer"
-                        }
-                    }
-                },
-                "peak_days": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/responses.BucketCount"
-                    }
-                },
-                "peak_hours": {
-                    "description": "Insights",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/responses.BucketCount"
-                    }
-                },
-                "rejections_per_day": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/responses.TimeSeriesPoint"
-                    }
-                },
-                "repeat_customers": {
-                    "type": "integer"
-                },
-                "slot_utilization_percent": {
-                    "description": "Utilization \u0026 Capacity",
-                    "type": "number"
-                },
                 "start_date": {
                     "type": "string"
-                },
-                "top_appointments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/responses.TopAppointment"
-                    }
                 },
                 "total_appointments": {
                     "description": "Summary",
                     "type": "integer"
                 },
                 "total_bookings": {
+                    "type": "integer"
+                },
+                "total_cancellations": {
                     "type": "integer"
                 }
             }
@@ -2115,46 +2262,6 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "responses.BucketCount": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "key": {
-                    "type": "string"
-                }
-            }
-        },
-        "responses.DashboardAnalyticsResponse": {
-            "type": "object",
-            "properties": {
-                "bookings_per_day": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/responses.TimeSeriesPoint"
-                    }
-                },
-                "cancellations_per_day": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/responses.TimeSeriesPoint"
-                    }
-                },
-                "end_date": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                },
-                "total_appointments": {
-                    "type": "integer"
-                },
-                "total_bookings": {
-                    "type": "integer"
                 }
             }
         },
@@ -2227,23 +2334,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "responses.TopAppointment": {
-            "type": "object",
-            "properties": {
-                "app_code": {
-                    "type": "string"
-                },
-                "bookings": {
-                    "type": "integer"
-                },
-                "capacity_usage_percent": {
-                    "type": "number"
-                },
-                "title": {
                     "type": "string"
                 }
             }

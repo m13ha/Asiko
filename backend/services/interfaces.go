@@ -17,6 +17,9 @@ type UserService interface {
 	AuthenticateUser(email, password string) (*entities.User, error)
 	VerifyRegistration(email, code string) (string, error)
 	ResendVerificationCode(email string) error
+	ForgotPassword(email string) error
+	ResetPassword(token, newPassword string) error
+	ChangePassword(userID, oldPassword, newPassword string) error
 }
 
 type BookingService interface {
@@ -24,13 +27,15 @@ type BookingService interface {
 	BookRegisteredUserAppointment(req requests.BookingRequest, userIDStr string) (*entities.Booking, error)
 	BookGuestAppointment(req requests.BookingRequest) (*entities.Booking, error)
 	GetAllBookingsForAppointment(ctx context.Context, req *http.Request, appcode string) (paginate.Page, error)
-	GetUserBookings(ctx context.Context, req *http.Request, userID string) (paginate.Page, error)
+	GetUserBookings(ctx context.Context, req *http.Request, userID string, statuses []string) (paginate.Page, error)
 	GetAvailableSlots(req *http.Request, appcode string) (paginate.Page, error)
 	GetAvailableSlotsByDay(req *http.Request, appcode string, dateStr string) (paginate.Page, error)
+	GetAvailableDates(ctx context.Context, appcode string) ([]string, error)
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	UpdateBookingByCode(bookingCode string, req requests.BookingRequest) (*entities.Booking, error)
 	CancelBookingByCode(bookingCode string) (*entities.Booking, error)
 	RejectBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error)
+	RefreshBookingStatuses(ctx context.Context, now time.Time) (BookingStatusRefreshSummary, error)
 }
 
 type AppointmentService interface {

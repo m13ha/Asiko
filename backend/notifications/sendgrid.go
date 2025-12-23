@@ -110,6 +110,12 @@ func (s *SendGridService) SendVerificationCode(email, code string) error {
 	return s.sendEmail(email, "", subject, templatePath, data)
 }
 
+func (s *SendGridService) SendPasswordResetEmail(email, code string) error {
+	// For now, we'll reuse the verification code template or a simple text email
+	// In a real app, you'd have a specific template for password reset
+	return s.sendEmail(email, "", "Password Reset Request", "templates/verification_code.html", map[string]string{"Code": code})
+}
+
 func (s *SendGridService) sendEmail(toEmail, toName, subject, templatePath string, data interface{}) error {
 	if !s.configured {
 		log.Error().Str("to", toEmail).Str("subject", subject).Msg("sendgrid: attempted to send while not configured")

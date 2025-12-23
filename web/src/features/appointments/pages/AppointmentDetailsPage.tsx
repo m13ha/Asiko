@@ -7,6 +7,9 @@ import { useRejectBooking } from '@/features/bookings/hooks';
 import { EmptyState, EmptyTitle, EmptyDescription } from '@/components/EmptyState';
 import { ListItem } from '@/components/ListItem';
 import { CopyButton } from '@/components/CopyButton';
+import { PaginatedGrid } from '@/components/PaginatedGrid';
+import { Pagination } from '@/components/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 
 export function AppointmentDetailsPage() {
   const { id = '' } = useParams();
@@ -16,7 +19,11 @@ export function AppointmentDetailsPage() {
   const { data: my } = useMyAppointments();
   const match = my?.items?.find((i: any) => i.id === id);
   const appt = fromState || match;
-  const { data: users, isLoading, error } = useAppointmentUsers(id);
+  
+  const pagination = usePagination(1, 10);
+  const { data: users, isLoading, error } = useAppointmentUsers(appt?.appCode, pagination.params, { 
+    enabled: !!appt?.appCode 
+  });
   const reject = useRejectBooking(appt?.appCode || id);
   const bookingLink = typeof window !== 'undefined' && appt?.appCode ? `${window.location.origin}/book-by-code?code=${appt.appCode}` : '';
 
@@ -29,7 +36,12 @@ export function AppointmentDetailsPage() {
   ].filter((item) => item.value);
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div className="grid gap-6">
+      <div>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Appointment Details</CardTitle>
@@ -90,24 +102,81 @@ export function AppointmentDetailsPage() {
         <CardHeader>
           <CardTitle>Registered Users/Bookings</CardTitle>
         </CardHeader>
-        {isLoading && <div>Loading users...</div>}
-        {error && <div style={{ color: 'var(--danger)' }}>Failed to load users.</div>}
-        <div style={{ display: 'grid', gap: 8 }}>
-          {users?.items?.map((u: any) => (
-            <ListItem key={u.id}>
-              <div>
-                <div style={{ fontWeight:600 }}>{u.name || u.email || u.phone}</div>
-                <div style={{ fontSize:12, opacity:0.8 }}>Code: {u.bookingCode} • {u.status}</div>
-              </div>
-              <Button variant="ghost" onClick={() => reject.mutate(u.bookingCode)}>Reject</Button>
-            </ListItem>
-          ))}
-          {!users?.items?.length && (
+        
+        {/* Desktop Table View */}
+        <div className="hidden lg:block">
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">Loading...</div>
+          ) : error ? (
+            <div className="text-red-600 py-4">Failed to load users.</div>
+          ) : !users?.items?.length ? (
             <EmptyState>
               <EmptyTitle>No bookings yet</EmptyTitle>
               <EmptyDescription>Share the appointment code to start receiving bookings.</EmptyDescription>
             </EmptyState>
+          ) : (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-[var(--elev-1)] overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[var(--bg-muted)] text-[var(--text-muted)]">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Name/Contact</th>
+                    <th className="px-4 py-3 font-semibold">Code</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Seats</th>
+                    <th className="px-4 py-3 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.items.map((u: any) => (
+                    <tr key={u.id} className="border-t border-[var(--border)] hover:bg-[color-mix(in_oklab,var(--primary)_6%,transparent)]">
+                      <td className="px-4 py-3 font-medium">{u.name || u.email || u.phone}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--text-muted)]">{u.bookingCode}</td>
+                      <td className="px-4 py-3 text-xs uppercase tracking-wide">{u.status}</td>
+                      <td className="px-4 py-3">{u.seatsBooked ?? 1}</td>
+                      <td className="px-4 py-3">
+                        <Button variant="ghost" size="sm" onClick={() => reject.mutate(u.bookingCode)}>Reject</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
+          {(users?.totalPages ?? 0) > 1 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={users?.totalPages ?? 1}
+                onPageChange={pagination.updatePage}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Grid View */}
+        <div className="lg:hidden">
+          <PaginatedGrid
+            data={users}
+            isLoading={isLoading}
+            error={error}
+            onPageChange={pagination.updatePage}
+            layout="list"
+            renderItem={(u: any) => (
+              <ListItem key={u.id}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{u.name || u.email || u.phone}</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>Code: {u.bookingCode} • {u.status}</div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => reject.mutate(u.bookingCode)}>Reject</Button>
+              </ListItem>
+            )}
+            emptyState={
+              <EmptyState>
+                <EmptyTitle>No bookings yet</EmptyTitle>
+                <EmptyDescription>Share the appointment code to start receiving bookings.</EmptyDescription>
+              </EmptyState>
+            }
+          />
         </div>
       </Card>
     </div>

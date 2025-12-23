@@ -18,6 +18,18 @@ import type { ResponsesUserResponse } from './ResponsesUserResponse';
 export interface ResponsesLoginResponse {
     /**
      *
+     * @type {number}
+     * @memberof ResponsesLoginResponse
+     */
+    expiresIn?: number;
+    /**
+     *
+     * @type {string}
+     * @memberof ResponsesLoginResponse
+     */
+    refreshToken?: string;
+    /**
+     *
      * @type {string}
      * @memberof ResponsesLoginResponse
      */

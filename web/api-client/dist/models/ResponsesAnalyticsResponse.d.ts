@@ -9,10 +9,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import type { ResponsesAnalyticsResponsePartyCapacity } from './ResponsesAnalyticsResponsePartyCapacity';
-import type { ResponsesBucketCount } from './ResponsesBucketCount';
 import type { ResponsesTimeSeriesPoint } from './ResponsesTimeSeriesPoint';
-import type { ResponsesTopAppointment } from './ResponsesTopAppointment';
 /**
  *
  * @export
@@ -20,39 +17,23 @@ import type { ResponsesTopAppointment } from './ResponsesTopAppointment';
  */
 export interface ResponsesAnalyticsResponse {
     /**
-     * Breakdowns
-     * @type {{ [key: string]: number; }}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    appointmentsByType?: {
-        [key: string]: number;
-    };
-    /**
-     *
+     * derived from total bookings / days in range
      * @type {number}
      * @memberof ResponsesAnalyticsResponse
      */
-    avgAttendeesPerBooking?: number;
-    /**
-     * Timing
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    avgLeadTimeHours?: number;
-    /**
-     *
-     * @type {{ [key: string]: number; }}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    bookingsByStatus?: {
-        [key: string]: number;
-    };
+    avgBookingsPerDay?: number;
     /**
      * Time series
      * @type {Array<ResponsesTimeSeriesPoint>}
      * @memberof ResponsesAnalyticsResponse
      */
     bookingsPerDay?: Array<ResponsesTimeSeriesPoint>;
+    /**
+     * percent 0-100
+     * @type {number}
+     * @memberof ResponsesAnalyticsResponse
+     */
+    cancellationRate?: number;
     /**
      *
      * @type {Array<ResponsesTimeSeriesPoint>}
@@ -61,78 +42,16 @@ export interface ResponsesAnalyticsResponse {
     cancellationsPerDay?: Array<ResponsesTimeSeriesPoint>;
     /**
      *
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    distinctCustomers?: number;
-    /**
-     *
      * @type {string}
      * @memberof ResponsesAnalyticsResponse
      */
     endDate?: string;
     /**
      *
-     * @type {{ [key: string]: number; }}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    guestVsRegistered?: {
-        [key: string]: number;
-    };
-    /**
-     *
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    medianLeadTimeHours?: number;
-    /**
-     *
-     * @type {ResponsesAnalyticsResponsePartyCapacity}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    partyCapacity?: ResponsesAnalyticsResponsePartyCapacity;
-    /**
-     *
-     * @type {Array<ResponsesBucketCount>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    peakDays?: Array<ResponsesBucketCount>;
-    /**
-     * Insights
-     * @type {Array<ResponsesBucketCount>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    peakHours?: Array<ResponsesBucketCount>;
-    /**
-     *
-     * @type {Array<ResponsesTimeSeriesPoint>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    rejectionsPerDay?: Array<ResponsesTimeSeriesPoint>;
-    /**
-     *
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    repeatCustomers?: number;
-    /**
-     * Utilization & Capacity
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    slotUtilizationPercent?: number;
-    /**
-     *
      * @type {string}
      * @memberof ResponsesAnalyticsResponse
      */
     startDate?: string;
-    /**
-     *
-     * @type {Array<ResponsesTopAppointment>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    topAppointments?: Array<ResponsesTopAppointment>;
     /**
      * Summary
      * @type {number}
@@ -145,6 +64,12 @@ export interface ResponsesAnalyticsResponse {
      * @memberof ResponsesAnalyticsResponse
      */
     totalBookings?: number;
+    /**
+     *
+     * @type {number}
+     * @memberof ResponsesAnalyticsResponse
+     */
+    totalCancellations?: number;
 }
 /**
  * Check if a given object implements the ResponsesAnalyticsResponse interface.

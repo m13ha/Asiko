@@ -8,4 +8,5 @@ type NotificationService interface {
 	SendBookingCancellation(booking *entities.Booking) error
 	SendBookingRejection(booking *entities.Booking) error
 	SendVerificationCode(email, code string) error
+	SendPasswordResetEmail(email, code string) error
 }

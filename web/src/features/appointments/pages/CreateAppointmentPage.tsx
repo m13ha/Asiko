@@ -43,11 +43,8 @@ export function CreateAppointmentPage() {
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Appointment</CardTitle>
-        </CardHeader>
+    <div className="px-0 sm:px-6">
+      <Card className="p-0 sm:p-6">
         <AppointmentForm onSubmit={onSubmit} pending={create.isPending} />
       </Card>
     </div>

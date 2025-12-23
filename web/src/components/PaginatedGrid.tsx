@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { DataView } from 'primereact/dataview';
 import { Spinner } from './Spinner';
 
 export interface PaginationInfo {
@@ -19,6 +19,7 @@ interface PaginatedGridProps<T> {
   onPageChange?: (page: number) => void;
   renderItem: (item: T, index: number) => React.ReactNode;
   emptyState?: React.ReactNode;
+  layout?: 'grid' | 'list';
 }
 
 export function PaginatedGrid<T>({
@@ -27,131 +28,56 @@ export function PaginatedGrid<T>({
   error,
   onPageChange,
   renderItem,
-  emptyState
+  emptyState,
+  layout = 'grid'
 }: PaginatedGridProps<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    if (data?.page && data.page !== currentPage) {
-      setCurrentPage(data.page);
-    }
-  }, [data?.page]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    onPageChange?.(page);
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
-        <Spinner />
+        <Spinner size={32} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-red-600 py-4">
+      <div className="text-red-600 py-4 text-center">
         Failed to load data. Please try again.
       </div>
     );
   }
 
   if (!data?.items?.length) {
-    return emptyState || (
-      <div className="text-gray-500 py-8 text-center">
-        No items found.
+    return (
+      <div className="text-center py-8">
+        {emptyState || <span className="text-gray-500">No items found.</span>}
       </div>
     );
   }
 
-  return (
-    <div>
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-8">
-        {data.items.map((item, index) => renderItem(item, index))}
-      </div>
-      
-      {data.totalPages && data.totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={data.totalPages}
-          onPageChange={handlePageChange}
-        />
-      )}
-    </div>
-  );
-}
+  const rows = data.perPage || 10;
+  const totalRecords = (data.total ?? 0) || ((data.totalPages ?? 0) * rows);
+  const first = ((data.page ?? 1) - 1) * rows;
 
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}
-
-function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
-  const getVisiblePages = () => {
-    const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
-
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
-      range.push(i);
-    }
-
-    if (currentPage - delta > 2) {
-      rangeWithDots.push(1, '...');
-    } else {
-      rangeWithDots.push(1);
-    }
-
-    rangeWithDots.push(...range);
-
-    if (currentPage + delta < totalPages - 1) {
-      rangeWithDots.push('...', totalPages);
-    } else if (totalPages > 1) {
-      rangeWithDots.push(totalPages);
-    }
-
-    return rangeWithDots;
+  const itemTemplate = (item: T, options: any) => {
+    return renderItem(item, options.index);
   };
 
   return (
-    <div className="flex justify-center items-center gap-2 mt-6">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-      >
-        Previous
-      </button>
-      
-      {getVisiblePages().map((page, index) => (
-        <span key={index}>
-          {page === '...' ? (
-            <span className="px-2 text-gray-400">...</span>
-          ) : (
-            <button
-              onClick={() => onPageChange(page as number)}
-              className={`px-3 py-2 border rounded-lg transition-colors ${
-                page === currentPage
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {page}
-            </button>
-          )}
-        </span>
-      ))}
-      
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-      >
-        Next
-      </button>
-    </div>
+    <DataView
+      value={data.items}
+      itemTemplate={itemTemplate}
+      layout={layout}
+      paginator={totalRecords > rows}
+      rows={rows}
+      totalRecords={totalRecords}
+      lazy
+      first={first}
+      onPage={(e) => onPageChange?.(e.page + 1)}
+      className="app-dataview"
+      pt={{
+          grid: { className: 'grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3' }
+      }}
+    />
   );
 }

@@ -50,13 +50,47 @@ export class AppointmentsApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
+     * Retrieves appointment details by its unique app_code, public endpoint for booking flow
+     * Get appointment by app code
+     */
+    async getAppointmentByAppCodeRaw(requestParameters, initOverrides) {
+        if (requestParameters['appCode'] == null) {
+            throw new runtime.RequiredError('appCode', 'Required parameter "appCode" was null or undefined when calling getAppointmentByAppCode().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        let urlPath = `/appointments/code/{app_code}`;
+        urlPath = urlPath.replace(`{${"app_code"}}`, encodeURIComponent(String(requestParameters['appCode'])));
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response, (jsonValue) => EntitiesAppointmentFromJSON(jsonValue));
+    }
+    /**
+     * Retrieves appointment details by its unique app_code, public endpoint for booking flow
+     * Get appointment by app code
+     */
+    async getAppointmentByAppCode(requestParameters, initOverrides) {
+        const response = await this.getAppointmentByAppCodeRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
      * Retrieves a paginated list of appointments created by the currently authenticated user.
      * Get appointments created by the user
      */
-    async getMyAppointmentsRaw(requestParameters = {}, initOverrides) {
+    async getMyAppointmentsRaw(requestParameters, initOverrides) {
         const queryParameters = {};
-        if (requestParameters['status']) {
-            queryParameters['status'] = requestParameters['status'];
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'].join(runtime.COLLECTION_FORMATS["csv"]);
+        }
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
         }
         const headerParameters = {};
         if (this.configuration && this.configuration.apiKey) {
@@ -88,6 +122,12 @@ export class AppointmentsApi extends runtime.BaseAPI {
             throw new runtime.RequiredError('appCode', 'Required parameter "appCode" was null or undefined when calling getUsersRegisteredForAppointment().');
         }
         const queryParameters = {};
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
         const headerParameters = {};
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication

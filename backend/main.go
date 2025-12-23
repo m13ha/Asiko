@@ -70,17 +70,20 @@ func main() {
 	banListRepo := repository.NewGormBanListRepository(db.DB)
 	notificationRepo := repository.NewGormNotificationRepository(db.DB)
 	pendingUserRepo := repository.NewGormPendingUserRepository(db.DB)
+	passwordResetRepo := repository.NewGormPasswordResetRepository(db.DB)
 
 	// Initialize services
 	notificationService := notifications.NewSendGridService()
 	eventNotificationService := services.NewEventNotificationService(notificationRepo)
-	userService := services.NewUserService(userRepo, pendingUserRepo, notificationService)
+	userService := services.NewUserService(userRepo, pendingUserRepo, passwordResetRepo, notificationService)
 	appointmentService := services.NewAppointmentService(appointmentRepo, eventNotificationService)
 	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, notificationService, eventNotificationService, db.DB)
 	analyticsService := services.NewAnalyticsService(analyticsRepo)
 	banListService := services.NewBanListService(banListRepo)
-	statusScheduler := services.NewAppointmentStatusScheduler(appointmentService, time.Minute)
-	statusScheduler.Start(ctx)
+	appointmentStatusScheduler := services.NewAppointmentStatusScheduler(appointmentService, time.Minute)
+	appointmentStatusScheduler.Start(ctx)
+	bookingStatusScheduler := services.NewBookingStatusScheduler(bookingService, time.Minute)
+	bookingStatusScheduler.Start(ctx)
 
 	r := gin.Default()
 	r.Use(customMiddleware.RequestID())

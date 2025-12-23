@@ -16,17 +16,17 @@
 import * as runtime from '../runtime';
 import type {
   EntitiesBanListEntry,
-  ErrorsAPIErrorResponse,
   RequestsBanRequest,
+  ResponsesAPIErrorResponse,
   ResponsesSimpleMessage,
 } from '../models/index';
 import {
     EntitiesBanListEntryFromJSON,
     EntitiesBanListEntryToJSON,
-    ErrorsAPIErrorResponseFromJSON,
-    ErrorsAPIErrorResponseToJSON,
     RequestsBanRequestFromJSON,
     RequestsBanRequestToJSON,
+    ResponsesAPIErrorResponseFromJSON,
+    ResponsesAPIErrorResponseToJSON,
     ResponsesSimpleMessageFromJSON,
     ResponsesSimpleMessageToJSON,
 } from '../models/index';

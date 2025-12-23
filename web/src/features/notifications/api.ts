@@ -10,3 +10,7 @@ export async function listNotifications(params?: { page?: number; size?: number 
 export async function markAllNotificationsRead(): Promise<{ message?: string }> {
   return notificationsApi.markAllNotificationsAsRead();
 }
+
+export async function getUnreadNotificationsCount(): Promise<{ count?: number }> {
+  return notificationsApi.getUnreadNotificationsCount();
+}

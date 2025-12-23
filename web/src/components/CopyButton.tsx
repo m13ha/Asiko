@@ -38,7 +38,7 @@ export function CopyButton({
     <button
       type="button"
       aria-label={ariaLabel || 'Copy to clipboard'}
-      className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 rounded  text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all ${className}`}
       onClick={async () => {
         if (!value) return;
         const ok = await copyToClipboard(value);

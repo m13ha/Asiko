@@ -77,7 +77,7 @@ export function LineChart({
 
   if (!labels.length) {
     return (
-      <div className="chart-empty" style={{ height }}>
+      <div className="grid place-items-center text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-lg text-sm" style={{ height }}>
         No data
       </div>
     );

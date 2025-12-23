@@ -4,9 +4,10 @@ import { Button } from '@/components/Button';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import styled from 'styled-components';
 import { Toaster } from 'react-hot-toast';
-import { useAuth } from '@/features/auth/AuthProvider';
+import { useIsAuthed } from '@/stores/authStore';
 import { useLogout } from '@/features/auth/hooks';
 import { useNavigate } from 'react-router-dom';
+import { useUnreadNotificationsCount } from '@/features/notifications/hooks';
 
 const Header = styled.header`
   position: sticky;
@@ -79,18 +80,44 @@ const MenuToggle = styled.button`
   &:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 25%, transparent), var(--elev-1); }
 `;
 
+const Badge = styled.span`
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 2px;
+  right: -2px;
+  box-shadow: 0 0 0 2px var(--bg-elevated);
+`;
+
 export function App() {
   const [navOpen, setNavOpen] = useState(false);
   const { toggle, mode } = useTheme();
-  const { isAuthed } = useAuth();
+  const isAuthed = useIsAuthed();
   const doLogout = useLogout();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: unreadData } = useUnreadNotificationsCount();
+  const unreadCount = unreadData?.count ?? 0;
+
   // Auto-close mobile nav on route change
   useEffect(() => { setNavOpen(false); }, [location.pathname]);
   return (
-    <div>
-      <a href="#main" className="skip-link">Skip to content</a>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans antialiased">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:px-3 focus:py-2 focus:bg-[var(--primary)] focus:text-[var(--primary-contrast)] focus:rounded-lg focus:shadow-lg focus:z-50"
+      >
+        Skip to content
+      </a>
       <Header>
         <HeaderInner>
           <Link to="/" style={{ fontWeight: 700 }}>Asiko</Link>
@@ -102,7 +129,10 @@ export function App() {
                 <NavLink to="/appointments">Appointments</NavLink>
                 <NavLink to="/bookings">My Bookings</NavLink>
                 <NavLink to="/ban-list">Ban List</NavLink>
-                <NavLink to="/notifications">Notifications</NavLink>
+                <NavLink to="/notifications" style={{ position: 'relative' }}>
+                  Notifications
+                  {unreadCount > 0 && <Badge>{unreadCount > 9 ? '9+' : unreadCount}</Badge>}
+                </NavLink>
                 <a href="#" onClick={(e) => { e.preventDefault(); doLogout.mutate(undefined, { onSettled: () => navigate('/') }); }}>Logout</a>
               </>
             ) : (
@@ -112,7 +142,7 @@ export function App() {
           <div style={{ display: 'flex', gap: 8 }}>
             <Button aria-label="Toggle theme" onClick={toggle} title="Toggle theme">
               <i className={`pi ${mode === 'light' ? 'pi-sun' : 'pi-moon'}`} aria-hidden="true" />
-              <span className="hide-sm">Theme</span>
+              <span className="hidden sm:inline">Theme</span>
             </Button>
             <MenuToggle aria-label="Toggle navigation menu" aria-controls="primary-nav" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}>
               {/* Simple hamburger glyph */}
@@ -121,7 +151,7 @@ export function App() {
           </div>
         </HeaderInner>
       </Header>
-      <main id="main" className="container" role="main">
+      <main id="main" className="w-full max-w-5xl mx-auto px-4 py-6" role="main">
         <Outlet />
       </main>
       <Toaster position="top-center" />

@@ -23,7 +23,7 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
   render() {
     if (this.state.hasError) {
       return (
-        <main className="container" role="main" aria-live="polite">
+        <main className="w-full max-w-5xl mx-auto px-4 py-6" role="main" aria-live="polite">
           <Card>
             <CardHeader>
               <CardTitle>Something went wrong</CardTitle>
@@ -41,4 +41,3 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
     return this.props.children;
   }
 }
-

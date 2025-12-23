@@ -8,11 +8,15 @@ type AnalyticsResponse struct {
 	// Summary
 	TotalAppointments int       `json:"total_appointments"`
 	TotalBookings     int       `json:"total_bookings"`
+	TotalCancellations int      `json:"total_cancellations,omitempty"`
+	CancellationRate   float64  `json:"cancellation_rate,omitempty"`    // percent 0-100
+	AvgBookingsPerDay  float64  `json:"avg_bookings_per_day,omitempty"` // derived from total bookings / days in range
 	StartDate         time.Time `json:"start_date"`
 	EndDate           time.Time `json:"end_date"`
 
 	// Time series
 	BookingsPerDay []TimeSeriesPoint `json:"bookings_per_day,omitempty"`
+	CancellationsPerDay []TimeSeriesPoint `json:"cancellations_per_day,omitempty"`
 }
 
 type TimeSeriesPoint struct {

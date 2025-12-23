@@ -11,6 +11,10 @@
  */
 import * as runtime from '../runtime';
 import type { GetNotifications200Response, ResponsesSimpleMessage } from '../models/index';
+export interface GetNotificationsRequest {
+    page?: number;
+    size?: number;
+}
 /**
  *
  */
@@ -19,12 +23,26 @@ export declare class NotificationsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of notifications for the currently authenticated user.
      * Get user notifications
      */
-    getNotificationsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetNotifications200Response>>;
+    getNotificationsRaw(requestParameters: GetNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetNotifications200Response>>;
     /**
      * Retrieves a paginated list of notifications for the currently authenticated user.
      * Get user notifications
      */
-    getNotifications(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetNotifications200Response>;
+    getNotifications(requestParameters?: GetNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetNotifications200Response>;
+    /**
+     * Retrieves the number of unread notifications for the currently authenticated user.
+     * Get unread notifications count
+     */
+    getUnreadNotificationsCountRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{
+        [key: string]: number;
+    }>>;
+    /**
+     * Retrieves the number of unread notifications for the currently authenticated user.
+     * Get unread notifications count
+     */
+    getUnreadNotificationsCount(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{
+        [key: string]: number;
+    }>;
     /**
      * Marks all notifications for the currently authenticated user as read.
      * Mark all notifications as read

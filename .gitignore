@@ -2,8 +2,6 @@
 backend/RECOMMENDATIONS.md
 backend/appointment_master
 AGENTS.md
-/api-client
-/web/.api-client
 node_modules/
 .venv/
 .env
@@ -11,3 +9,6 @@ node_modules/
 .env.local
 .env.routes
 web/.env.local.example
+.gocache
+.gofmt
+vendor

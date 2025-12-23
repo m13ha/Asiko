@@ -1,9 +1,12 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { App } from './shell/App';
+import { SplitPanelBookByCodePage } from '@/features/bookings/pages/SplitPanelBookByCodePage';
 import { BookByCodePage } from '@/features/bookings/pages/BookByCodePage';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
 import { VerifyPage } from '@/features/auth/pages/VerifyPage';
+import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { HomeInsightsPage } from '@/features/dashboard/pages/HomeInsightsPage';
 import { MyAppointmentsPage } from '@/features/appointments/pages/MyAppointmentsPage';
@@ -20,11 +23,14 @@ export const router = createBrowserRouter([
     path: '/',
     element: <App />,
     children: [
-      { index: true, element: <BookByCodePage /> },
-      { path: 'book-by-code', element: <BookByCodePage /> },
+      { index: true, element: <SplitPanelBookByCodePage /> },
+      { path: 'book-by-code', element: <SplitPanelBookByCodePage /> },
+      { path: 'book-classic', element: <BookByCodePage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
       { path: 'verify', element: <VerifyPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'bookings/:bookingCode', element: <BookingManagePage /> },
       { path: '*', element: <NotFoundPage /> },
       {

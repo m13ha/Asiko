@@ -29,6 +29,11 @@ type bookingServiceImpl struct {
 	db                       *gorm.DB
 }
 
+type BookingStatusRefreshSummary struct {
+	Ongoing int64
+	Expired int64
+}
+
 func NewBookingService(bookingRepo repository.BookingRepository, appointmentRepo repository.AppointmentRepository, userRepo repository.UserRepository, banListRepo repository.BanListRepository, notificationService notifications.NotificationService, eventNotificationService EventNotificationService, db *gorm.DB) BookingService {
 	return &bookingServiceImpl{bookingRepo: bookingRepo, appointmentRepo: appointmentRepo, userRepo: userRepo, banListRepo: banListRepo, notificationService: notificationService, eventNotificationService: eventNotificationService, db: db}
 }
@@ -206,11 +211,13 @@ func (s *bookingServiceImpl) bookPartyAppointment(req requests.BookingRequest, u
 	})
 
 	if err == nil {
-		if err := s.notificationService.SendBookingConfirmation(booking); err != nil {
-			s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
-		} else {
-			s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
-		}
+		go func() {
+			if err := s.notificationService.SendBookingConfirmation(booking); err != nil {
+				s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
+			} else {
+				s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
+			}
+		}()
 
 		message := fmt.Sprintf("New booking by %s for your appointment %s.", booking.Name, appointment.Title)
 		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, booking.ID)
@@ -296,11 +303,13 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 			return nil, err
 		}
 
-		if err := s.notificationService.SendBookingConfirmation(reservation); err != nil {
-			s.bookingRepo.UpdateNotificationStatus(reservation.ID, "failed", "email")
-		} else {
-			s.bookingRepo.UpdateNotificationStatus(reservation.ID, "sent", "email")
-		}
+		go func() {
+			if err := s.notificationService.SendBookingConfirmation(reservation); err != nil {
+				s.bookingRepo.UpdateNotificationStatus(reservation.ID, "failed", "email")
+			} else {
+				s.bookingRepo.UpdateNotificationStatus(reservation.ID, "sent", "email")
+			}
+		}()
 
 		message := fmt.Sprintf("New booking by %s for your appointment %s.", reservation.Name, appointment.Title)
 		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, reservation.ID)
@@ -361,11 +370,13 @@ func (s *bookingServiceImpl) bookSlotAppointment(req requests.BookingRequest, us
 		return nil, err
 	}
 
-	if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
-		s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
-	} else {
-		s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
-	}
+	go func() {
+		if err := s.notificationService.SendBookingConfirmation(slot); err != nil {
+			s.bookingRepo.UpdateNotificationStatus(slot.ID, "failed", "email")
+		} else {
+			s.bookingRepo.UpdateNotificationStatus(slot.ID, "sent", "email")
+		}
+	}()
 
 	message := fmt.Sprintf("New booking by %s for your appointment %s.", slot.Name, appointment.Title)
 	s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CREATED", message, slot.ID)
@@ -389,12 +400,36 @@ func (s *bookingServiceImpl) GetAllBookingsForAppointment(ctx context.Context, r
 }
 
 // GetUserBookings returns all bookings for a specific user with pagination
-func (s *bookingServiceImpl) GetUserBookings(ctx context.Context, req *http.Request, userID string) (paginate.Page, error) {
+func (s *bookingServiceImpl) GetUserBookings(ctx context.Context, req *http.Request, userID string, statuses []string) (paginate.Page, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return paginate.Page{}, serviceerrors.ValidationError("Invalid user ID.")
 	}
-	return s.bookingRepo.GetBookingsByUserID(ctx, req, uid), nil
+	return s.bookingRepo.GetBookingsByUserID(ctx, req, uid, statuses), nil
+}
+
+func (s *bookingServiceImpl) RefreshBookingStatuses(ctx context.Context, now time.Time) (BookingStatusRefreshSummary, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	var summary BookingStatusRefreshSummary
+	updated, err := s.bookingRepo.MarkBookingsOngoing(ctx, now)
+	if err != nil {
+		return summary, err
+	}
+	summary.Ongoing = updated
+
+	updated, err = s.bookingRepo.MarkBookingsExpired(ctx, now)
+	if err != nil {
+		return summary, err
+	}
+	summary.Expired = updated
+
+	return summary, nil
 }
 
 // GetAvailableSlots returns all available slots for an appointment with pagination
@@ -417,6 +452,20 @@ func (s *bookingServiceImpl) GetAvailableSlotsByDay(req *http.Request, appcode s
 		ctx = req.Context()
 	}
 	return s.bookingRepo.GetAvailableSlotsByDay(ctx, req, appcode, parsedDate), nil
+}
+
+// GetAvailableDates returns a list of distinct dates with available slots
+func (s *bookingServiceImpl) GetAvailableDates(ctx context.Context, appcode string) ([]string, error) {
+	dates, err := s.bookingRepo.GetAvailableDates(ctx, appcode)
+	if err != nil {
+		return nil, serviceerrors.FromError(err)
+	}
+
+	dateStrings := make([]string, len(dates))
+	for i, date := range dates {
+		dateStrings[i] = date.Format("2006-01-02")
+	}
+	return dateStrings, nil
 }
 
 // GetBookingByCode retrieves a booking by its permanent booking_code
@@ -578,11 +627,13 @@ func (s *bookingServiceImpl) CancelBookingByCode(bookingCode string) (*entities.
 	}
 
 	if err == nil {
-		if err := s.notificationService.SendBookingCancellation(booking); err != nil {
-			s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
-		} else {
-			s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
-		}
+		go func() {
+			if err := s.notificationService.SendBookingCancellation(booking); err != nil {
+				s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
+			} else {
+				s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
+			}
+		}()
 
 		message := fmt.Sprintf("Booking %s was cancelled.", booking.BookingCode)
 		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_CANCELLED", message, booking.ID)
@@ -664,11 +715,13 @@ func (s *bookingServiceImpl) RejectBooking(bookingCode string, ownerID uuid.UUID
 	}
 
 	if err == nil {
-		if err := s.notificationService.SendBookingRejection(booking); err != nil {
-			s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
-		} else {
-			s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
-		}
+		go func() {
+			if err := s.notificationService.SendBookingRejection(booking); err != nil {
+				s.bookingRepo.UpdateNotificationStatus(booking.ID, "failed", "email")
+			} else {
+				s.bookingRepo.UpdateNotificationStatus(booking.ID, "sent", "email")
+			}
+		}()
 
 		message := fmt.Sprintf("Booking %s was rejected.", booking.BookingCode)
 		s.eventNotificationService.CreateEventNotification(appointment.OwnerID, "BOOKING_REJECTED", message, booking.ID)

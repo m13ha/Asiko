@@ -1,20 +1,21 @@
 package repository
 
 import (
-    "context"
-    "net/http"
+	"context"
+	"net/http"
 
-    "github.com/google/uuid"
-    repoerrors "github.com/m13ha/asiko/errors/repoerrors"
-    "github.com/m13ha/asiko/models/entities"
-    "github.com/morkid/paginate"
-    "gorm.io/gorm"
+	"github.com/google/uuid"
+	repoerrors "github.com/m13ha/asiko/errors/repoerrors"
+	"github.com/m13ha/asiko/models/entities"
+	"github.com/morkid/paginate"
+	"gorm.io/gorm"
 )
 
 type NotificationRepository interface {
 	Create(notification *entities.Notification) error
 	GetByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page
 	MarkAllAsRead(userID uuid.UUID) error
+	GetUnreadCount(userID uuid.UUID) (int64, error)
 }
 
 type gormNotificationRepository struct {
@@ -26,10 +27,10 @@ func NewGormNotificationRepository(db *gorm.DB) NotificationRepository {
 }
 
 func (r *gormNotificationRepository) Create(notification *entities.Notification) error {
-    if err := r.db.Create(notification).Error; err != nil {
-        return repoerrors.InternalError("failed to create notification: " + err.Error())
-    }
-    return nil
+	if err := r.db.Create(notification).Error; err != nil {
+		return repoerrors.InternalError("failed to create notification: " + err.Error())
+	}
+	return nil
 }
 
 func (r *gormNotificationRepository) GetByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
@@ -45,8 +46,16 @@ func (r *gormNotificationRepository) GetByUserID(ctx context.Context, req *http.
 }
 
 func (r *gormNotificationRepository) MarkAllAsRead(userID uuid.UUID) error {
-    if err := r.db.Model(&entities.Notification{}).Where("user_id = ? AND is_read = false", userID).Update("is_read", true).Error; err != nil {
-        return repoerrors.InternalError("failed to mark all notifications as read: " + err.Error())
-    }
-    return nil
+	if err := r.db.Model(&entities.Notification{}).Where("user_id = ? AND is_read = false", userID).Update("is_read", true).Error; err != nil {
+		return repoerrors.InternalError("failed to mark all notifications as read: " + err.Error())
+	}
+	return nil
+}
+
+func (r *gormNotificationRepository) GetUnreadCount(userID uuid.UUID) (int64, error) {
+	var count int64
+	if err := r.db.Model(&entities.Notification{}).Where("user_id = ? AND is_read = false", userID).Count(&count).Error; err != nil {
+		return 0, repoerrors.InternalError("failed to get unread notifications count: " + err.Error())
+	}
+	return count, nil
 }

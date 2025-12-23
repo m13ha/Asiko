@@ -31,10 +31,18 @@ export function cancelBookingByCode(bookingCode: string) {
   return bookingsClient.cancelBookingByCode({ bookingCode });
 }
 
-export function getMyRegisteredBookings(params?: { page?: number; size?: number }) {
+export function getMyRegisteredBookings(params?: { 
+  page?: number; 
+  size?: number;
+  status?: string | string[];
+}) {
   return bookingsClient.getUserRegisteredBookings(params);
 }
 
 export function rejectBookingByCode(bookingCode: string) {
   return bookingsClient.rejectBookingByCode({ bookingCode });
+}
+
+export function getAvailableDates(appCode: string) {
+  return bookingsClient.getAvailableDates({ appCode });
 }

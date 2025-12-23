@@ -16,19 +16,19 @@
 import * as runtime from '../runtime';
 import type {
   EntitiesBooking,
-  ErrorsAPIErrorResponse,
   GetUserRegisteredBookings200Response,
   RequestsBookingRequest,
+  ResponsesAPIErrorResponse,
 } from '../models/index';
 import {
     EntitiesBookingFromJSON,
     EntitiesBookingToJSON,
-    ErrorsAPIErrorResponseFromJSON,
-    ErrorsAPIErrorResponseToJSON,
     GetUserRegisteredBookings200ResponseFromJSON,
     GetUserRegisteredBookings200ResponseToJSON,
     RequestsBookingRequestFromJSON,
     RequestsBookingRequestToJSON,
+    ResponsesAPIErrorResponseFromJSON,
+    ResponsesAPIErrorResponseToJSON,
 } from '../models/index';
 
 export interface BookGuestAppointmentRequest {
@@ -41,6 +41,10 @@ export interface BookRegisteredUserAppointmentRequest {
 
 export interface CancelBookingByCodeRequest {
     bookingCode: string;
+}
+
+export interface GetAvailableDatesRequest {
+    appCode: string;
 }
 
 export interface GetAvailableSlotsRequest {
@@ -61,6 +65,7 @@ export interface GetBookingByCodeRequest {
 }
 
 export interface GetUserRegisteredBookingsRequest {
+    status?: Array<string>;
     page?: number;
     size?: number;
 }
@@ -201,6 +206,45 @@ export class BookingsApi extends runtime.BaseAPI {
      */
     async cancelBookingByCode(requestParameters: CancelBookingByCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesBooking> {
         const response = await this.cancelBookingByCodeRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Retrieves a list of dates that have at least one available slot.
+     * Get available dates for an appointment
+     */
+    async getAvailableDatesRaw(requestParameters: GetAvailableDatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
+        if (requestParameters['appCode'] == null) {
+            throw new runtime.RequiredError(
+                'appCode',
+                'Required parameter "appCode" was null or undefined when calling getAvailableDates().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/appointments/dates/{app_code}`;
+        urlPath = urlPath.replace(`{${"app_code"}}`, encodeURIComponent(String(requestParameters['appCode'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Retrieves a list of dates that have at least one available slot.
+     * Get available dates for an appointment
+     */
+    async getAvailableDates(requestParameters: GetAvailableDatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string>> {
+        const response = await this.getAvailableDatesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -354,6 +398,10 @@ export class BookingsApi extends runtime.BaseAPI {
      */
     async getUserRegisteredBookingsRaw(requestParameters: GetUserRegisteredBookingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetUserRegisteredBookings200Response>> {
         const queryParameters: any = {};
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status']!.join(runtime.COLLECTION_FORMATS["csv"]);
+        }
 
         if (requestParameters['page'] != null) {
             queryParameters['page'] = requestParameters['page'];

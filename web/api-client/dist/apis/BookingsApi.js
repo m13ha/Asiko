@@ -107,6 +107,34 @@ export class BookingsApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
+     * Retrieves a list of dates that have at least one available slot.
+     * Get available dates for an appointment
+     */
+    async getAvailableDatesRaw(requestParameters, initOverrides) {
+        if (requestParameters['appCode'] == null) {
+            throw new runtime.RequiredError('appCode', 'Required parameter "appCode" was null or undefined when calling getAvailableDates().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        let urlPath = `/appointments/dates/{app_code}`;
+        urlPath = urlPath.replace(`{${"app_code"}}`, encodeURIComponent(String(requestParameters['appCode'])));
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response);
+    }
+    /**
+     * Retrieves a list of dates that have at least one available slot.
+     * Get available dates for an appointment
+     */
+    async getAvailableDates(requestParameters, initOverrides) {
+        const response = await this.getAvailableDatesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
      * Retrieves a paginated list of all available booking slots for a given appointment.
      * Get available slots for an appointment
      */
@@ -115,6 +143,12 @@ export class BookingsApi extends runtime.BaseAPI {
             throw new runtime.RequiredError('appCode', 'Required parameter "appCode" was null or undefined when calling getAvailableSlots().');
         }
         const queryParameters = {};
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
         const headerParameters = {};
         let urlPath = `/appointments/slots/{app_code}`;
         urlPath = urlPath.replace(`{${"app_code"}}`, encodeURIComponent(String(requestParameters['appCode'])));
@@ -148,6 +182,12 @@ export class BookingsApi extends runtime.BaseAPI {
         const queryParameters = {};
         if (requestParameters['date'] != null) {
             queryParameters['date'] = requestParameters['date'];
+        }
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
         }
         const headerParameters = {};
         let urlPath = `/appointments/slots/{app_code}/by-day`;
@@ -200,8 +240,17 @@ export class BookingsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of all bookings made by the currently authenticated user.
      * Get user\'s registered bookings
      */
-    async getUserRegisteredBookingsRaw(initOverrides) {
+    async getUserRegisteredBookingsRaw(requestParameters, initOverrides) {
         const queryParameters = {};
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'].join(runtime.COLLECTION_FORMATS["csv"]);
+        }
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+        if (requestParameters['size'] != null) {
+            queryParameters['size'] = requestParameters['size'];
+        }
         const headerParameters = {};
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
@@ -219,8 +268,8 @@ export class BookingsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of all bookings made by the currently authenticated user.
      * Get user\'s registered bookings
      */
-    async getUserRegisteredBookings(initOverrides) {
-        const response = await this.getUserRegisteredBookingsRaw(initOverrides);
+    async getUserRegisteredBookings(requestParameters = {}, initOverrides) {
+        const response = await this.getUserRegisteredBookingsRaw(requestParameters, initOverrides);
         return await response.value();
     }
     /**

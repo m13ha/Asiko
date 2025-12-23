@@ -20,13 +20,16 @@ type BookingRepository interface {
 	FindAndLockSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error)
 	Update(booking *entities.Booking) error
 	GetBookingsByAppCode(ctx context.Context, req *http.Request, appCode string, available bool) paginate.Page
-	GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page
+	GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID, statuses []string) paginate.Page
 	GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page
 	GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error)
 	FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error)
+	MarkBookingsOngoing(ctx context.Context, now time.Time) (int64, error)
+	MarkBookingsExpired(ctx context.Context, now time.Time) (int64, error)
 	UpdateNotificationStatus(id uuid.UUID, status string, channel string) error
+	GetAvailableDates(ctx context.Context, appCode string) ([]time.Time, error)
 	WithTx(tx *gorm.DB) BookingRepository
 }
 
@@ -43,7 +46,7 @@ func (r *gormBookingRepository) WithTx(tx *gorm.DB) BookingRepository {
 }
 
 func (r *gormBookingRepository) Create(booking *entities.Booking) error {
-	if err := r.db.Create(booking).Error; err != nil {
+	if err := r.db.Select("*").Create(booking).Error; err != nil {
 		return repoerrors.InternalError("failed to create booking: " + err.Error())
 	}
 	return nil
@@ -111,11 +114,15 @@ func (r *gormBookingRepository) GetBookingsByAppCode(ctx context.Context, req *h
 	return pg.With(db).Request(request).Response(&[]entities.Booking{})
 }
 
-func (r *gormBookingRepository) GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID) paginate.Page {
+func (r *gormBookingRepository) GetBookingsByUserID(ctx context.Context, req *http.Request, userID uuid.UUID, statuses []string) paginate.Page {
 	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
 		Where("user_id = ?", userID).
 		Order("created_at DESC")
+
+	if len(statuses) > 0 {
+		db = db.Where("status IN ?", statuses)
+	}
 	var request interface{}
 	if req != nil {
 		request = req
@@ -128,8 +135,11 @@ func (r *gormBookingRepository) GetBookingsByUserID(ctx context.Context, req *ht
 func (r *gormBookingRepository) GetAvailableSlots(ctx context.Context, req *http.Request, appCode string) paginate.Page {
 	pg := paginate.New()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
-		Where("app_code = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode).
-		Order("date ASC, start_time ASC")
+		Joins("JOIN appointments ON bookings.appointment_id = appointments.id").
+		Where("bookings.app_code = ? AND bookings.available = true AND bookings.is_slot = true", appCode).
+		Where("(appointments.type != 'party' AND bookings.seats_booked < bookings.capacity) OR (appointments.type = 'party' AND appointments.attendees_booked < appointments.max_attendees)").
+		Order("bookings.date ASC, bookings.start_time ASC").
+		Select("bookings.*")
 	var request interface{}
 	if req != nil {
 		request = req
@@ -141,9 +151,13 @@ func (r *gormBookingRepository) GetAvailableSlots(ctx context.Context, req *http
 
 func (r *gormBookingRepository) GetAvailableSlotsByDay(ctx context.Context, req *http.Request, appCode string, date time.Time) paginate.Page {
 	pg := paginate.New()
+	now := time.Now()
 	db := r.db.WithContext(ctx).Model(&entities.Booking{}).
-		Where("app_code = ? AND date = ? AND available = true AND is_slot = true AND seats_booked < capacity", appCode, date).
-		Order("start_time ASC")
+		Joins("JOIN appointments ON bookings.appointment_id = appointments.id").
+		Where("bookings.app_code = ? AND bookings.date >= ? AND bookings.date < ? AND bookings.start_time >= ? AND bookings.available = true AND bookings.is_slot = true", appCode, date, date.AddDate(0, 0, 1), now).
+		Where("(appointments.type != 'party' AND bookings.seats_booked < bookings.capacity) OR (appointments.type = 'party' AND appointments.attendees_booked < appointments.max_attendees)").
+		Order("bookings.start_time ASC").
+		Select("bookings.*")
 	var request interface{}
 	if req != nil {
 		request = req
@@ -167,7 +181,8 @@ func (r *gormBookingRepository) GetBookingByCode(bookingCode string) (*entities.
 
 func (r *gormBookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID, email string) (*entities.Booking, error) {
 	var booking entities.Booking
-	err := r.db.Where("appointment_id = ? AND email = ? AND status = ?", appointmentID, email, "active").First(&booking).Error
+	err := r.db.Where("appointment_id = ? AND email = ? AND status IN ?", appointmentID, email, []string{"active", "ongoing", "pending", "confirmed"}).
+		First(&booking).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, repoerrors.NotFoundError("active booking not found")
@@ -179,7 +194,8 @@ func (r *gormBookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID
 
 func (r *gormBookingRepository) FindActiveBookingByDevice(appointmentID uuid.UUID, deviceID string) (*entities.Booking, error) {
 	var booking entities.Booking
-	err := r.db.Where("appointment_id = ? AND device_id = ? AND status = ?", appointmentID, deviceID, "active").First(&booking).Error
+	err := r.db.Where("appointment_id = ? AND device_id = ? AND status IN ?", appointmentID, deviceID, []string{"active", "ongoing", "pending", "confirmed"}).
+		First(&booking).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, repoerrors.NotFoundError("active booking not found for device")
@@ -187,6 +203,40 @@ func (r *gormBookingRepository) FindActiveBookingByDevice(appointmentID uuid.UUI
 		return nil, repoerrors.InternalError("failed to find active booking by device: " + err.Error())
 	}
 	return &booking, nil
+}
+
+func (r *gormBookingRepository) MarkBookingsOngoing(ctx context.Context, now time.Time) (int64, error) {
+	startExpr := "date_trunc('day', date) + (start_time - date_trunc('day', start_time))"
+	endExpr := "date_trunc('day', date) + (end_time - date_trunc('day', end_time))"
+	res := r.db.WithContext(ctx).Model(&entities.Booking{}).
+		Where("available = ?", false).
+		Where("status IN ?", []string{"active", "confirmed", "pending"}).
+		Where(startExpr+" <= ?", now).
+		Where(endExpr+" > ?", now).
+		Updates(map[string]interface{}{
+			"status":     "ongoing",
+			"updated_at": now,
+		})
+	if res.Error != nil {
+		return 0, repoerrors.InternalError("failed to mark bookings ongoing: " + res.Error.Error())
+	}
+	return res.RowsAffected, nil
+}
+
+func (r *gormBookingRepository) MarkBookingsExpired(ctx context.Context, now time.Time) (int64, error) {
+	endExpr := "date_trunc('day', date) + (end_time - date_trunc('day', end_time))"
+	res := r.db.WithContext(ctx).Model(&entities.Booking{}).
+		Where("available = ?", false).
+		Where("status IN ?", []string{"active", "ongoing", "confirmed", "pending"}).
+		Where(endExpr+" < ?", now).
+		Updates(map[string]interface{}{
+			"status":     "expired",
+			"updated_at": now,
+		})
+	if res.Error != nil {
+		return 0, repoerrors.InternalError("failed to mark bookings expired: " + res.Error.Error())
+	}
+	return res.RowsAffected, nil
 }
 
 func (r *gormBookingRepository) UpdateNotificationStatus(id uuid.UUID, status string, channel string) error {
@@ -197,4 +247,20 @@ func (r *gormBookingRepository) UpdateNotificationStatus(id uuid.UUID, status st
 		return repoerrors.InternalError("failed to update notification status: " + err.Error())
 	}
 	return nil
+}
+
+func (r *gormBookingRepository) GetAvailableDates(ctx context.Context, appCode string) ([]time.Time, error) {
+	var dates []time.Time
+	now := time.Now()
+	err := r.db.WithContext(ctx).Model(&entities.Booking{}).
+		Joins("JOIN appointments ON bookings.appointment_id = appointments.id").
+		Distinct("bookings.date").
+		Where("bookings.app_code = ? AND bookings.start_time >= ? AND bookings.available = true AND bookings.is_slot = true", appCode, now).
+		Where("(appointments.type != 'party' AND bookings.seats_booked < bookings.capacity) OR (appointments.type = 'party' AND appointments.attendees_booked < appointments.max_attendees)").
+		Order("bookings.date ASC").
+		Pluck("bookings.date", &dates).Error
+	if err != nil {
+		return nil, repoerrors.InternalError("failed to get available dates: " + err.Error())
+	}
+	return dates, nil
 }

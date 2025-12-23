@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**getNotifications**](NotificationsApi.md#getnotifications) | **GET** /notifications | Get user notifications |
+| [**getUnreadNotificationsCount**](NotificationsApi.md#getunreadnotificationscount) | **GET** /notifications/unread-count | Get unread notifications count |
 | [**markAllNotificationsAsRead**](NotificationsApi.md#markallnotificationsasread) | **PUT** /notifications/read-all | Mark all notifications as read |
 
 
@@ -79,6 +80,71 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | OK |  -  |
+| **401** | Unauthorized |  -  |
+| **500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getUnreadNotificationsCount
+
+> { [key: string]: number; } getUnreadNotificationsCount()
+
+Get unread notifications count
+
+Retrieves the number of unread notifications for the currently authenticated user.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { GetUnreadNotificationsCountRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: BearerAuth
+    apiKey: "YOUR API KEY",
+  });
+  const api = new NotificationsApi(config);
+
+  try {
+    const data = await api.getUnreadNotificationsCount();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: number; }**
+
+### Authorization
+
+[BearerAuth](../README.md#BearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | count |  -  |
 | **401** | Unauthorized |  -  |
 | **500** | Internal server error |  -  |
 

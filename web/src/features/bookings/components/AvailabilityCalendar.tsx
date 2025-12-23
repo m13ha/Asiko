@@ -36,11 +36,12 @@ export function AvailabilityCalendar({ availableDates, selectedDate, onSelect }:
     const iso = format(current, 'yyyy-MM-dd');
     const isAvailable = availableSet.has(iso);
     const isSelected = selected ? isEqual(current, selected) : false;
-    const classes = ['availability-day'];
-    if (isAvailable) classes.push('is-available');
-    if (isSelected) classes.push('is-selected');
-    if (event.otherMonth) classes.push('is-dimmed');
-    if (!isAvailable) classes.push('is-disabled');
+    const classes = [
+      'inline-flex items-center justify-center w-9 h-9 rounded-md border text-sm font-medium transition',
+      isAvailable ? 'text-[var(--text)] border-[var(--border)]' : 'text-[var(--text-muted)] border-transparent line-through opacity-50',
+      isSelected ? 'bg-[var(--primary)] text-[var(--primary-contrast)] border-[var(--primary)] shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_35%,transparent)]' : '',
+      event.otherMonth ? 'opacity-40' : '',
+    ];
     return (
       <span className={classes.join(' ')}>
         {event.day}
@@ -49,7 +50,7 @@ export function AvailabilityCalendar({ availableDates, selectedDate, onSelect }:
   };
 
   return (
-    <div className="availability-calendar">
+    <div className="border border-[var(--border)] rounded-2xl p-3 bg-[var(--bg-elevated)]">
       <Calendar
         value={selected ?? defaultDate ?? null}
         onChange={handleChange}
@@ -57,7 +58,7 @@ export function AvailabilityCalendar({ availableDates, selectedDate, onSelect }:
         numberOfMonths={2}
         dateTemplate={dateTemplate}
         showWeek={false}
-        className="availability-calendar-widget"
+        className="w-full [&_.p-datepicker]:w-full [&_.p-datepicker]:!border-0 [&_.p-datepicker]:!shadow-none [&_.p-datepicker]:bg-[var(--bg-elevated)] [&_.p-datepicker]:text-[var(--text)] [&_.p-datepicker-header]:border-b [&_.p-datepicker-header]:border-[var(--border)]"
         prevIcon="pi pi-chevron-left"
         nextIcon="pi pi-chevron-right"
       />

@@ -18,9 +18,9 @@ import (
 // @Param   ban_request  body   requests.BanRequest  true  "Email to ban"
 // @Security BearerAuth
 // @Success 201 {object} entities.BanListEntry
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request"
-// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
-// @Failure 409 {object} errors.APIErrorResponse "Email already on ban list"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
+// @Failure 409 {object} responses.APIErrorResponse "Email already on ban list"
 // @Router /ban-list [post]
 // @ID addToBanList
 func (h *Handler) AddToBanList(c *gin.Context) {
@@ -54,8 +54,8 @@ func (h *Handler) AddToBanList(c *gin.Context) {
 // @Param   ban_request  body   requests.BanRequest  true  "Email to unban"
 // @Security BearerAuth
 // @Success 200 {object} responses.SimpleMessage
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request"
-// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
 // @Router /ban-list [delete]
 // @ID removeFromBanList
 func (h *Handler) RemoveFromBanList(c *gin.Context) {
@@ -85,7 +85,7 @@ func (h *Handler) RemoveFromBanList(c *gin.Context) {
 // @Produce  application/json
 // @Security BearerAuth
 // @Success 200 {array} entities.BanListEntry
-// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
 // @Router /ban-list [get]
 // @ID getBanList
 func (h *Handler) GetBanList(c *gin.Context) {

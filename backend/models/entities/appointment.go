@@ -76,31 +76,33 @@ func (a *Appointment) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (a *Appointment) AfterCreate(tx *gorm.DB) error {
-	if a.Type == Party {
-		return nil
-	}
-	slots := a.generateBookings()
+	slots := a.GenerateBookings()
 	return tx.Create(&slots).Error
 }
 
-func (a *Appointment) generateBookings() []Booking {
+func (a *Appointment) GenerateBookings() []Booking {
 	var slots []Booking
 	duration := time.Duration(a.BookingDuration) * time.Minute
 	defaultCapacity := 1
-	if a.Type == Group && a.MaxAttendees > 0 {
+	if (a.Type == Group || a.Type == Party) && a.MaxAttendees > 0 {
 		defaultCapacity = a.MaxAttendees
 	}
 
-	for currentDate := a.StartDate; !currentDate.After(a.EndDate); currentDate = currentDate.AddDate(0, 0, 1) {
+	startDate := a.StartDate.UTC()
+	endDate := a.EndDate.UTC()
+	startTime := a.StartTime.UTC()
+	endTime := a.EndTime.UTC()
+
+	for currentDate := startDate; !currentDate.After(endDate); currentDate = currentDate.AddDate(0, 0, 1) {
 		currentSlotStart := time.Date(
 			currentDate.Year(), currentDate.Month(), currentDate.Day(),
-			a.StartTime.Hour(), a.StartTime.Minute(), 0, 0,
-			currentDate.Location(),
+			startTime.Hour(), startTime.Minute(), 0, 0,
+			time.UTC,
 		)
 		dailyEndTime := time.Date(
 			currentDate.Year(), currentDate.Month(), currentDate.Day(),
-			a.EndTime.Hour(), a.EndTime.Minute(), 0, 0,
-			currentDate.Location(),
+			endTime.Hour(), endTime.Minute(), 0, 0,
+			time.UTC,
 		)
 
 		for currentSlotStart.Before(dailyEndTime) {
@@ -113,8 +115,8 @@ func (a *Appointment) generateBookings() []Booking {
 				AppointmentID: a.ID,
 				AppCode:       a.AppCode,
 				Date:          currentDate,
-				StartTime:     currentSlotStart,
-				EndTime:       slotEnd,
+				StartTime:     currentSlotStart.UTC(),
+				EndTime:       slotEnd.UTC(),
 				Available:     true,
 				IsSlot:        true,
 				Capacity:      defaultCapacity,

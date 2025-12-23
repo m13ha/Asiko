@@ -19,13 +19,14 @@ import (
 )
 
 type userServiceImpl struct {
-	userRepo        repository.UserRepository
-	pendingUserRepo repository.PendingUserRepository
-	notificationSvc notifications.NotificationService
+	userRepo          repository.UserRepository
+	pendingUserRepo   repository.PendingUserRepository
+	passwordResetRepo repository.PasswordResetRepository
+	notificationSvc   notifications.NotificationService
 }
 
-func NewUserService(userRepo repository.UserRepository, pendingUserRepo repository.PendingUserRepository, notificationSvc notifications.NotificationService) UserService {
-	return &userServiceImpl{userRepo: userRepo, pendingUserRepo: pendingUserRepo, notificationSvc: notificationSvc}
+func NewUserService(userRepo repository.UserRepository, pendingUserRepo repository.PendingUserRepository, passwordResetRepo repository.PasswordResetRepository, notificationSvc notifications.NotificationService) UserService {
+	return &userServiceImpl{userRepo: userRepo, pendingUserRepo: pendingUserRepo, passwordResetRepo: passwordResetRepo, notificationSvc: notificationSvc}
 }
 
 func sanitizePhone(phone *string) *string {
@@ -218,6 +219,102 @@ func (s *userServiceImpl) AuthenticateUser(email, password string) (*entities.Us
 	}
 
 	return user, nil
+}
+
+func (s *userServiceImpl) ForgotPassword(email string) error {
+	normalizedEmail := utils.NormalizeEmail(email)
+	user, err := s.userRepo.FindByEmail(normalizedEmail)
+	if err != nil {
+		// If user not found, we should not reveal it for security reasons,
+		// but for now we'll just return nil to simulate success
+		if isNotFoundError(err) {
+			return nil
+		}
+		return serviceerrors.FromError(err)
+	}
+
+	// Generate reset token
+	token := utils.GenerateRandomCode(6) // Using 6 digit code for simplicity, could be UUID
+	expiresAt := time.Now().Add(15 * time.Minute)
+
+	resetToken := &entities.PasswordResetToken{
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: expiresAt,
+	}
+
+	// Invalidate previous tokens
+	if err := s.passwordResetRepo.DeleteAllForUser(user.ID.String()); err != nil {
+		return serviceerrors.FromError(err)
+	}
+
+	if err := s.passwordResetRepo.Create(resetToken); err != nil {
+		return serviceerrors.FromError(err)
+	}
+
+	// Send email asynchronously
+	go func(email, code string) {
+		if err := s.notificationSvc.SendPasswordResetEmail(email, code); err != nil {
+			log.Error().Err(err).Str("email", email).Msg("notifications: failed to send password reset email")
+		} else {
+			log.Info().Str("email", email).Msg("notifications: password reset email sent")
+		}
+	}(normalizedEmail, token)
+
+	return nil
+}
+
+func (s *userServiceImpl) ResetPassword(token, newPassword string) error {
+	resetToken, err := s.passwordResetRepo.FindByToken(token)
+	if err != nil {
+		if isNotFoundError(err) {
+			return serviceerrors.ValidationError("Invalid or expired reset token.")
+		}
+		return serviceerrors.FromError(err)
+	}
+
+	if time.Now().After(resetToken.ExpiresAt) {
+		return serviceerrors.ValidationError("Reset token has expired.")
+	}
+
+	user, err := s.userRepo.FindByID(resetToken.UserID.String())
+	if err != nil {
+		return serviceerrors.FromError(err)
+	}
+
+	if err := user.SetPassword(newPassword); err != nil {
+		return serviceerrors.InternalError("Failed to set new password")
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return serviceerrors.FromError(err)
+	}
+
+	// Invalidate used token
+	_ = s.passwordResetRepo.DeleteAllForUser(user.ID.String())
+
+	return nil
+}
+
+func (s *userServiceImpl) ChangePassword(userID, oldPassword, newPassword string) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return serviceerrors.FromError(err)
+	}
+
+	if !user.CheckPassword(oldPassword) {
+		return serviceerrors.ValidationError("Incorrect old password.")
+	}
+
+	if err := user.SetPassword(newPassword); err != nil {
+		return serviceerrors.InternalError("Failed to set new password")
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return serviceerrors.FromError(err)
+	}
+
+	return nil
 }
 
 // ToUserResponse converts an entities.User to a responses.UserResponse

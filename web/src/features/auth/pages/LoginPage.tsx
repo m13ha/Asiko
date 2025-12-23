@@ -20,55 +20,52 @@ export function LoginPage() {
   const from = loc.state?.from?.pathname || '/dashboard';
 
   return (
-    <div style={{ maxWidth: 420, margin: '24px auto', textAlign: 'center' }}>
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+    <div className="max-w-lg mx-auto my-6 text-center">
+      <h1 className="flex items-center justify-center gap-2 text-2xl font-semibold text-[var(--text)]">
         Login
-        <span className="hand" style={{ color: 'var(--accent)' }}>
+        <span className="font-['Caveat',cursive] tracking-[0.2px]" style={{ color: 'var(--accent)' }}>
           <HandUnderline />
         </span>
       </h1>
       {info && (
-        <div style={{
-          border: '1px solid var(--border)',
-          background: 'var(--bg-elevated)',
-          borderRadius: 'var(--radius)',
-          padding: 12,
-          marginBottom: 12,
-          color: 'var(--text)',
-          textAlign: 'center'
-        }}>
+        <div className="p-3 mb-3 text-center text-[var(--text)] border border-[var(--border)] rounded-lg bg-[var(--bg-elevated)]">
           {info}
         </div>
       )}
       <Card>
         <CardHeader>
-          <CardTitle>Welcome back</CardTitle>
+          <CardTitle className='w-full text-center'>Welcome back</CardTitle>
         </CardHeader>
-        <div style={{ display: 'grid', gap: 12, textAlign: 'left' }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
+        <div className="grid gap-3 text-left">
+          <div className="text-xs text-center text-[var(--text-muted)]">
             New here? If you just signed up, check your email for a verification code. Then verify your account on the <Link to={`/verify${email ? `?email=${encodeURIComponent(email)}` : ''}`}>Verify page</Link>.
           </div>
           <Field>
             <FieldLabel>Email</FieldLabel>
             <FieldRow>
-              <div style={{ position: 'relative' }}>
+              <div className="relative flex-grow">
                 <IconSlot><i className="pi pi-envelope" aria-hidden="true" /></IconSlot>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ paddingLeft: 36 }} />
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-9" />
               </div>
             </FieldRow>
           </Field>
           <Field>
             <FieldLabel>Password</FieldLabel>
             <FieldRow>
-              <div style={{ position: 'relative' }}>
+              <div className="relative flex-grow">
                 <IconSlot><i className="pi pi-lock" aria-hidden="true" /></IconSlot>
-                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ paddingLeft: 36 }} />
+                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-9" />
               </div>
-              <Button onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'}>
+              <Button onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'} className="flex-shrink-0">
                 <i className={`pi ${showPassword ? 'pi-eye-slash' : 'pi-eye'}`} aria-hidden="true" />
               </Button>
             </FieldRow>
           </Field>
+      <div className="text-right -mt-2">
+        <Link to="/forgot-password" className="text-xs text-[var(--primary)] hover:underline">
+          Forgot password?
+        </Link>
+      </div>
           <Button
             variant="primary"
             onClick={() =>
@@ -101,18 +98,11 @@ export function LoginPage() {
               </>
             ) : (
               <>
-                <i className="pi pi-sign-in" aria-hidden="true" /> Login
+                <i className="" aria-hidden="true" /> Login
               </>
             )}
           </Button>
-          <div style={{
-            textAlign: 'center',
-            padding: '12px 16px',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            background: 'var(--bg-elevated)',
-            fontWeight: 600
-          }}>
+          <div className="p-3 font-semibold text-center border border-[var(--border)] rounded-lg bg-[var(--bg-elevated)] text-[var(--text)]">
             <small>Don’t have an account? <Link to="/signup">Sign up</Link></small>
           </div>
         </div>

@@ -4,7 +4,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Generate the client sources from backend OpenAPI
 pushd "$DIR/../.." >/dev/null
-if ! make -C backend client-gen; then
+if ! make client-gen; then
   echo "Warning: client generation failed (likely offline). Preserving existing client sources." >&2
 fi
 popd >/dev/null

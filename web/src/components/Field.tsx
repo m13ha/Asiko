@@ -18,7 +18,7 @@ export function FieldLabel({ children, className = '' }: { children: ReactNode; 
 
 export function FieldRow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`w-full relative grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-1 sm:gap-1.5 ${className}`}>
+    <div className={`w-full relative flex flex-wrap items-center gap-2 sm:gap-1.5 ${className}`}>
       {children}
     </div>
   );
@@ -27,6 +27,14 @@ export function FieldRow({ children, className = '' }: { children: ReactNode; cl
 export function IconSlot({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 text-gray-400 pointer-events-none ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+export function FieldError({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={`text-xs text-red-500 font-medium ${className}`}>
       {children}
     </span>
   );

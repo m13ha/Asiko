@@ -18,9 +18,9 @@ import (
 // @Param start_date query string true "Start date (YYYY-MM-DD)"
 // @Param end_date query string true "End date (YYYY-MM-DD)"
 // @Success 200 {object} responses.AnalyticsResponse
-// @Failure 400 {object} errors.APIErrorResponse "Invalid date format or missing parameters"
-// @Failure 401 {object} errors.APIErrorResponse "Unauthorized"
-// @Failure 500 {object} errors.APIErrorResponse "Internal server error"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid date format or missing parameters"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
+// @Failure 500 {object} responses.APIErrorResponse "Internal server error"
 // @Router /analytics [get]
 // @ID getUserAnalytics
 func (h *Handler) GetUserAnalytics(c *gin.Context) {

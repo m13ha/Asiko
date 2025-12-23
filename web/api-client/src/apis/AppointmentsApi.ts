@@ -16,22 +16,22 @@
 import * as runtime from '../runtime';
 import type {
   EntitiesAppointment,
-  ErrorsAPIErrorResponse,
   GetMyAppointments200Response,
   GetUserRegisteredBookings200Response,
   RequestsAppointmentRequest,
+  ResponsesAPIErrorResponse,
 } from '../models/index';
 import {
     EntitiesAppointmentFromJSON,
     EntitiesAppointmentToJSON,
-    ErrorsAPIErrorResponseFromJSON,
-    ErrorsAPIErrorResponseToJSON,
     GetMyAppointments200ResponseFromJSON,
     GetMyAppointments200ResponseToJSON,
     GetUserRegisteredBookings200ResponseFromJSON,
     GetUserRegisteredBookings200ResponseToJSON,
     RequestsAppointmentRequestFromJSON,
     RequestsAppointmentRequestToJSON,
+    ResponsesAPIErrorResponseFromJSON,
+    ResponsesAPIErrorResponseToJSON,
 } from '../models/index';
 
 export interface CreateAppointmentRequest {

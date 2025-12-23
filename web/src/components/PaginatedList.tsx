@@ -37,8 +37,8 @@ export function PaginatedList<T>({
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (data?.page && data.page !== currentPage) {
-      setCurrentPage(data.page);
+    if (typeof data?.page === 'number' && data.page + 1 !== currentPage) {
+      setCurrentPage(data.page + 1);
     }
   }, [data?.page]);
 

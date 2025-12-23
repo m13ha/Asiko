@@ -29,8 +29,11 @@ export function createAppointment(input: CreateAppointmentInput) {
   return appointmentsClient.createAppointment({ appointment: input });
 }
 
-export function getUsersForAppointment(appCode: string) {
-  return appointmentsClient.getUsersRegisteredForAppointment({ appCode });
+export function getUsersForAppointment(appCode: string, params?: { page?: number; size?: number }) {
+  const request: any = { appCode };
+  if (params?.page) request.page = params.page;
+  if (params?.size) request.size = params.size;
+  return appointmentsClient.getUsersRegisteredForAppointment(request);
 }
 
 export function getAppointmentByAppCode(appCode: string): Promise<EntitiesAppointment> {

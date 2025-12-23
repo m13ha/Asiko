@@ -1,13 +1,8 @@
 import * as API from '@appointment-master/api-client';
-import {
-  clearTokens,
-  getRefreshToken,
-  getTokens,
-  setTokens,
-} from './auth';
+import { useAuthStore, refreshTokensAction } from '@/stores/authStore';
 
 const basePath =
-  import.meta.env.VITE_API_BASE_URL ?? 'https://jrjik-102-88-113-9.a.free.pinggy.link';
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8890';
 
 function decodeJwtExp(token: string): number | undefined {
   try {
@@ -27,76 +22,64 @@ function computeExpiresAt(token: string, expiresIn?: number): number | undefined
   return decodeJwtExp(token);
 }
 
-let refreshPromise: Promise<string | void> | null = null;
-
-async function refreshAccessToken(): Promise<string> {
-  if (refreshPromise) {
-    const token = await refreshPromise;
-    return (token as string) || getTokens().accessToken;
-  }
-
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    clearTokens();
-    throw new Error('Missing refresh token');
-  }
-
-  refreshPromise = (async () => {
-    const refreshed = await authApi.refreshToken({
-      refresh: { refreshToken },
-    });
-    if (!refreshed.token) {
-      clearTokens();
-      throw new Error('Missing token');
-    }
-    const expiresAt = computeExpiresAt(refreshed.token, refreshed.expiresIn);
-    setTokens({
-      accessToken: refreshed.token,
-      refreshToken: refreshed.refreshToken,
-      expiresAt,
-    });
-    return refreshed.token;
-  })();
-
-  try {
-    const token = await refreshPromise;
-    return (token as string) || getTokens().accessToken;
-  } finally {
-    refreshPromise = null;
-  }
-}
-
 const authMiddleware: API.Middleware = {
   pre: async () => {
-    const { accessToken, refreshToken, expiresAt } = getTokens();
+    const { accessToken, refreshToken, expiresAt } = useAuthStore.getState();
     if (!refreshToken) return;
+    
+    // Proactive refresh: if token is missing or expires in < 60s
     if (!accessToken || (expiresAt && expiresAt - Date.now() < 60_000)) {
       try {
-        await refreshAccessToken();
+        await refreshTokensAction(async (rt) => {
+          const refreshed = await authApi.refreshToken({
+            refresh: { refreshToken: rt },
+          });
+          if (!refreshed.token) throw new Error('Missing token');
+          return {
+            accessToken: refreshed.token,
+            refreshToken: refreshed.refreshToken,
+            expiresAt: computeExpiresAt(refreshed.token, refreshed.expiresIn),
+          };
+        });
       } catch {
-        clearTokens();
+        useAuthStore.getState().clearTokens();
       }
     }
   },
   post: async (context) => {
     const status = context.response.status;
-    if ((status === 401 || status === 403) && getRefreshToken()) {
+    const { refreshToken } = useAuthStore.getState();
+
+    // Reactive refresh: 401/403 with a refresh token available
+    if ((status === 401 || status === 403) && refreshToken) {
       const alreadyRetried = (context.init.headers as Record<string, string> | undefined)?.[
         'x-am-refresh-attempt'
       ];
       if (alreadyRetried) return context.response;
 
       try {
-        await refreshAccessToken();
-        const tokens = getTokens();
+        const newToken = await refreshTokensAction(async (rt) => {
+          const refreshed = await authApi.refreshToken({
+            refresh: { refreshToken: rt },
+          });
+          if (!refreshed.token) throw new Error('Missing token');
+          return {
+            accessToken: refreshed.token,
+            refreshToken: refreshed.refreshToken,
+            expiresAt: computeExpiresAt(refreshed.token, refreshed.expiresIn),
+          };
+        });
+
+        if (!newToken) throw new Error('Refresh failed');
+
         const headers: Record<string, string> = {
           ...(context.init.headers as Record<string, string> | undefined),
-          Authorization: tokens.accessToken ? `Bearer ${tokens.accessToken}` : '',
+          Authorization: `Bearer ${newToken}`,
           'x-am-refresh-attempt': 'true',
         };
         return await context.fetch(context.url, { ...context.init, headers });
       } catch {
-        clearTokens();
+        useAuthStore.getState().clearTokens();
         return context.response;
       }
     }
@@ -107,7 +90,7 @@ const authMiddleware: API.Middleware = {
 export const apiConfig = new API.Configuration({
   basePath,
   apiKey: () => {
-    const { accessToken } = getTokens();
+    const { accessToken } = useAuthStore.getState();
     return accessToken ? `Bearer ${accessToken}` : '';
   },
   middleware: [authMiddleware],

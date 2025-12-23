@@ -20,15 +20,27 @@ export interface BookRegisteredUserAppointmentRequest {
 export interface CancelBookingByCodeRequest {
     bookingCode: string;
 }
+export interface GetAvailableDatesRequest {
+    appCode: string;
+}
 export interface GetAvailableSlotsRequest {
     appCode: string;
+    page?: number;
+    size?: number;
 }
 export interface GetAvailableSlotsByDayRequest {
     appCode: string;
     date: string;
+    page?: number;
+    size?: number;
 }
 export interface GetBookingByCodeRequest {
     bookingCode: string;
+}
+export interface GetUserRegisteredBookingsRequest {
+    status?: Array<string>;
+    page?: number;
+    size?: number;
 }
 export interface RejectBookingByCodeRequest {
     bookingCode: string;
@@ -72,6 +84,16 @@ export declare class BookingsApi extends runtime.BaseAPI {
      */
     cancelBookingByCode(requestParameters: CancelBookingByCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesBooking>;
     /**
+     * Retrieves a list of dates that have at least one available slot.
+     * Get available dates for an appointment
+     */
+    getAvailableDatesRaw(requestParameters: GetAvailableDatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>>;
+    /**
+     * Retrieves a list of dates that have at least one available slot.
+     * Get available dates for an appointment
+     */
+    getAvailableDates(requestParameters: GetAvailableDatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string>>;
+    /**
      * Retrieves a paginated list of all available booking slots for a given appointment.
      * Get available slots for an appointment
      */
@@ -105,12 +127,12 @@ export declare class BookingsApi extends runtime.BaseAPI {
      * Retrieves a paginated list of all bookings made by the currently authenticated user.
      * Get user\'s registered bookings
      */
-    getUserRegisteredBookingsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetUserRegisteredBookings200Response>>;
+    getUserRegisteredBookingsRaw(requestParameters: GetUserRegisteredBookingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetUserRegisteredBookings200Response>>;
     /**
      * Retrieves a paginated list of all bookings made by the currently authenticated user.
      * Get user\'s registered bookings
      */
-    getUserRegisteredBookings(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetUserRegisteredBookings200Response>;
+    getUserRegisteredBookings(requestParameters?: GetUserRegisteredBookingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetUserRegisteredBookings200Response>;
     /**
      * Rejects a booking by its unique booking_code. This is a soft delete.
      * Reject a booking

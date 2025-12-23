@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -188,6 +189,28 @@ func TestBookAppointment(t *testing.T) {
 		mockAppointmentRepo.AssertExpectations(t)
 		mockBookingRepo.AssertExpectations(t)
 	})
+}
+
+func TestRefreshBookingStatuses(t *testing.T) {
+	mockAppointmentRepo := new(repomocks.AppointmentRepository)
+	mockBookingRepo := new(repomocks.BookingRepository)
+	mockUserRepo := new(repomocks.UserRepository)
+	mockBanListRepo := new(repomocks.BanListRepository)
+	mockNotificationService := new(notificationmocks.NotificationService)
+	mockEventNotificationService := new(servicemocks.EventNotificationService)
+
+	bookingService := services.NewBookingService(mockBookingRepo, mockAppointmentRepo, mockUserRepo, mockBanListRepo, mockNotificationService, mockEventNotificationService, nil)
+
+	now := time.Now()
+	mockBookingRepo.On("MarkBookingsOngoing", mock.Anything, now).Return(int64(2), nil).Once()
+	mockBookingRepo.On("MarkBookingsExpired", mock.Anything, now).Return(int64(1), nil).Once()
+
+	summary, err := bookingService.RefreshBookingStatuses(context.Background(), now)
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), summary.Ongoing)
+	assert.Equal(t, int64(1), summary.Expired)
+	mockBookingRepo.AssertExpectations(t)
 }
 
 func stubAppointmentWithTx(repo *repomocks.AppointmentRepository) {

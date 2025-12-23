@@ -16,6 +16,36 @@ type AnalyticsRepository struct {
 	mock.Mock
 }
 
+// GetCancellationsPerDay provides a mock function with given fields: userID, startDate, endDate
+func (_m *AnalyticsRepository) GetCancellationsPerDay(userID uuid.UUID, startDate time.Time, endDate time.Time) ([]repository.DateCount, error) {
+	ret := _m.Called(userID, startDate, endDate)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCancellationsPerDay")
+	}
+
+	var r0 []repository.DateCount
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID, time.Time, time.Time) ([]repository.DateCount, error)); ok {
+		return rf(userID, startDate, endDate)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID, time.Time, time.Time) []repository.DateCount); ok {
+		r0 = rf(userID, startDate, endDate)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]repository.DateCount)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID, time.Time, time.Time) error); ok {
+		r1 = rf(userID, startDate, endDate)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBookingsPerDay provides a mock function with given fields: userID, startDate, endDate
 func (_m *AnalyticsRepository) GetBookingsPerDay(userID uuid.UUID, startDate time.Time, endDate time.Time) ([]repository.DateCount, error) {
 	ret := _m.Called(userID, startDate, endDate)
@@ -35,6 +65,34 @@ func (_m *AnalyticsRepository) GetBookingsPerDay(userID uuid.UUID, startDate tim
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]repository.DateCount)
 		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID, time.Time, time.Time) error); ok {
+		r1 = rf(userID, startDate, endDate)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetUserCancellationCount provides a mock function with given fields: userID, startDate, endDate
+func (_m *AnalyticsRepository) GetUserCancellationCount(userID uuid.UUID, startDate time.Time, endDate time.Time) (int64, error) {
+	ret := _m.Called(userID, startDate, endDate)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserCancellationCount")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID, time.Time, time.Time) (int64, error)); ok {
+		return rf(userID, startDate, endDate)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID, time.Time, time.Time) int64); ok {
+		r0 = rf(userID, startDate, endDate)
+	} else {
+		r0 = ret.Get(0).(int64)
 	}
 
 	if rf, ok := ret.Get(1).(func(uuid.UUID, time.Time, time.Time) error); ok {

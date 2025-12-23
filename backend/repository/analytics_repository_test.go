@@ -49,7 +49,7 @@ func TestGetBookingsPerDay(t *testing.T) {
 	start := time.Now().Add(-24 * time.Hour)
 	end := time.Now()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT TO_CHAR(bookings.created_at::date, 'YYYY-MM-DD') as date, COUNT(*) as count`)).
+	mock.ExpectQuery(`(?s)SELECT.*TO_CHAR.*FROM bookings.*JOIN appointments.*bookings\.status IN \('active', 'expired'\).*GROUP BY.*ORDER BY`).
 		WillReturnRows(sqlmock.NewRows([]string{"date", "count"}).AddRow("2025-01-01", 2).AddRow("2025-01-02", 1))
 
 	rows, err := repo.GetBookingsPerDay(userID, start, end)
@@ -58,5 +58,39 @@ func TestGetBookingsPerDay(t *testing.T) {
 		assert.Equal(t, "2025-01-01", rows[0].Date)
 		assert.Equal(t, 2, rows[0].Count)
 	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetUserCancellationCount(t *testing.T) {
+	gdb, mock := setupMockDB(t)
+	repo := NewGormAnalyticsRepository(gdb)
+
+	userID := uuid.New()
+	start := time.Now().Add(-24 * time.Hour)
+	end := time.Now()
+
+	mock.ExpectQuery(`(?s)SELECT.*FROM bookings.*JOIN appointments.*bookings\.status = 'cancelled'`).
+		WillReturnRows(sqlmock.NewRows([]string{"total"}).AddRow(int64(4)))
+
+	count, err := repo.GetUserCancellationCount(userID, start, end)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(4), count)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetCancellationsPerDay(t *testing.T) {
+	gdb, mock := setupMockDB(t)
+	repo := NewGormAnalyticsRepository(gdb)
+
+	userID := uuid.New()
+	start := time.Now().Add(-24 * time.Hour)
+	end := time.Now()
+
+	mock.ExpectQuery(`(?s)SELECT.*TO_CHAR\(bookings\.updated_at::date, 'YYYY-MM-DD'\).*FROM bookings.*JOIN appointments.*bookings\.status = 'cancelled'.*GROUP BY.*ORDER BY`).
+		WillReturnRows(sqlmock.NewRows([]string{"date", "count"}).AddRow("2025-01-01", 1).AddRow("2025-01-02", 2))
+
+	rows, err := repo.GetCancellationsPerDay(userID, start, end)
+	assert.NoError(t, err)
+	assert.Len(t, rows, 2)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

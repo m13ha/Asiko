@@ -26,6 +26,8 @@ export function ResponsesLoginResponseFromJSONTyped(json, ignoreDiscriminator) {
         return json;
     }
     return {
+        'expiresIn': json['expires_in'] == null ? undefined : json['expires_in'],
+        'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
         'token': json['token'] == null ? undefined : json['token'],
         'user': json['user'] == null ? undefined : ResponsesUserResponseFromJSON(json['user']),
     };
@@ -38,6 +40,8 @@ export function ResponsesLoginResponseToJSONTyped(value, ignoreDiscriminator = f
         return value;
     }
     return {
+        'expires_in': value['expiresIn'],
+        'refresh_token': value['refreshToken'],
         'token': value['token'],
         'user': ResponsesUserResponseToJSON(value['user']),
     };

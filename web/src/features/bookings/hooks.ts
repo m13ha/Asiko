@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import * as API from '@appointment-master/api-client';
 import type { RequestsBookingRequest } from '@appointment-master/api-client';
 import toast from 'react-hot-toast';
-import { bookGuest, bookRegistered, cancelBookingByCode, getAvailableSlots, getAvailableSlotsByDay, getBookingByCode, getMyRegisteredBookings, updateBookingByCode, rejectBookingByCode } from './api';
+import { bookGuest, bookRegistered, cancelBookingByCode, getAvailableSlots, getAvailableSlotsByDay, getBookingByCode, getMyRegisteredBookings, updateBookingByCode, rejectBookingByCode, getAvailableDates } from './api';
 import { useQueryClient } from '@tanstack/react-query';
 
 async function parseError(e: unknown): Promise<string> {
@@ -14,8 +14,8 @@ async function parseError(e: unknown): Promise<string> {
 }
 
 export function useAvailableSlots(appCode: string, params?: { page?: number; size?: number }) {
-  const page = params?.page ?? 1;
-  const size = params?.size ?? 500;
+  const page = params?.page ?? 0;
+  const size = params?.size ?? 25; // Default size is 25
   return useQuery({ 
     queryKey: ['slots', appCode, page, size], 
     queryFn: () => getAvailableSlots(appCode, { page, size }), 
@@ -24,12 +24,20 @@ export function useAvailableSlots(appCode: string, params?: { page?: number; siz
 }
 
 export function useAvailableSlotsByDay(appCode: string, date: string, params?: { page?: number; size?: number }) {
-  const page = params?.page ?? 1;
+  const page = params?.page ?? 0;
   const size = params?.size ?? 200;
   return useQuery({ 
     queryKey: ['slots-by-day', appCode, date, page, size], 
     queryFn: () => getAvailableSlotsByDay(appCode, date, { page, size }), 
     enabled: !!appCode && !!date 
+  });
+}
+
+export function useAvailableDates(appCode: string) {
+  return useQuery({
+    queryKey: ['available-dates', appCode],
+    queryFn: () => getAvailableDates(appCode),
+    enabled: !!appCode,
   });
 }
 
@@ -101,12 +109,19 @@ export function useCancelBooking(bookingCode: string) {
   });
 }
 
-export function useMyBookings(params?: { page?: number; size?: number }) {
-  const page = params?.page ?? 1;
+export function useMyBookings(params?: { 
+  page?: number; 
+  size?: number;
+  statuses?: string[];
+}) {
+  const page = params?.page ?? 0;
   const size = params?.size ?? 10;
+  const statuses = params?.statuses ?? [];
+  const statusKey = statuses.length ? statuses.slice().sort().join(',') : 'all';
+  
   return useQuery({ 
-    queryKey: ['my-bookings', page, size], 
-    queryFn: () => getMyRegisteredBookings({ page, size }) 
+    queryKey: ['my-bookings', statusKey, page, size], 
+    queryFn: () => getMyRegisteredBookings({ page, size, status: statuses.length ? statuses : undefined }) 
   });
 }
 

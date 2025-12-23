@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 | [**bookGuestAppointment**](BookingsApi.md#bookguestappointment) | **POST** /appointments/book | Book an appointment (Guest) |
 | [**bookRegisteredUserAppointment**](BookingsApi.md#bookregistereduserappointment) | **POST** /appointments/book/registered | Book an appointment (Registered User) |
 | [**cancelBookingByCode**](BookingsApi.md#cancelbookingbycode) | **DELETE** /bookings/{booking_code} | Cancel a booking |
+| [**getAvailableDates**](BookingsApi.md#getavailabledates) | **GET** /appointments/dates/{app_code} | Get available dates for an appointment |
 | [**getAvailableSlots**](BookingsApi.md#getavailableslots) | **GET** /appointments/slots/{app_code} | Get available slots for an appointment |
 | [**getAvailableSlotsByDay**](BookingsApi.md#getavailableslotsbyday) | **GET** /appointments/slots/{app_code}/by-day | Get available slots for a specific day |
 | [**getBookingByCode**](BookingsApi.md#getbookingbycode) | **GET** /bookings/{booking_code} | Get booking by code |
@@ -224,6 +225,75 @@ No authorization required
 | **200** | OK |  -  |
 | **400** | Error while cancelling booking |  -  |
 | **404** | Booking not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getAvailableDates
+
+> Array&lt;string&gt; getAvailableDates(appCode)
+
+Get available dates for an appointment
+
+Retrieves a list of dates that have at least one available slot.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  BookingsApi,
+} from '';
+import type { GetAvailableDatesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new BookingsApi();
+
+  const body = {
+    // string | Appointment identifier (app_code)
+    appCode: appCode_example,
+  } satisfies GetAvailableDatesRequest;
+
+  try {
+    const data = await api.getAvailableDates(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **appCode** | `string` | Appointment identifier (app_code) | [Defaults to `undefined`] |
+
+### Return type
+
+**Array<string>**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Missing appointment code parameter |  -  |
+| **500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -452,7 +522,7 @@ No authorization required
 
 ## getUserRegisteredBookings
 
-> GetUserRegisteredBookings200Response getUserRegisteredBookings(page, size)
+> GetUserRegisteredBookings200Response getUserRegisteredBookings(status, page, size)
 
 Get user\&#39;s registered bookings
 
@@ -476,6 +546,8 @@ async function example() {
   const api = new BookingsApi(config);
 
   const body = {
+    // Array<string> | Filter by booking status (active, pending, cancelled, etc.) (optional)
+    status: ...,
     // number | Page number (default: 1) (optional)
     page: 56,
     // number | Page size (default: 10) (optional)
@@ -499,6 +571,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
+| **status** | `Array<string>` | Filter by booking status (active, pending, cancelled, etc.) | [Optional] |
 | **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
 | **size** | `number` | Page size (default: 10) | [Optional] [Defaults to `undefined`] |
 

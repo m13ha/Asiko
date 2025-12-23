@@ -14,11 +14,11 @@
  * @export
  */
 export declare const EntitiesAppointmentStatus: {
-    readonly Pending: "pending";
-    readonly Ongoing: "ongoing";
-    readonly Completed: "completed";
-    readonly Canceled: "canceled";
-    readonly Expired: "expired";
+    readonly AppointmentStatusPending: "pending";
+    readonly AppointmentStatusOngoing: "ongoing";
+    readonly AppointmentStatusCompleted: "completed";
+    readonly AppointmentStatusCanceled: "canceled";
+    readonly AppointmentStatusExpired: "expired";
 };
 export type EntitiesAppointmentStatus = typeof EntitiesAppointmentStatus[keyof typeof EntitiesAppointmentStatus];
 export declare function instanceOfEntitiesAppointmentStatus(value: any): boolean;

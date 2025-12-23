@@ -12,8 +12,8 @@
  * Do not edit the class manually.
  */
 import { EntitiesAntiScalpingLevelFromJSON, EntitiesAntiScalpingLevelToJSON, } from './EntitiesAntiScalpingLevel';
-import { EntitiesAppointmentStatusFromJSON, EntitiesAppointmentStatusToJSON, } from './EntitiesAppointmentStatus';
 import { EntitiesAppointmentTypeFromJSON, EntitiesAppointmentTypeToJSON, } from './EntitiesAppointmentType';
+import { EntitiesAppointmentStatusFromJSON, EntitiesAppointmentStatusToJSON, } from './EntitiesAppointmentStatus';
 import { EntitiesBookingFromJSON, EntitiesBookingToJSON, } from './EntitiesBooking';
 /**
  * Check if a given object implements the EntitiesAppointment interface.
@@ -44,8 +44,8 @@ export function EntitiesAppointmentFromJSONTyped(json, ignoreDiscriminator) {
         'ownerId': json['owner_id'] == null ? undefined : json['owner_id'],
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'startTime': json['start_time'] == null ? undefined : json['start_time'],
-        'title': json['title'] == null ? undefined : json['title'],
         'status': json['status'] == null ? undefined : EntitiesAppointmentStatusFromJSON(json['status']),
+        'title': json['title'] == null ? undefined : json['title'],
         'type': json['type'] == null ? undefined : EntitiesAppointmentTypeFromJSON(json['type']),
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
     };
@@ -64,7 +64,7 @@ export function EntitiesAppointmentToJSONTyped(value, ignoreDiscriminator = fals
         'booking_duration': value['bookingDuration'],
         'bookings': value['bookings'] == null ? undefined : (value['bookings'].map(EntitiesBookingToJSON)),
         'created_at': value['createdAt'],
-        'deleted_at': value['deletedAt'] == null ? undefined : ((value['deletedAt']).toISOString()),
+        'deleted_at': value['deletedAt'] == null ? value['deletedAt'] : value['deletedAt'].toISOString(),
         'description': value['description'],
         'end_date': value['endDate'],
         'end_time': value['endTime'],
@@ -73,8 +73,8 @@ export function EntitiesAppointmentToJSONTyped(value, ignoreDiscriminator = fals
         'owner_id': value['ownerId'],
         'start_date': value['startDate'],
         'start_time': value['startTime'],
-        'title': value['title'],
         'status': EntitiesAppointmentStatusToJSON(value['status']),
+        'title': value['title'],
         'type': EntitiesAppointmentTypeToJSON(value['type']),
         'updated_at': value['updatedAt'],
     };

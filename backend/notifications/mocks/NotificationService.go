@@ -66,6 +66,24 @@ func (_m *NotificationService) SendBookingRejection(booking *entities.Booking) e
 	return r0
 }
 
+// SendPasswordResetEmail provides a mock function with given fields: email, code
+func (_m *NotificationService) SendPasswordResetEmail(email string, code string) error {
+	ret := _m.Called(email, code)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendPasswordResetEmail")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(email, code)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SendVerificationCode provides a mock function with given fields: email, code
 func (_m *NotificationService) SendVerificationCode(email string, code string) error {
 	ret := _m.Called(email, code)

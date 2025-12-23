@@ -46,6 +46,24 @@ func (_m *UserService) AuthenticateUser(email string, password string) (*entitie
 	return r0, r1
 }
 
+// ChangePassword provides a mock function with given fields: userID, oldPassword, newPassword
+func (_m *UserService) ChangePassword(userID string, oldPassword string, newPassword string) error {
+	ret := _m.Called(userID, oldPassword, newPassword)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChangePassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
+		r0 = rf(userID, oldPassword, newPassword)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateUser provides a mock function with given fields: userReq
 func (_m *UserService) CreateUser(userReq requests.UserRequest) (*responses.UserResponse, error) {
 	ret := _m.Called(userReq)
@@ -76,6 +94,24 @@ func (_m *UserService) CreateUser(userReq requests.UserRequest) (*responses.User
 	return r0, r1
 }
 
+// ForgotPassword provides a mock function with given fields: email
+func (_m *UserService) ForgotPassword(email string) error {
+	ret := _m.Called(email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ForgotPassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(email)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ResendVerificationCode provides a mock function with given fields: email
 func (_m *UserService) ResendVerificationCode(email string) error {
 	ret := _m.Called(email)
@@ -87,6 +123,24 @@ func (_m *UserService) ResendVerificationCode(email string) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string) error); ok {
 		r0 = rf(email)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ResetPassword provides a mock function with given fields: token, newPassword
+func (_m *UserService) ResetPassword(token string, newPassword string) error {
+	ret := _m.Called(token, newPassword)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResetPassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(token, newPassword)
 	} else {
 		r0 = ret.Error(0)
 	}

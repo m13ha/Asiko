@@ -15,6 +15,7 @@ type EventNotificationService interface {
 	CreateEventNotification(userID uuid.UUID, eventType string, message string, resourceID uuid.UUID) error
 	GetUserNotifications(ctx context.Context, req *http.Request, userID string) (paginate.Page, error)
 	MarkAllNotificationsAsRead(userID string) error
+	GetUserUnreadNotificationsCount(userID string) (int64, error)
 }
 
 type eventNotificationServiceImpl struct {
@@ -49,4 +50,12 @@ func (s *eventNotificationServiceImpl) MarkAllNotificationsAsRead(userID string)
 		return serviceerrors.ValidationError("Invalid user ID.")
 	}
 	return s.notificationRepo.MarkAllAsRead(uid)
+}
+
+func (s *eventNotificationServiceImpl) GetUserUnreadNotificationsCount(userID string) (int64, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return 0, serviceerrors.ValidationError("Invalid user ID.")
+	}
+	return s.notificationRepo.GetUnreadCount(uid)
 }

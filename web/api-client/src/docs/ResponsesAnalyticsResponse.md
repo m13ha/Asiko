@@ -6,26 +6,15 @@
 
 Name | Type
 ------------ | -------------
-`appointmentsByType` | { [key: string]: number; }
-`avgAttendeesPerBooking` | number
-`avgLeadTimeHours` | number
-`bookingsByStatus` | { [key: string]: number; }
+`avgBookingsPerDay` | number
 `bookingsPerDay` | [Array&lt;ResponsesTimeSeriesPoint&gt;](ResponsesTimeSeriesPoint.md)
+`cancellationRate` | number
 `cancellationsPerDay` | [Array&lt;ResponsesTimeSeriesPoint&gt;](ResponsesTimeSeriesPoint.md)
-`distinctCustomers` | number
 `endDate` | string
-`guestVsRegistered` | { [key: string]: number; }
-`medianLeadTimeHours` | number
-`partyCapacity` | [ResponsesAnalyticsResponsePartyCapacity](ResponsesAnalyticsResponsePartyCapacity.md)
-`peakDays` | [Array&lt;ResponsesBucketCount&gt;](ResponsesBucketCount.md)
-`peakHours` | [Array&lt;ResponsesBucketCount&gt;](ResponsesBucketCount.md)
-`rejectionsPerDay` | [Array&lt;ResponsesTimeSeriesPoint&gt;](ResponsesTimeSeriesPoint.md)
-`repeatCustomers` | number
-`slotUtilizationPercent` | number
 `startDate` | string
-`topAppointments` | [Array&lt;ResponsesTopAppointment&gt;](ResponsesTopAppointment.md)
 `totalAppointments` | number
 `totalBookings` | number
+`totalCancellations` | number
 
 ## Example
 
@@ -34,26 +23,15 @@ import type { ResponsesAnalyticsResponse } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "appointmentsByType": null,
-  "avgAttendeesPerBooking": null,
-  "avgLeadTimeHours": null,
-  "bookingsByStatus": null,
+  "avgBookingsPerDay": null,
   "bookingsPerDay": null,
+  "cancellationRate": null,
   "cancellationsPerDay": null,
-  "distinctCustomers": null,
   "endDate": null,
-  "guestVsRegistered": null,
-  "medianLeadTimeHours": null,
-  "partyCapacity": null,
-  "peakDays": null,
-  "peakHours": null,
-  "rejectionsPerDay": null,
-  "repeatCustomers": null,
-  "slotUtilizationPercent": null,
   "startDate": null,
-  "topAppointments": null,
   "totalAppointments": null,
   "totalBookings": null,
+  "totalCancellations": null,
 } satisfies ResponsesAnalyticsResponse
 
 console.log(example)

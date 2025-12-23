@@ -65,10 +65,10 @@ export function SlotPicker({ slots, selected, onSelect }: SlotPickerProps) {
         header="Pick a time"
         visible={open}
         onHide={() => setOpen(false)}
-        className="slot-dialog"
-        contentClassName="slot-dialog-content"
+        className="w-full max-w-lg"
+        contentClassName="!p-0"
       >
-        <div className="slot-dialog-list">
+        <div className="grid gap-2 max-h-80 overflow-y-auto p-2">
           {options.map(option => {
             const active = option.value === selectedKey;
             const lowSpots = option.spots <= 2;
@@ -76,13 +76,17 @@ export function SlotPicker({ slots, selected, onSelect }: SlotPickerProps) {
               <button
                 key={option.value}
                 type="button"
-                className={['slot-dialog-item', active ? 'is-active' : ''].filter(Boolean).join(' ')}
+                className={[
+                  'w-full rounded-xl border px-3 py-2 text-left bg-[var(--bg)] text-[var(--text)] transition',
+                  'hover:border-[color-mix(in_oklab,var(--primary)_35%,var(--border))] hover:bg-[color-mix(in_oklab,var(--primary)_8%,var(--bg))]',
+                  active ? 'border-[var(--primary)] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]' : 'border-[var(--border)]',
+                ].join(' ')}
                 onClick={() => handleSelect(option.slot)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', width: '100%' }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 600 }}>{option.label}</div>
-                    <small style={{ color: 'var(--text-muted)' }}>{option.spots === 1 ? '1 spot left' : `${option.spots} spots left`}</small>
+                <div className="flex items-center gap-3 justify-between w-full">
+                  <div className="text-left">
+                    <div className="font-semibold">{option.label}</div>
+                    <small className="text-xs text-[var(--text-muted)]">{option.spots === 1 ? '1 spot left' : `${option.spots} spots left`}</small>
                   </div>
                   <Badge tone={lowSpots ? 'danger' : 'primary'}>{lowSpots ? 'Filling' : 'Available'}</Badge>
                 </div>

@@ -15,32 +15,41 @@
 
 import * as runtime from '../runtime';
 import type {
-  ErrorsAPIErrorResponse,
+  RequestsChangePasswordRequest,
   RequestsDeviceTokenRequest,
+  RequestsForgotPasswordRequest,
   RequestsLoginRequest,
   RequestsRefreshTokenRequest,
   RequestsResendVerificationRequest,
+  RequestsResetPasswordRequest,
   RequestsUserRequest,
   RequestsVerificationRequest,
+  ResponsesAPIErrorResponse,
   ResponsesLoginResponse,
   ResponsesSimpleMessage,
   ResponsesTokenResponse,
 } from '../models/index';
 import {
-    ErrorsAPIErrorResponseFromJSON,
-    ErrorsAPIErrorResponseToJSON,
+    RequestsChangePasswordRequestFromJSON,
+    RequestsChangePasswordRequestToJSON,
     RequestsDeviceTokenRequestFromJSON,
     RequestsDeviceTokenRequestToJSON,
+    RequestsForgotPasswordRequestFromJSON,
+    RequestsForgotPasswordRequestToJSON,
     RequestsLoginRequestFromJSON,
     RequestsLoginRequestToJSON,
     RequestsRefreshTokenRequestFromJSON,
     RequestsRefreshTokenRequestToJSON,
     RequestsResendVerificationRequestFromJSON,
     RequestsResendVerificationRequestToJSON,
+    RequestsResetPasswordRequestFromJSON,
+    RequestsResetPasswordRequestToJSON,
     RequestsUserRequestFromJSON,
     RequestsUserRequestToJSON,
     RequestsVerificationRequestFromJSON,
     RequestsVerificationRequestToJSON,
+    ResponsesAPIErrorResponseFromJSON,
+    ResponsesAPIErrorResponseToJSON,
     ResponsesLoginResponseFromJSON,
     ResponsesLoginResponseToJSON,
     ResponsesSimpleMessageFromJSON,
@@ -49,8 +58,16 @@ import {
     ResponsesTokenResponseToJSON,
 } from '../models/index';
 
+export interface ChangePasswordRequest {
+    request: RequestsChangePasswordRequest;
+}
+
 export interface CreateUserRequest {
     user: RequestsUserRequest;
+}
+
+export interface ForgotPasswordRequest {
+    request: RequestsForgotPasswordRequest;
 }
 
 export interface GenerateDeviceTokenRequest {
@@ -69,6 +86,10 @@ export interface ResendVerificationRequest {
     resend: RequestsResendVerificationRequest;
 }
 
+export interface ResetPasswordRequest {
+    request: RequestsResetPasswordRequest;
+}
+
 export interface VerifyRegistrationRequest {
     verification: RequestsVerificationRequest;
 }
@@ -77,6 +98,47 @@ export interface VerifyRegistrationRequest {
  * 
  */
 export class AuthenticationApi extends runtime.BaseAPI {
+
+    /**
+     * Change password for authenticated user.
+     * Change Password
+     */
+    async changePasswordRaw(requestParameters: ChangePasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>> {
+        if (requestParameters['request'] == null) {
+            throw new runtime.RequiredError(
+                'request',
+                'Required parameter "request" was null or undefined when calling changePassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/change-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestsChangePasswordRequestToJSON(requestParameters['request']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
+    }
+
+    /**
+     * Change password for authenticated user.
+     * Change Password
+     */
+    async changePassword(requestParameters: ChangePasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
+        const response = await this.changePasswordRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Register a new user in the system. This will trigger an email verification.
@@ -116,6 +178,47 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async createUser(requestParameters: CreateUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
         const response = await this.createUserRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Request a password reset email.
+     * Forgot Password
+     */
+    async forgotPasswordRaw(requestParameters: ForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>> {
+        if (requestParameters['request'] == null) {
+            throw new runtime.RequiredError(
+                'request',
+                'Required parameter "request" was null or undefined when calling forgotPassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/forgot-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestsForgotPasswordRequestToJSON(requestParameters['request']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
+    }
+
+    /**
+     * Request a password reset email.
+     * Forgot Password
+     */
+    async forgotPassword(requestParameters: ForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
+        const response = await this.forgotPasswordRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -311,6 +414,47 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async resendVerification(requestParameters: ResendVerificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
         const response = await this.resendVerificationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reset password using a valid token.
+     * Reset Password
+     */
+    async resetPasswordRaw(requestParameters: ResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>> {
+        if (requestParameters['request'] == null) {
+            throw new runtime.RequiredError(
+                'request',
+                'Required parameter "request" was null or undefined when calling resetPassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/reset-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestsResetPasswordRequestToJSON(requestParameters['request']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponsesSimpleMessageFromJSON(jsonValue));
+    }
+
+    /**
+     * Reset password using a valid token.
+     * Reset Password
+     */
+    async resetPassword(requestParameters: ResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage> {
+        const response = await this.resetPasswordRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -4,14 +4,88 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**changePassword**](AuthenticationApi.md#changepassword) | **POST** /auth/change-password | Change Password |
 | [**createUser**](AuthenticationApi.md#createuser) | **POST** /users | Create a new user (initiate registration) |
+| [**forgotPassword**](AuthenticationApi.md#forgotpassword) | **POST** /auth/forgot-password | Forgot Password |
 | [**generateDeviceToken**](AuthenticationApi.md#generatedevicetoken) | **POST** /auth/device-token | Generate Device Token |
 | [**loginUser**](AuthenticationApi.md#loginuser) | **POST** /login | User Login |
 | [**logoutUser**](AuthenticationApi.md#logoutuser) | **POST** /logout | User Logout |
 | [**refreshToken**](AuthenticationApi.md#refreshtoken) | **POST** /auth/refresh | Refresh access token |
 | [**resendVerification**](AuthenticationApi.md#resendverification) | **POST** /auth/resend-verification | Resend verification code |
+| [**resetPassword**](AuthenticationApi.md#resetpassword) | **POST** /auth/reset-password | Reset Password |
 | [**verifyRegistration**](AuthenticationApi.md#verifyregistration) | **POST** /auth/verify-registration | Verify user registration |
 
+
+
+## changePassword
+
+> ResponsesSimpleMessage changePassword(request)
+
+Change Password
+
+Change password for authenticated user.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { ChangePasswordRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthenticationApi();
+
+  const body = {
+    // RequestsChangePasswordRequest | Old and New Password
+    request: ...,
+  } satisfies ChangePasswordRequest;
+
+  try {
+    const data = await api.changePassword(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **request** | [RequestsChangePasswordRequest](RequestsChangePasswordRequest.md) | Old and New Password | |
+
+### Return type
+
+[**ResponsesSimpleMessage**](ResponsesSimpleMessage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Invalid request body or validation error |  -  |
+| **401** | Unauthorized |  -  |
+| **422** | Incorrect old password |  -  |
+| **500** | Could not change password |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## createUser
@@ -79,6 +153,75 @@ No authorization required
 | **202** | Accepted |  -  |
 | **400** | Invalid request payload or validation error |  -  |
 | **500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## forgotPassword
+
+> ResponsesSimpleMessage forgotPassword(request)
+
+Forgot Password
+
+Request a password reset email.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { ForgotPasswordRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthenticationApi();
+
+  const body = {
+    // RequestsForgotPasswordRequest | Email
+    request: ...,
+  } satisfies ForgotPasswordRequest;
+
+  try {
+    const data = await api.forgotPassword(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **request** | [RequestsForgotPasswordRequest](RequestsForgotPasswordRequest.md) | Email | |
+
+### Return type
+
+[**ResponsesSimpleMessage**](ResponsesSimpleMessage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Invalid request body or validation error |  -  |
+| **500** | Could not initiate password reset |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -419,6 +562,76 @@ No authorization required
 | **404** | Pending registration not found |  -  |
 | **409** | Account already verified |  -  |
 | **500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## resetPassword
+
+> ResponsesSimpleMessage resetPassword(request)
+
+Reset Password
+
+Reset password using a valid token.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { ResetPasswordRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthenticationApi();
+
+  const body = {
+    // RequestsResetPasswordRequest | Token and New Password
+    request: ...,
+  } satisfies ResetPasswordRequest;
+
+  try {
+    const data = await api.resetPassword(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **request** | [RequestsResetPasswordRequest](RequestsResetPasswordRequest.md) | Token and New Password | |
+
+### Return type
+
+[**ResponsesSimpleMessage**](ResponsesSimpleMessage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Invalid request body or validation error |  -  |
+| **422** | Invalid or expired reset token |  -  |
+| **500** | Could not reset password |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

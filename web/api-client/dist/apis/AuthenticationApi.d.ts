@@ -10,9 +10,15 @@
  * Do not edit the class manually.
  */
 import * as runtime from '../runtime';
-import type { RequestsDeviceTokenRequest, RequestsLoginRequest, RequestsResendVerificationRequest, RequestsUserRequest, RequestsVerificationRequest, ResponsesLoginResponse, ResponsesSimpleMessage } from '../models/index';
+import type { RequestsChangePasswordRequest, RequestsDeviceTokenRequest, RequestsForgotPasswordRequest, RequestsLoginRequest, RequestsRefreshTokenRequest, RequestsResendVerificationRequest, RequestsResetPasswordRequest, RequestsUserRequest, RequestsVerificationRequest, ResponsesLoginResponse, ResponsesSimpleMessage, ResponsesTokenResponse } from '../models/index';
+export interface ChangePasswordRequest {
+    request: RequestsChangePasswordRequest;
+}
 export interface CreateUserRequest {
     user: RequestsUserRequest;
+}
+export interface ForgotPasswordRequest {
+    request: RequestsForgotPasswordRequest;
 }
 export interface GenerateDeviceTokenRequest {
     device: RequestsDeviceTokenRequest;
@@ -20,8 +26,14 @@ export interface GenerateDeviceTokenRequest {
 export interface LoginUserRequest {
     login: RequestsLoginRequest;
 }
+export interface RefreshTokenRequest {
+    refresh: RequestsRefreshTokenRequest;
+}
 export interface ResendVerificationRequest {
     resend: RequestsResendVerificationRequest;
+}
+export interface ResetPasswordRequest {
+    request: RequestsResetPasswordRequest;
 }
 export interface VerifyRegistrationRequest {
     verification: RequestsVerificationRequest;
@@ -30,6 +42,16 @@ export interface VerifyRegistrationRequest {
  *
  */
 export declare class AuthenticationApi extends runtime.BaseAPI {
+    /**
+     * Change password for authenticated user.
+     * Change Password
+     */
+    changePasswordRaw(requestParameters: ChangePasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>>;
+    /**
+     * Change password for authenticated user.
+     * Change Password
+     */
+    changePassword(requestParameters: ChangePasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
     /**
      * Register a new user in the system. This will trigger an email verification.
      * Create a new user (initiate registration)
@@ -40,6 +62,16 @@ export declare class AuthenticationApi extends runtime.BaseAPI {
      * Create a new user (initiate registration)
      */
     createUser(requestParameters: CreateUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
+    /**
+     * Request a password reset email.
+     * Forgot Password
+     */
+    forgotPasswordRaw(requestParameters: ForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>>;
+    /**
+     * Request a password reset email.
+     * Forgot Password
+     */
+    forgotPassword(requestParameters: ForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
     /**
      * Generate a short-lived token for a given device ID to be used in booking requests.
      * Generate Device Token
@@ -75,6 +107,16 @@ export declare class AuthenticationApi extends runtime.BaseAPI {
      */
     logoutUser(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
     /**
+     * Exchange a refresh token for a new access token
+     * Refresh access token
+     */
+    refreshTokenRaw(requestParameters: RefreshTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesTokenResponse>>;
+    /**
+     * Exchange a refresh token for a new access token
+     * Refresh access token
+     */
+    refreshToken(requestParameters: RefreshTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesTokenResponse>;
+    /**
      * Resend a verification code for a pending user registration.
      * Resend verification code
      */
@@ -84,6 +126,16 @@ export declare class AuthenticationApi extends runtime.BaseAPI {
      * Resend verification code
      */
     resendVerification(requestParameters: ResendVerificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
+    /**
+     * Reset password using a valid token.
+     * Reset Password
+     */
+    resetPasswordRaw(requestParameters: ResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponsesSimpleMessage>>;
+    /**
+     * Reset password using a valid token.
+     * Reset Password
+     */
+    resetPassword(requestParameters: ResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponsesSimpleMessage>;
     /**
      * Verify a user\'s email address with a code to complete registration.
      * Verify user registration

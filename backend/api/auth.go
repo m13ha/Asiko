@@ -18,10 +18,10 @@ import (
 // @Produce  application/json
 // @Param   login  body   requests.LoginRequest  true  "Login Credentials"
 // @Success 200 {object} responses.LoginResponse
-// @Success 202 {object} errors.APIErrorResponse "Registration pending verification"
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request body or validation error"
-// @Failure 401 {object} errors.APIErrorResponse "Invalid email or password"
-// @Failure 500 {object} errors.APIErrorResponse "Could not generate token"
+// @Success 202 {object} responses.APIErrorResponse "Registration pending verification"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} responses.APIErrorResponse "Invalid email or password"
+// @Failure 500 {object} responses.APIErrorResponse "Could not generate token"
 // @Router /login [post]
 // @ID loginUser
 func (h *Handler) Login(c *gin.Context) {
@@ -85,9 +85,9 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Produce  application/json
 // @Param   refresh body requests.RefreshTokenRequest true "Refresh token"
 // @Success 200 {object} responses.TokenResponse
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request body or validation error"
-// @Failure 401 {object} errors.APIErrorResponse "Invalid refresh token"
-// @Failure 500 {object} errors.APIErrorResponse "Could not generate token"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} responses.APIErrorResponse "Invalid refresh token"
+// @Failure 500 {object} responses.APIErrorResponse "Could not generate token"
 // @Router /auth/refresh [post]
 // @ID refreshToken
 func (h *Handler) Refresh(c *gin.Context) {
@@ -134,8 +134,8 @@ func (h *Handler) Refresh(c *gin.Context) {
 // @Produce  application/json
 // @Param   device   body   requests.DeviceTokenRequest  true  "Device ID"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} errors.APIErrorResponse "Invalid request body or validation error"
-// @Failure 500 {object} errors.APIErrorResponse "Could not generate token"
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request body or validation error"
+// @Failure 500 {object} responses.APIErrorResponse "Could not generate token"
 // @Router /auth/device-token [post]
 // @ID generateDeviceToken
 func (h *Handler) GenerateDeviceTokenHandler(c *gin.Context) {

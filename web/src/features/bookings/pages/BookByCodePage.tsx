@@ -6,18 +6,17 @@ import { useAvailableSlots, useAvailableSlotsByDay, useBookGuest, useBookRegiste
 import { SlotPicker } from '../components/SlotPicker';
 import { BookingForm, BookingFormValues } from '../components/BookingForm';
 import { BookingSummary } from '../components/BookingSummary';
-import { useAuth } from '@/features/auth/AuthProvider';
+import { useIsAuthed } from '@/stores/authStore';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Field, FieldLabel, FieldRow, IconSlot } from '@/components/Field';
 import { SuccessBurst } from '@/components/SuccessBurst';
 import type { EntitiesBooking, EntitiesAntiScalpingLevel } from '@appointment-master/api-client';
-import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
+import { GroupedDayPicker } from '../components/GroupedDayPicker';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/Badge';
 import { useAppointmentByAppCode } from '@/features/appointments/hooks';
 import { useDeviceToken } from '@/features/auth/hooks';
 import FingerprintJS from '@sparkstone/fingerprintjs';
-import './bookingSteps.css';
 
 function normalizeDateOnly(value?: string | null) {
   if (!value) return null;
@@ -44,7 +43,7 @@ export function BookByCodePage() {
   const [registeredCount, setRegisteredCount] = useState(1);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const isValidCode = appCode.trim().length > 0;
-  const { isAuthed } = useAuth();
+  const isAuthed = useIsAuthed();
   const navigate = useNavigate();
 
   // Fetch appointment details to check anti-scalping level
@@ -229,42 +228,54 @@ export function BookByCodePage() {
   };
 
   return (
-    <div style={{ maxWidth: 960, margin: '24px auto', display: 'grid', gap: 16, padding: '0 12px' }}>
+    <div className="max-w-4xl mx-auto my-6 grid gap-4 px-3">
       <Card>
         <CardHeader>
           <CardTitle>Book an appointment</CardTitle>
         </CardHeader>
 
-        <ol className="stepper" aria-label="Booking steps">
-          <li className={step >= 1 ? 'stepper__item is-active' : 'stepper__item'}>
-            <span className="stepper__dot" aria-hidden="true" />
-            <span className="stepper__label">Code</span>
+        <ol className="flex gap-3 px-3 py-2 mb-3 list-none rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] overflow-x-auto" aria-label="Booking steps">
+          <li className={`inline-flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap ${step >= 1 ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
+            <span
+              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${step >= 1 ? 'bg-[var(--primary)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]' : 'bg-[var(--border)]'}`}
+              aria-hidden="true"
+            />
+            <span className="hidden sm:inline">Code</span>
           </li>
-          <li className={step >= 2 ? 'stepper__item is-active' : 'stepper__item'}>
-            <span className="stepper__dot" aria-hidden="true" />
-            <span className="stepper__label">Day</span>
+          <li className={`inline-flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap ${step >= 2 ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
+            <span
+              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${step >= 2 ? 'bg-[var(--primary)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]' : 'bg-[var(--border)]'}`}
+              aria-hidden="true"
+            />
+            <span className="hidden sm:inline">Day</span>
           </li>
-          <li className={step >= 3 ? 'stepper__item is-active' : 'stepper__item'}>
-            <span className="stepper__dot" aria-hidden="true" />
-            <span className="stepper__label">Time</span>
+          <li className={`inline-flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap ${step >= 3 ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
+            <span
+              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${step >= 3 ? 'bg-[var(--primary)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]' : 'bg-[var(--border)]'}`}
+              aria-hidden="true"
+            />
+            <span className="hidden sm:inline">Time</span>
           </li>
-          <li className={step >= 4 ? 'stepper__item is-active' : 'stepper__item'}>
-            <span className="stepper__dot" aria-hidden="true" />
-            <span className="stepper__label">Review</span>
+          <li className={`inline-flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap ${step >= 4 ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
+            <span
+              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${step >= 4 ? 'bg-[var(--primary)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_18%,transparent)]' : 'bg-[var(--border)]'}`}
+              aria-hidden="true"
+            />
+            <span className="hidden sm:inline">Review</span>
           </li>
         </ol>
 
-        <div className="booking-step-grid">
-          <div className="booking-step-card">
+        <div className="grid gap-4">
+          <div className="grid gap-4">
             {step === 1 && (
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div className="grid gap-3">
                 <Field>
                   <FieldLabel>Appointment code</FieldLabel>
-                  <small style={{ color: 'var(--text-muted)' }}>Enter the code shared by the host.</small>
+                  <small className="text-[var(--text-muted)]">Enter the code shared by the host.</small>
                   <FieldRow>
-                    <div style={{ position: 'relative', flex: 1 }}>
+                    <div className="relative flex-1">
                       <IconSlot><i className="pi pi-hashtag" aria-hidden="true" /></IconSlot>
-                      <Input value={appCode} onChange={(e) => setAppCode(e.target.value)} placeholder="AP-XXXXX" style={{ paddingLeft: 36 }} />
+                      <Input value={appCode} onChange={(e) => setAppCode(e.target.value)} placeholder="AP-XXXXX" className="pl-9" />
                     </div>
                     <Button
                       variant="primary"
@@ -277,7 +288,7 @@ export function BookByCodePage() {
                   </FieldRow>
                 </Field>
                 {(appointmentDetails.isFetching || generateDeviceToken.isPending) && (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div className="py-5 text-center">
                     <div>Checking appointment details...</div>
                   </div>
                 )}
@@ -285,23 +296,23 @@ export function BookByCodePage() {
             )}
 
             {step === 2 && (
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div className="grid gap-3">
                 <Field>
                   <FieldLabel>Pick a day</FieldLabel>
-                  <small style={{ color: 'var(--text-muted)' }}>Available days are highlighted. Tap to see times.</small>
+                  <small className="text-[var(--text-muted)]">Available days are highlighted. Tap to see times.</small>
                 </Field>
                 {allSlots.isFetching && <div>Loading availability...</div>}
-                {allSlots.error && <div style={{ color: 'var(--danger)' }}>Failed to load availability.</div>}
+                {allSlots.error && <div className="text-red-500">Failed to load availability.</div>}
                 {(appointmentDetails.isFetching || generateDeviceToken.isPending) && (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div className="py-5 text-center">
                     <div>Preparing booking options...</div>
                   </div>
                 )}
                 {!allSlots.isFetching && !allSlots.error && !availableDates.length && (
-                  <div style={{ color: 'var(--text-muted)' }}>No open days for this code.</div>
+                  <div className="text-[var(--text-muted)]">No open days for this code.</div>
                 )}
                 {availableDates.length > 0 && !appointmentDetails.isFetching && !generateDeviceToken.isPending && (
-                  <AvailabilityCalendar
+                  <GroupedDayPicker
                     availableDates={availableDates}
                     selectedDate={date}
                     onSelect={(selected) => {
@@ -316,11 +327,11 @@ export function BookByCodePage() {
             )}
 
             {step === 3 && (
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div className="grid gap-3">
                 <Field>
                   <FieldLabel>Selected day</FieldLabel>
-                  <div className="selected-day-card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2">
+                    <div className="flex items-center gap-2 text-[var(--text)]">
                       <Badge tone="primary">Day</Badge>
                       <div>{date ? formatSelectedDay(date) : 'Choose a day'}</div>
                     </div>
@@ -329,13 +340,13 @@ export function BookByCodePage() {
                 </Field>
                 <Field>
                   <FieldLabel>Time</FieldLabel>
-                  <div className="selected-slot-card">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2">
                     {slot ? formatSlotSummary(slot) : 'No time selected'}
                   </div>
                   {slots.isFetching && <div>Loading slots...</div>}
-                  {slots.error && <div style={{ color: 'var(--danger)' }}>Failed to load slots.</div>}
+                  {slots.error && <div className="text-red-500">Failed to load slots.</div>}
                   {(appointmentDetails.isFetching || generateDeviceToken.isPending) && (
-                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div className="py-5 text-center">
                       <div>Preparing booking options...</div>
                     </div>
                   )}
@@ -357,14 +368,14 @@ export function BookByCodePage() {
             )}
 
             {step === 4 && (
-              <div style={{ display: 'grid', gap: 16 }}>
+              <div className="grid gap-4">
                 <BookingSummary appCode={appCode} date={date} startTime={slot?.startTime || ''} endTime={slot?.endTime || ''} attendeeCount={isAuthed ? registeredCount : undefined} />
                 {isAuthed ? (
-                  <div style={{ display: 'grid', gap: 12 }}>
+                  <div className="grid gap-3">
                     <Field>
                       <FieldLabel>Attendees</FieldLabel>
                       <FieldRow>
-                        <div style={{ position: 'relative' }}>
+                        <div className="relative">
                           <IconSlot><i className="pi pi-users" aria-hidden="true" /></IconSlot>
                           <Input
                             type="number"
@@ -372,11 +383,11 @@ export function BookByCodePage() {
                             max={spotsRemaining || 1}
                             value={String(registeredCount)}
                             onChange={(e) => setRegisteredCount(Math.max(1, Math.min(Number(e.target.value) || 1, spotsRemaining || 1)))}
-                            style={{ paddingLeft: 36 }}
+                            className="pl-9"
                           />
                         </div>
                       </FieldRow>
-                      <small style={{ color: 'var(--text-muted)' }}>{spotsRemaining === 1 ? '1 spot left' : `${spotsRemaining} spots left`}</small>
+                      <small className="text-[var(--text-muted)]">{spotsRemaining === 1 ? '1 spot left' : `${spotsRemaining} spots left`}</small>
                     </Field>
                     <Button variant="primary" onClick={onSubmitRegistered} disabled={bookReg.isPending || spotsRemaining < 1} size="lg" fullWidth>Confirm booking</Button>
                   </div>
@@ -394,8 +405,8 @@ export function BookByCodePage() {
           <CardHeader>
             <CardTitle>Want to create appointments?</CardTitle>
           </CardHeader>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <p style={{ margin: 0, color: 'var(--text)' }}>
+          <div className="grid gap-3">
+            <p className="m-0 text-[var(--text)]">
               Register an account to set up your own appointment codes, manage bookings, and access analytics.
             </p>
             <Button variant="primary" onClick={() => navigate('/signup')}>
@@ -423,5 +434,3 @@ function formatSlotSummary(slot?: EntitiesBooking | null) {
   const end = new Date(slot.endTime as string);
   return `${format(start, 'p')} – ${format(end, 'p')}`;
 }
-
-

@@ -13,20 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-import type { ResponsesAnalyticsResponsePartyCapacity } from './ResponsesAnalyticsResponsePartyCapacity';
-import {
-    ResponsesAnalyticsResponsePartyCapacityFromJSON,
-    ResponsesAnalyticsResponsePartyCapacityFromJSONTyped,
-    ResponsesAnalyticsResponsePartyCapacityToJSON,
-    ResponsesAnalyticsResponsePartyCapacityToJSONTyped,
-} from './ResponsesAnalyticsResponsePartyCapacity';
-import type { ResponsesBucketCount } from './ResponsesBucketCount';
-import {
-    ResponsesBucketCountFromJSON,
-    ResponsesBucketCountFromJSONTyped,
-    ResponsesBucketCountToJSON,
-    ResponsesBucketCountToJSONTyped,
-} from './ResponsesBucketCount';
 import type { ResponsesTimeSeriesPoint } from './ResponsesTimeSeriesPoint';
 import {
     ResponsesTimeSeriesPointFromJSON,
@@ -34,13 +20,6 @@ import {
     ResponsesTimeSeriesPointToJSON,
     ResponsesTimeSeriesPointToJSONTyped,
 } from './ResponsesTimeSeriesPoint';
-import type { ResponsesTopAppointment } from './ResponsesTopAppointment';
-import {
-    ResponsesTopAppointmentFromJSON,
-    ResponsesTopAppointmentFromJSONTyped,
-    ResponsesTopAppointmentToJSON,
-    ResponsesTopAppointmentToJSONTyped,
-} from './ResponsesTopAppointment';
 
 /**
  * 
@@ -49,35 +28,23 @@ import {
  */
 export interface ResponsesAnalyticsResponse {
     /**
-     * Breakdowns
-     * @type {{ [key: string]: number; }}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    appointmentsByType?: { [key: string]: number; };
-    /**
-     * 
+     * derived from total bookings / days in range
      * @type {number}
      * @memberof ResponsesAnalyticsResponse
      */
-    avgAttendeesPerBooking?: number;
-    /**
-     * Timing
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    avgLeadTimeHours?: number;
-    /**
-     * 
-     * @type {{ [key: string]: number; }}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    bookingsByStatus?: { [key: string]: number; };
+    avgBookingsPerDay?: number;
     /**
      * Time series
      * @type {Array<ResponsesTimeSeriesPoint>}
      * @memberof ResponsesAnalyticsResponse
      */
     bookingsPerDay?: Array<ResponsesTimeSeriesPoint>;
+    /**
+     * percent 0-100
+     * @type {number}
+     * @memberof ResponsesAnalyticsResponse
+     */
+    cancellationRate?: number;
     /**
      * 
      * @type {Array<ResponsesTimeSeriesPoint>}
@@ -86,76 +53,16 @@ export interface ResponsesAnalyticsResponse {
     cancellationsPerDay?: Array<ResponsesTimeSeriesPoint>;
     /**
      * 
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    distinctCustomers?: number;
-    /**
-     * 
      * @type {string}
      * @memberof ResponsesAnalyticsResponse
      */
     endDate?: string;
     /**
      * 
-     * @type {{ [key: string]: number; }}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    guestVsRegistered?: { [key: string]: number; };
-    /**
-     * 
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    medianLeadTimeHours?: number;
-    /**
-     * 
-     * @type {ResponsesAnalyticsResponsePartyCapacity}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    partyCapacity?: ResponsesAnalyticsResponsePartyCapacity;
-    /**
-     * 
-     * @type {Array<ResponsesBucketCount>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    peakDays?: Array<ResponsesBucketCount>;
-    /**
-     * Insights
-     * @type {Array<ResponsesBucketCount>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    peakHours?: Array<ResponsesBucketCount>;
-    /**
-     * 
-     * @type {Array<ResponsesTimeSeriesPoint>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    rejectionsPerDay?: Array<ResponsesTimeSeriesPoint>;
-    /**
-     * 
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    repeatCustomers?: number;
-    /**
-     * Utilization & Capacity
-     * @type {number}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    slotUtilizationPercent?: number;
-    /**
-     * 
      * @type {string}
      * @memberof ResponsesAnalyticsResponse
      */
     startDate?: string;
-    /**
-     * 
-     * @type {Array<ResponsesTopAppointment>}
-     * @memberof ResponsesAnalyticsResponse
-     */
-    topAppointments?: Array<ResponsesTopAppointment>;
     /**
      * Summary
      * @type {number}
@@ -168,6 +75,12 @@ export interface ResponsesAnalyticsResponse {
      * @memberof ResponsesAnalyticsResponse
      */
     totalBookings?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ResponsesAnalyticsResponse
+     */
+    totalCancellations?: number;
 }
 
 /**
@@ -187,26 +100,15 @@ export function ResponsesAnalyticsResponseFromJSONTyped(json: any, ignoreDiscrim
     }
     return {
         
-        'appointmentsByType': json['appointments_by_type'] == null ? undefined : json['appointments_by_type'],
-        'avgAttendeesPerBooking': json['avg_attendees_per_booking'] == null ? undefined : json['avg_attendees_per_booking'],
-        'avgLeadTimeHours': json['avg_lead_time_hours'] == null ? undefined : json['avg_lead_time_hours'],
-        'bookingsByStatus': json['bookings_by_status'] == null ? undefined : json['bookings_by_status'],
+        'avgBookingsPerDay': json['avg_bookings_per_day'] == null ? undefined : json['avg_bookings_per_day'],
         'bookingsPerDay': json['bookings_per_day'] == null ? undefined : ((json['bookings_per_day'] as Array<any>).map(ResponsesTimeSeriesPointFromJSON)),
+        'cancellationRate': json['cancellation_rate'] == null ? undefined : json['cancellation_rate'],
         'cancellationsPerDay': json['cancellations_per_day'] == null ? undefined : ((json['cancellations_per_day'] as Array<any>).map(ResponsesTimeSeriesPointFromJSON)),
-        'distinctCustomers': json['distinct_customers'] == null ? undefined : json['distinct_customers'],
         'endDate': json['end_date'] == null ? undefined : json['end_date'],
-        'guestVsRegistered': json['guest_vs_registered'] == null ? undefined : json['guest_vs_registered'],
-        'medianLeadTimeHours': json['median_lead_time_hours'] == null ? undefined : json['median_lead_time_hours'],
-        'partyCapacity': json['party_capacity'] == null ? undefined : ResponsesAnalyticsResponsePartyCapacityFromJSON(json['party_capacity']),
-        'peakDays': json['peak_days'] == null ? undefined : ((json['peak_days'] as Array<any>).map(ResponsesBucketCountFromJSON)),
-        'peakHours': json['peak_hours'] == null ? undefined : ((json['peak_hours'] as Array<any>).map(ResponsesBucketCountFromJSON)),
-        'rejectionsPerDay': json['rejections_per_day'] == null ? undefined : ((json['rejections_per_day'] as Array<any>).map(ResponsesTimeSeriesPointFromJSON)),
-        'repeatCustomers': json['repeat_customers'] == null ? undefined : json['repeat_customers'],
-        'slotUtilizationPercent': json['slot_utilization_percent'] == null ? undefined : json['slot_utilization_percent'],
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
-        'topAppointments': json['top_appointments'] == null ? undefined : ((json['top_appointments'] as Array<any>).map(ResponsesTopAppointmentFromJSON)),
         'totalAppointments': json['total_appointments'] == null ? undefined : json['total_appointments'],
         'totalBookings': json['total_bookings'] == null ? undefined : json['total_bookings'],
+        'totalCancellations': json['total_cancellations'] == null ? undefined : json['total_cancellations'],
     };
 }
 
@@ -221,26 +123,15 @@ export function ResponsesAnalyticsResponseToJSONTyped(value?: ResponsesAnalytics
 
     return {
         
-        'appointments_by_type': value['appointmentsByType'],
-        'avg_attendees_per_booking': value['avgAttendeesPerBooking'],
-        'avg_lead_time_hours': value['avgLeadTimeHours'],
-        'bookings_by_status': value['bookingsByStatus'],
+        'avg_bookings_per_day': value['avgBookingsPerDay'],
         'bookings_per_day': value['bookingsPerDay'] == null ? undefined : ((value['bookingsPerDay'] as Array<any>).map(ResponsesTimeSeriesPointToJSON)),
+        'cancellation_rate': value['cancellationRate'],
         'cancellations_per_day': value['cancellationsPerDay'] == null ? undefined : ((value['cancellationsPerDay'] as Array<any>).map(ResponsesTimeSeriesPointToJSON)),
-        'distinct_customers': value['distinctCustomers'],
         'end_date': value['endDate'],
-        'guest_vs_registered': value['guestVsRegistered'],
-        'median_lead_time_hours': value['medianLeadTimeHours'],
-        'party_capacity': ResponsesAnalyticsResponsePartyCapacityToJSON(value['partyCapacity']),
-        'peak_days': value['peakDays'] == null ? undefined : ((value['peakDays'] as Array<any>).map(ResponsesBucketCountToJSON)),
-        'peak_hours': value['peakHours'] == null ? undefined : ((value['peakHours'] as Array<any>).map(ResponsesBucketCountToJSON)),
-        'rejections_per_day': value['rejectionsPerDay'] == null ? undefined : ((value['rejectionsPerDay'] as Array<any>).map(ResponsesTimeSeriesPointToJSON)),
-        'repeat_customers': value['repeatCustomers'],
-        'slot_utilization_percent': value['slotUtilizationPercent'],
         'start_date': value['startDate'],
-        'top_appointments': value['topAppointments'] == null ? undefined : ((value['topAppointments'] as Array<any>).map(ResponsesTopAppointmentToJSON)),
         'total_appointments': value['totalAppointments'],
         'total_bookings': value['totalBookings'],
+        'total_cancellations': value['totalCancellations'],
     };
 }
 

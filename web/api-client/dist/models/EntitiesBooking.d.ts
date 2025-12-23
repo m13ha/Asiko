@@ -40,29 +40,17 @@ export interface EntitiesBooking {
      */
     available?: boolean;
     /**
-     *
-     * @type {boolean}
+     * Permanent booking code for all bookings
+     * @type {string}
      * @memberof EntitiesBooking
      */
-    isSlot?: boolean;
+    bookingCode?: string;
     /**
      *
      * @type {number}
      * @memberof EntitiesBooking
      */
     capacity?: number;
-    /**
-     *
-     * @type {number}
-     * @memberof EntitiesBooking
-     */
-    seatsBooked?: number;
-    /**
-     * Permanent booking code for all bookings
-     * @type {string}
-     * @memberof EntitiesBooking
-     */
-    bookingCode?: string;
     /**
      *
      * @type {string}
@@ -107,6 +95,12 @@ export interface EntitiesBooking {
     id?: string;
     /**
      *
+     * @type {boolean}
+     * @memberof EntitiesBooking
+     */
+    isSlot?: boolean;
+    /**
+     *
      * @type {string}
      * @memberof EntitiesBooking
      */
@@ -129,6 +123,12 @@ export interface EntitiesBooking {
      * @memberof EntitiesBooking
      */
     phone?: string;
+    /**
+     *
+     * @type {number}
+     * @memberof EntitiesBooking
+     */
+    seatsBooked?: number;
     /**
      *
      * @type {string}
