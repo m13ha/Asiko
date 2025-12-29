@@ -97,7 +97,7 @@ export const AppointmentDetailsPanel = memo(function AppointmentDetailsPanel({
         <Badge tone="info" className="mb-1">
           {formattedType}
         </Badge>
-        <h2 className="text-xl font-bold text-[var(--text)] m-0 leading-tight">
+        <h2 className="text-xl font-bold text-[var(--text)] m-0 leading-tight break-words whitespace-normal">
           {appointment.title || 'Appointment'}
         </h2>
         {appointment.hostName && (

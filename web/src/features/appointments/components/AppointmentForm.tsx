@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { SyntheticEvent } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { differenceInCalendarDays, format } from 'date-fns';
+import { addDays, differenceInCalendarDays, differenceInMinutes, format } from 'date-fns';
 import { Stepper } from '@/components/Stepper';
 import { Input } from '@/components/Input';
 import { Textarea } from '@/components/Textarea';
@@ -54,6 +53,18 @@ const parseTimeOnly = (value?: string) => {
   return Number.isNaN(t.getTime()) ? null : t;
 };
 
+const combineDateTime = (date: Date, time: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate(), time.getHours(), time.getMinutes(), time.getSeconds(), time.getMilliseconds());
+
+const getDailyWindowMinutes = (startTime: Date, endTime: Date) => {
+  const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+  const endMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+  if (endMinutes > startMinutes) {
+    return endMinutes - startMinutes;
+  }
+  return 24 * 60 - startMinutes + endMinutes;
+};
+
 const schema = z
   .object({
     title: z.string().min(1, 'Please provide a title'),
@@ -93,20 +104,42 @@ const schema = z
 
     const startTime = parseTimeOnly(value.startTime);
     const endTime = parseTimeOnly(value.endTime);
-    if (startTime && endTime) {
-      if (endTime <= startTime) {
+    if (startDate && endDate && startTime && endTime) {
+      const startDateTime = combineDateTime(startDate, startTime);
+      const endDateTime = combineDateTime(endDate, endTime);
+
+      if (endDateTime <= startDateTime) {
         ctx.addIssue({
           path: ['endTime'],
           code: z.ZodIssueCode.custom,
           message: 'End time must be after start time',
         });
-      } else {
-        const windowMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
-        if (value.bookingDuration > windowMinutes) {
+      }
+
+      const dailyWindowMinutes = getDailyWindowMinutes(startTime, endTime);
+      if (value.type !== API.EntitiesAppointmentType.Party && value.bookingDuration > dailyWindowMinutes) {
+        ctx.addIssue({
+          path: ['bookingDuration'],
+          code: z.ZodIssueCode.custom,
+          message: 'Booking duration exceeds the daily time window',
+        });
+      }
+
+      if (value.type === API.EntitiesAppointmentType.Party) {
+        if (differenceInCalendarDays(endDate, startDate) > 1) {
           ctx.addIssue({
-            path: ['bookingDuration'],
+            path: ['endDate'],
             code: z.ZodIssueCode.custom,
-            message: 'Booking duration exceeds the daily time window',
+            message: 'Party appointments can only span one overnight window',
+          });
+        }
+
+        const fullWindowMinutes = differenceInMinutes(endDateTime, startDateTime);
+        if (fullWindowMinutes > 24 * 60) {
+          ctx.addIssue({
+            path: ['endDate'],
+            code: z.ZodIssueCode.custom,
+            message: 'Party appointments cannot exceed 24 hours',
           });
         }
       }
@@ -133,7 +166,17 @@ const antiScalpingOptions = [
   { label: 'Strict – owner approval', value: API.EntitiesAntiScalpingLevel.ScalpingStrict },
 ];
 
-export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: AppointmentFormValues) => void; pending?: boolean }) {
+export function AppointmentForm({
+  onSubmit,
+  pending,
+  initialValues,
+  submitLabel = 'Create appointment',
+}: {
+  onSubmit: (v: AppointmentFormValues) => void;
+  pending?: boolean;
+  initialValues?: Partial<AppointmentFormValues>;
+  submitLabel?: string;
+}) {
   const [currentStep, setCurrentStep] = useState(0);
   const {
     register,
@@ -143,12 +186,15 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
     watch,
     setValue,
     trigger,
+    reset,
   } = useForm<AppointmentFormValues>({
     resolver: zodResolver(schema),
+    shouldUnregister: false,
     defaultValues: {
       type: API.EntitiesAppointmentType.Single,
       bookingDuration: 30,
       antiScalpingLevel: API.EntitiesAntiScalpingLevel.ScalpingStandard,
+      ...initialValues,
     },
   });
 
@@ -161,10 +207,35 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
   const maxAttendees = watch('maxAttendees');
 
   useEffect(() => {
-    if (startDate && !endDate) {
-      setValue('endDate', startDate);
+    if (!initialValues) return;
+    reset({
+      type: API.EntitiesAppointmentType.Single,
+      bookingDuration: 30,
+      antiScalpingLevel: API.EntitiesAntiScalpingLevel.ScalpingStandard,
+      ...initialValues,
+    });
+  }, [initialValues, reset]);
+
+  useEffect(() => {
+    if (!startDate) return;
+    if (type !== API.EntitiesAppointmentType.Party) {
+      if (!endDate) {
+        setValue('endDate', startDate);
+      }
+      return;
     }
-  }, [startDate, endDate, setValue]);
+
+    const start = parseDateOnly(startDate);
+    if (!start) return;
+    const startClock = parseTimeOnly(startTime);
+    const endClock = parseTimeOnly(endTime);
+    const shouldOvernight = startClock && endClock ? getDailyWindowMinutes(startClock, endClock) > 0 && endClock <= startClock : false;
+    const targetEnd = shouldOvernight ? addDays(start, 1) : start;
+    const formatted = format(targetEnd, 'yyyy-MM-dd');
+    if (endDate !== formatted) {
+      setValue('endDate', formatted);
+    }
+  }, [startDate, endDate, startTime, endTime, type, setValue]);
 
   useEffect(() => {
     if (type === API.EntitiesAppointmentType.Single && maxAttendees) {
@@ -172,27 +243,46 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
     }
   }, [type, maxAttendees, setValue]);
 
+  useEffect(() => {
+    if (type !== API.EntitiesAppointmentType.Party) return;
+    const start = parseDateOnly(startDate);
+    const end = parseDateOnly(endDate);
+    const startClock = parseTimeOnly(startTime);
+    const endClock = parseTimeOnly(endTime);
+    if (!start || !end || !startClock || !endClock) return;
+    const windowMinutes = differenceInMinutes(combineDateTime(end, endClock), combineDateTime(start, startClock));
+    if (windowMinutes > 0 && bookingDuration !== windowMinutes) {
+      setValue('bookingDuration', windowMinutes);
+    }
+  }, [type, startDate, endDate, startTime, endTime, bookingDuration, setValue]);
+
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
   const labelClass = 'text-sm font-semibold text-[var(--text)]';
   const inputClass = 'pl-10 py-2.5 text-sm w-full';
-  const selectInputClass = 'pl-10 py-2.5 text-sm';
   const textareaClass = 'w-full min-h-[120px] border p-3 text-sm';
   
   const timeValue = (value?: string) => parseTimeOnly(value);
   const toTimeString = (value: Date | null) => (value ? format(value, 'HH:mm') : '');
+  const sameDay = Boolean(startDate && endDate && startDate === endDate);
 
   const summary = useMemo(() => {
     if (!startDate || !endDate || !startTime || !endTime || !bookingDuration) {
       return { days: null, windowMinutes: null, slotsPerDay: null };
     }
 
-    const days = differenceInCalendarDays(new Date(`${endDate}T00:00:00Z`), new Date(`${startDate}T00:00:00Z`)) + 1;
-    const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = new Date(`${startDate}T${endTime}`);
-    const windowMinutes = Math.max(0, (endDateTime.getTime() - startDateTime.getTime()) / 60000);
-    const slotsPerDay = windowMinutes > 0 ? Math.floor(windowMinutes / bookingDuration) : 0;
+    const start = parseDateOnly(startDate);
+    const end = parseDateOnly(endDate);
+    const startClock = parseTimeOnly(startTime);
+    const endClock = parseTimeOnly(endTime);
+    if (!start || !end || !startClock || !endClock) {
+      return { days: null, windowMinutes: null, slotsPerDay: null };
+    }
 
-    return { days, windowMinutes, slotsPerDay };
+    const days = differenceInCalendarDays(end, start) + 1;
+    const dailyWindowMinutes = getDailyWindowMinutes(startClock, endClock);
+    const slotsPerDay = dailyWindowMinutes > 0 ? Math.floor(dailyWindowMinutes / bookingDuration) : 0;
+
+    return { days, windowMinutes: dailyWindowMinutes, slotsPerDay };
   }, [startDate, endDate, startTime, endTime, bookingDuration]);
 
 
@@ -224,7 +314,7 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
         />
       </div>
 
-        {currentStep === 0 && (
+        <div className={currentStep === 0 ? 'block' : 'hidden'} aria-hidden={currentStep !== 0}>
           <FormSection>
             <div className="flex flex-col gap-1 mb-6">
               <SectionTitle>Basics</SectionTitle>
@@ -274,9 +364,9 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
             </FieldRow>
           </Field>
           </FormSection>
-        )}
+        </div>
 
-        {currentStep === 1 && (
+        <div className={currentStep === 1 ? 'block' : 'hidden'} aria-hidden={currentStep !== 1}>
           <FormSection>
             <div className="flex flex-col gap-1 mb-6">
               <SectionTitle>Schedule</SectionTitle>
@@ -313,16 +403,21 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
                     name="endDate"
                     control={control}
                     render={({ field }) => (
-                      <DatePicker
-                        value={field.value}
-                        onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
-                        placeholder="Select end date"
-                        disabled={!startDate}
-                        minDate={startDate}
-                        className="w-full"
-                      />
-                    )}
-                  />
+                        <DatePicker
+                          value={field.value}
+                          onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                          placeholder="Select end date"
+                          disabled={!startDate}
+                          minDate={startDate}
+                          maxDate={
+                            type === API.EntitiesAppointmentType.Party && startDate
+                              ? addDays(new Date(`${startDate}T00:00:00`), 1)
+                              : undefined
+                          }
+                          className="w-full"
+                        />
+                      )}
+                    />
                 </div>
               </FieldRow>
               {errors.endDate && <small className="text-red-500">{errors.endDate.message}</small>}
@@ -361,12 +456,12 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
                       name="endTime"
                       control={control}
                       render={({ field }) => (
-                        <TimePicker
+                      <TimePicker
                           value={timeValue(field.value)}
                           onChange={(value) => field.onChange(toTimeString(value))}
                           placeholder="Select end time"
                           disabled={!startTime}
-                          minTime={timeValue(startTime)}
+                          minTime={sameDay ? timeValue(startTime) : undefined}
                           className="w-full"
                         />
                       )}
@@ -377,19 +472,21 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
               </Field>
             </div>
 
-          <Field>
-            <FieldLabel className={labelClass}>Booking duration (minutes)</FieldLabel>
-            <FieldRow>
-              <IconSlot className="left-3"><i className="pi pi-stopwatch" aria-hidden="true" /></IconSlot>
-              <Input type="number" min={5} step={5} {...register('bookingDuration', { valueAsNumber: true })} className={inputClass} />
-            </FieldRow>
-            <Helper className="mt-1">Slot length determines how many bookings fit inside your daily window.</Helper>
-            {errors.bookingDuration && <small className="text-red-500">{errors.bookingDuration.message}</small>}
-          </Field>
+          {type !== API.EntitiesAppointmentType.Party && (
+            <Field>
+              <FieldLabel className={labelClass}>Booking duration (minutes)</FieldLabel>
+              <FieldRow>
+                <IconSlot className="left-3"><i className="pi pi-stopwatch" aria-hidden="true" /></IconSlot>
+                <Input type="number" min={5} step={5} {...register('bookingDuration', { valueAsNumber: true })} className={inputClass} />
+              </FieldRow>
+              <Helper className="mt-1">Slot length determines how many bookings fit inside your daily window.</Helper>
+              {errors.bookingDuration && <small className="text-red-500">{errors.bookingDuration.message}</small>}
+            </Field>
+          )}
           </FormSection>
-        )}
+        </div>
 
-        {currentStep === 2 && (
+        <div className={currentStep === 2 ? 'block' : 'hidden'} aria-hidden={currentStep !== 2}>
           <FormSection>
             <div className="flex flex-col gap-1 mb-6">
               <SectionTitle>Capacity & Rules</SectionTitle>
@@ -399,7 +496,9 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
             <div className="grid gap-6 md:grid-cols-2 mb-8">
               {(type === API.EntitiesAppointmentType.Group || type === API.EntitiesAppointmentType.Party) && (
                 <Field>
-                  <FieldLabel className={labelClass}>Max attendees per slot</FieldLabel>
+                  <FieldLabel className={labelClass}>
+                    {type === API.EntitiesAppointmentType.Party ? 'Total attendees for the party' : 'Max attendees per slot'}
+                  </FieldLabel>
                   <FieldRow>
                     <IconSlot className="left-3"><i className="pi pi-users" aria-hidden="true" /></IconSlot>
                     <Input type="number" min={1} {...register('maxAttendees', { valueAsNumber: true })} className={inputClass} placeholder="e.g. 5" />
@@ -450,21 +549,29 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
                   {summary.windowMinutes ? `${summary.windowMinutes} mins` : 'Choose start/end times'}
                 </strong>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-[var(--text-muted)]">Slots per day</span>
-                <strong className="text-[var(--text)]">{summary.slotsPerDay ? summary.slotsPerDay : '-'}</strong>
-              </div>
+              {type !== API.EntitiesAppointmentType.Party && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-[var(--text-muted)]">Slots per day</span>
+                  <strong className="text-[var(--text)]">{summary.slotsPerDay ? summary.slotsPerDay : '-'}</strong>
+                </div>
+              )}
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[var(--text-muted)]">Total days</span>
                 <strong className="text-[var(--text)]">{summary.days ? summary.days : '-'}</strong>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[var(--text-muted)]">Guest experience</span>
-                <strong className="text-[var(--text)]">{type === API.EntitiesAppointmentType.Single ? '1:1 bookings' : 'Shared slots'}</strong>
+                <strong className="text-[var(--text)]">
+                  {type === API.EntitiesAppointmentType.Single
+                    ? '1:1 bookings'
+                    : type === API.EntitiesAppointmentType.Party
+                      ? 'Single shared slot'
+                      : 'Shared slots'}
+                </strong>
               </div>
             </SummaryBox>
           </FormSection>
-        )}
+        </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-4">
           {currentStep > 0 && (
@@ -484,7 +591,7 @@ export function AppointmentForm({ onSubmit, pending }: { onSubmit: (v: Appointme
                   <Spinner size="sm" /> Saving…
                 </>
               ) : (
-                'Create appointment'
+                submitLabel
               )}
             </Button>
           )}

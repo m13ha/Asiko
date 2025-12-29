@@ -1,4 +1,5 @@
 import type { EntitiesBooking } from '@appointment-master/api-client';
+import * as API from '@appointment-master/api-client';
 import { useMemo, useState } from 'react';
 import { EmptyState, EmptyTitle, EmptyDescription } from '@/components/EmptyState';
 import { Dialog } from 'primereact/dialog';
@@ -16,6 +17,7 @@ type SlotPickerProps = {
   slots: EntitiesBooking[];
   selected?: EntitiesBooking | null;
   onSelect: (slot: EntitiesBooking) => void;
+  appointmentType?: API.EntitiesAppointmentType;
 };
 
 type SlotOption = {
@@ -29,7 +31,7 @@ function optionKey(slot: EntitiesBooking) {
   return `${slot.id ?? 'slot'}-${slot.startTime}-${slot.endTime}`;
 }
 
-export function SlotPicker({ slots, selected, onSelect }: SlotPickerProps) {
+export function SlotPicker({ slots, selected, onSelect, appointmentType }: SlotPickerProps) {
   const available = useMemo(() => (slots || []).filter((s) => s.available !== false && remainingSpots(s) > 0), [slots]);
   const [open, setOpen] = useState(false);
 
@@ -71,7 +73,8 @@ export function SlotPicker({ slots, selected, onSelect }: SlotPickerProps) {
         <div className="grid gap-2 max-h-80 overflow-y-auto p-2">
           {options.map(option => {
             const active = option.value === selectedKey;
-            const lowSpots = option.spots <= 2;
+            const capacity = option.slot.capacity ?? option.spots;
+            const lowSpots = appointmentType !== API.EntitiesAppointmentType.Single && capacity > 1 && option.spots <= 2;
             return (
               <button
                 key={option.value}

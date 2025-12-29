@@ -1,5 +1,5 @@
 import type { BookingsApi, RequestsBookingRequest } from '@appointment-master/api-client';
-import { bookingsApi } from '@/services/api';
+import { bookingsApi, rawApi } from '@/services/api';
 
 export const bookingsClient: BookingsApi = bookingsApi;
 
@@ -41,6 +41,14 @@ export function getMyRegisteredBookings(params?: {
 
 export function rejectBookingByCode(bookingCode: string) {
   return bookingsClient.rejectBookingByCode({ bookingCode });
+}
+
+export function confirmBookingByCode(bookingCode: string) {
+  return rawApi.jsonRequest({
+    path: `/bookings/${bookingCode}/confirm`,
+    method: 'POST',
+    headers: {},
+  });
 }
 
 export function getAvailableDates(appCode: string) {

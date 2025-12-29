@@ -1,15 +1,17 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { useAppointmentUsers, useMyAppointments } from '../hooks';
-import { useRejectBooking } from '@/features/bookings/hooks';
+import { useAppointmentByAppCode, useAppointmentUsers, useDeleteAppointment, useMyAppointments } from '../hooks';
+import { useConfirmBooking, useRejectBooking } from '@/features/bookings/hooks';
 import { EmptyState, EmptyTitle, EmptyDescription } from '@/components/EmptyState';
 import { ListItem } from '@/components/ListItem';
 import { CopyButton } from '@/components/CopyButton';
 import { PaginatedGrid } from '@/components/PaginatedGrid';
 import { Pagination } from '@/components/Pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { Dialog } from 'primereact/dialog';
 
 export function AppointmentDetailsPage() {
   const { id = '' } = useParams();
@@ -24,16 +26,70 @@ export function AppointmentDetailsPage() {
   const { data: users, isLoading, error } = useAppointmentUsers(appt?.appCode, pagination.params, { 
     enabled: !!appt?.appCode 
   });
+  const deleteAppointment = useDeleteAppointment();
   const reject = useRejectBooking(appt?.appCode || id);
+  const confirm = useConfirmBooking(appt?.appCode || id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const bookingLink = typeof window !== 'undefined' && appt?.appCode ? `${window.location.origin}/book-by-code?code=${appt.appCode}` : '';
+  const hasBookings = Boolean((users?.total ?? users?.items?.length ?? 0) > 0);
+  const visibleUsers = (users?.items ?? []).filter((u: any) => !['active', 'cancelled', 'canceled', 'rejected'].includes(String(u?.status || '').toLowerCase()));
+  const sortedUsers = visibleUsers.slice().sort((a: any, b: any) => {
+    const aDate = parseDate(a?.date)?.getTime() ?? 0;
+    const bDate = parseDate(b?.date)?.getTime() ?? 0;
+    if (aDate !== bDate) return aDate - bDate;
+    const aStart = parseDate(a?.startTime)?.getTime() ?? 0;
+    const bStart = parseDate(b?.startTime)?.getTime() ?? 0;
+    return aStart - bStart;
+  });
 
   const schedule = formatSchedule(appt);
   const details = [
     { label: 'Type', value: appt?.type ? capitalize(appt.type) : null },
-    { label: 'Capacity', value: appt?.maxAttendees ? `${appt.maxAttendees} per slot` : '1 per slot' },
+    {
+      label: 'Capacity',
+      value: appt?.type === 'party'
+        ? appt?.maxAttendees ? `${appt.maxAttendees} total` : 'Unlimited'
+        : appt?.maxAttendees ? `${appt.maxAttendees} per slot` : '1 per slot',
+    },
     { label: 'Slot length', value: appt?.bookingDuration ? `${appt.bookingDuration} mins` : null },
-    { label: 'Status', value: appt?.status ? capitalize(appt.status) : 'Active' },
+    {
+      label: 'Status',
+      value: appt?.status
+        ? String(appt.status).toLowerCase() === 'expired'
+          ? 'Completed'
+          : capitalize(appt.status)
+        : 'Active',
+    },
   ].filter((item) => item.value);
+
+  if (!appt) {
+    return (
+      <Card className="p-6">
+        <CardHeader>
+          <CardTitle>Appointment not found</CardTitle>
+        </CardHeader>
+        <div className="text-sm text-[var(--text-muted)]">We couldn&apos;t locate this appointment.</div>
+        <div className="mt-4">
+          <Button variant="outline" onClick={() => navigate('/appointments')}>Back to appointments</Button>
+        </div>
+      </Card>
+    );
+  }
+
+  const handleDelete = () => {
+    if (!appt?.id) return;
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!appt?.id) return;
+    deleteAppointment.mutate(appt.id, {
+      onSuccess: () => {
+        setConfirmOpen(false);
+        navigate('/appointments');
+      },
+    });
+  };
 
   return (
     <div className="grid gap-6">
@@ -49,7 +105,20 @@ export function AppointmentDetailsPage() {
         <div style={{ display: 'grid', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Title</span>
-            <strong style={{ fontSize: 20 }}>{appt?.title || 'Untitled appointment'}</strong>
+            <strong style={{ fontSize: 20, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{appt?.title || 'Untitled appointment'}</strong>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {!hasBookings && (
+              <Button
+                variant="primary"
+                onClick={() => navigate(`/appointments/${appt.id}/edit`, { state: { appointment: appt } })}
+              >
+                Edit appointment
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleDelete} disabled={deleteAppointment.isPending}>
+              Delete appointment
+            </Button>
           </div>
           {schedule && (
             <div style={{ background: 'color-mix(in oklab, var(--primary) 6%, transparent)', borderRadius: 'var(--radius)', padding: '12px 14px' }}>
@@ -97,6 +166,27 @@ export function AppointmentDetailsPage() {
           )}
         </div>
       </Card>
+      <Dialog
+        header="Delete appointment?"
+        visible={confirmOpen}
+        onHide={() => setConfirmOpen(false)}
+        className="w-full max-w-md"
+        contentClassName="!p-0"
+      >
+        <div className="grid gap-4 p-4">
+          <div className="text-sm text-[var(--text-muted)]">
+            This will delete the appointment and cancel any active bookings. This action cannot be undone.
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={deleteAppointment.isPending}>
+              Keep appointment
+            </Button>
+            <Button variant="primary" onClick={handleConfirmDelete} disabled={deleteAppointment.isPending}>
+              {deleteAppointment.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       <Card>
         <CardHeader>
@@ -122,22 +212,41 @@ export function AppointmentDetailsPage() {
                     <th className="px-4 py-3 font-semibold">Name/Contact</th>
                     <th className="px-4 py-3 font-semibold">Code</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Date</th>
+                    <th className="px-4 py-3 font-semibold">Time</th>
                     <th className="px-4 py-3 font-semibold">Seats</th>
                     <th className="px-4 py-3 font-semibold">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.items.map((u: any) => (
+                  {sortedUsers.map((u: any) => {
+                    const status = String(u?.status || '').toLowerCase();
+                    const canConfirm = status === 'pending';
+                    const canReject = ['active', 'pending', 'confirmed', 'ongoing'].includes(status);
+                    return (
                     <tr key={u.id} className="border-t border-[var(--border)] hover:bg-[color-mix(in_oklab,var(--primary)_6%,transparent)]">
                       <td className="px-4 py-3 font-medium">{u.name || u.email || u.phone}</td>
                       <td className="px-4 py-3 font-mono text-xs text-[var(--text-muted)]">{u.bookingCode}</td>
                       <td className="px-4 py-3 text-xs uppercase tracking-wide">{u.status}</td>
+                      <td className="px-4 py-3">{formatDate(u.date)}</td>
+                      <td className="px-4 py-3">{formatTime(u.startTime)} – {formatTime(u.endTime)}</td>
                       <td className="px-4 py-3">{u.seatsBooked ?? 1}</td>
                       <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm" onClick={() => reject.mutate(u.bookingCode)}>Reject</Button>
+                        <div className="flex flex-wrap gap-2">
+                          {canConfirm && (
+                            <Button variant="primary" size="sm" onClick={() => confirm.mutate(u.bookingCode)}>
+                              Confirm
+                            </Button>
+                          )}
+                          {canReject && (
+                            <Button variant="ghost" size="sm" onClick={() => reject.mutate(u.bookingCode)}>
+                              Reject
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -156,20 +265,38 @@ export function AppointmentDetailsPage() {
         {/* Mobile Grid View */}
         <div className="lg:hidden">
           <PaginatedGrid
-            data={users}
+            data={users ? { ...users, items: visibleUsers } : users}
             isLoading={isLoading}
             error={error}
             onPageChange={pagination.updatePage}
             layout="list"
-            renderItem={(u: any) => (
+            renderItem={(u: any) => {
+              const status = String(u?.status || '').toLowerCase();
+              const canConfirm = status === 'pending';
+              const canReject = ['active', 'pending', 'confirmed', 'ongoing'].includes(status);
+              return (
               <ListItem key={u.id}>
                 <div>
                   <div style={{ fontWeight: 600 }}>{u.name || u.email || u.phone}</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    {formatDate(u.date)} • {formatTime(u.startTime)} – {formatTime(u.endTime)}
+                  </div>
                   <div style={{ fontSize: 12, opacity: 0.8 }}>Code: {u.bookingCode} • {u.status}</div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => reject.mutate(u.bookingCode)}>Reject</Button>
+                <div className="flex gap-2">
+                  {canConfirm && (
+                    <Button variant="primary" size="sm" onClick={() => confirm.mutate(u.bookingCode)}>
+                      Confirm
+                    </Button>
+                  )}
+                  {canReject && (
+                    <Button variant="ghost" size="sm" onClick={() => reject.mutate(u.bookingCode)}>
+                      Reject
+                    </Button>
+                  )}
+                </div>
               </ListItem>
-            )}
+            )}}
             emptyState={
               <EmptyState>
                 <EmptyTitle>No bookings yet</EmptyTitle>
@@ -210,6 +337,18 @@ function parseDate(value?: string) {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatDate(value?: string) {
+  const d = parseDate(value);
+  if (!d) return '—';
+  return format(d, 'EEE, MMM d, yyyy');
+}
+
+function formatTime(value?: string) {
+  const d = parseDate(value);
+  if (!d) return '—';
+  return format(d, 'p');
 }
 
 function capitalize(value?: string) {

@@ -180,34 +180,6 @@ func (_m *AppointmentRepository) MarkAppointmentsCompleted(ctx context.Context, 
 	return r0, r1
 }
 
-// MarkAppointmentsExpired provides a mock function with given fields: ctx, now
-func (_m *AppointmentRepository) MarkAppointmentsExpired(ctx context.Context, now time.Time) (int64, error) {
-	ret := _m.Called(ctx, now)
-
-	if len(ret) == 0 {
-		panic("no return value specified for MarkAppointmentsExpired")
-	}
-
-	var r0 int64
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, time.Time) (int64, error)); ok {
-		return rf(ctx, now)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, time.Time) int64); ok {
-		r0 = rf(ctx, now)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
-		r1 = rf(ctx, now)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // MarkAppointmentsOngoing provides a mock function with given fields: ctx, now
 func (_m *AppointmentRepository) MarkAppointmentsOngoing(ctx context.Context, now time.Time) (int64, error) {
 	ret := _m.Called(ctx, now)

@@ -550,6 +550,86 @@ paths:
       summary: Create a new appointment
       tags:
       - Appointments
+  /appointments/{id}:
+    delete:
+      description: Deletes an appointment and cancels all active bookings.
+      operationId: deleteAppointment
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Appointment'
+        "400":
+          description: Invalid appointment id
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+        "403":
+          description: Not allowed to delete appointment
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an appointment
+      tags:
+      - Appointments
+    patch:
+      consumes:
+      - application/json
+      description: Update an appointment. Updates are blocked if any slot has been
+        booked.
+      operationId: updateAppointment
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Appointment Details
+        in: body
+        name: appointment
+        required: true
+        schema:
+          $ref: '#/definitions/requests.AppointmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Appointment'
+        "400":
+          description: Invalid request payload or validation error
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+        "403":
+          description: Not allowed to update appointment
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+        "409":
+          description: Appointment has booked slots
+          schema:
+            $ref: '#/definitions/responses.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an appointment
+      tags:
+      - Appointments
   /appointments/book:
     post:
       consumes:

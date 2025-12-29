@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/m13ha/asiko/events"
 	"github.com/m13ha/asiko/models/entities"
 	"github.com/m13ha/asiko/models/requests"
 	repomocks "github.com/m13ha/asiko/repository/mocks"
@@ -16,13 +17,26 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type MockEventBus struct {
+	mock.Mock
+}
+
+func (m *MockEventBus) Publish(ctx context.Context, event events.Event) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockEventBus) Subscribe(handler events.EventHandler) {
+	m.Called(handler)
+}
+
 func TestCreateAppointment(t *testing.T) {
 	userID := uuid.New()
 
 	testCases := []struct {
 		name          string
 		request       requests.AppointmentRequest
-		setupMock     func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService)
+		setupMock     func(mockRepo *repomocks.AppointmentRepository, mockEventBus *MockEventBus, mockEventNotificationService *servicemocks.EventNotificationService)
 		expectedError string
 	}{
 		{
@@ -37,9 +51,11 @@ func TestCreateAppointment(t *testing.T) {
 				Type:            entities.Single,
 				MaxAttendees:    1,
 			},
-			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventBus *MockEventBus, mockEventNotificationService *servicemocks.EventNotificationService) {
 				mockRepo.On("Create", mock.AnythingOfType("*entities.Appointment")).Return(nil).Once()
-				mockEventNotificationService.On("CreateEventNotification", mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("uuid.UUID")).Return(nil).Once()
+				mockEventBus.On("Publish", mock.Anything, mock.MatchedBy(func(event events.Event) bool {
+					return event.Name == events.EventAppointmentCreated
+				})).Return(nil).Once()
 			},
 			expectedError: "",
 		},
@@ -48,7 +64,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: requests.AppointmentRequest{
 				Title: "", // Invalid title
 			},
-			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventBus *MockEventBus, mockEventNotificationService *servicemocks.EventNotificationService) {
 			},
 			expectedError: "USER_ERROR: Invalid appointment data. Please check your input.",
 		},
@@ -64,10 +80,57 @@ func TestCreateAppointment(t *testing.T) {
 				Type:            entities.Single,
 				MaxAttendees:    1,
 			},
-			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventNotificationService *servicemocks.EventNotificationService) {
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventBus *MockEventBus, mockEventNotificationService *servicemocks.EventNotificationService) {
 				mockRepo.On("Create", mock.AnythingOfType("*entities.Appointment")).Return(fmt.Errorf("db error")).Once()
 			},
 			expectedError: "INTERNAL_ERROR: db error (caused by: db error)",
+		},
+		{
+			name: "Success - Overnight Group Appointment",
+			request: func() requests.AppointmentRequest {
+				startDate := time.Date(2025, time.January, 10, 0, 0, 0, 0, time.UTC)
+				endDate := startDate.AddDate(0, 0, 1)
+				startTime := time.Date(2025, time.January, 10, 22, 0, 0, 0, time.UTC)
+				endTime := time.Date(2025, time.January, 11, 2, 0, 0, 0, time.UTC)
+				return requests.AppointmentRequest{
+					Title:           "Overnight Group",
+					StartTime:       startTime,
+					EndTime:         endTime,
+					StartDate:       startDate,
+					EndDate:         endDate,
+					BookingDuration: 30,
+					Type:            entities.Group,
+					MaxAttendees:    5,
+				}
+			}(),
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventBus *MockEventBus, mockEventNotificationService *servicemocks.EventNotificationService) {
+				mockRepo.On("Create", mock.AnythingOfType("*entities.Appointment")).Return(nil).Once()
+				mockEventBus.On("Publish", mock.Anything, mock.MatchedBy(func(event events.Event) bool {
+					return event.Name == events.EventAppointmentCreated
+				})).Return(nil).Once()
+			},
+			expectedError: "",
+		},
+		{
+			name: "Failure - Party More Than One Day",
+			request: func() requests.AppointmentRequest {
+				startDate := time.Date(2025, time.February, 1, 0, 0, 0, 0, time.UTC)
+				endDate := startDate.AddDate(0, 0, 2)
+				startTime := time.Date(2025, time.February, 1, 20, 0, 0, 0, time.UTC)
+				endTime := time.Date(2025, time.February, 3, 2, 0, 0, 0, time.UTC)
+				return requests.AppointmentRequest{
+					Title:           "Long Party",
+					StartTime:       startTime,
+					EndTime:         endTime,
+					StartDate:       startDate,
+					EndDate:         endDate,
+					BookingDuration: 60,
+					Type:            entities.Party,
+					MaxAttendees:    50,
+				}
+			}(),
+			setupMock: func(mockRepo *repomocks.AppointmentRepository, mockEventBus *MockEventBus, mockEventNotificationService *servicemocks.EventNotificationService) {},
+			expectedError: "VALIDATION_FAILED: Party appointments cannot span more than one day.",
 		},
 	}
 
@@ -75,9 +138,13 @@ func TestCreateAppointment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Arrange
 			mockAppointmentRepo := new(repomocks.AppointmentRepository)
+			mockBookingRepo := new(repomocks.BookingRepository)
+			mockUserRepo := new(repomocks.UserRepository)
+			mockEventBus := new(MockEventBus)
 			mockEventNotificationService := new(servicemocks.EventNotificationService)
-			tc.setupMock(mockAppointmentRepo, mockEventNotificationService)
-			appointmentService := services.NewAppointmentService(mockAppointmentRepo, mockEventNotificationService)
+			mockUserRepo.On("FindByID", userID.String()).Return(&entities.User{ID: userID, Name: "Owner", Email: "owner@example.com"}, nil).Maybe()
+			tc.setupMock(mockAppointmentRepo, mockEventBus, mockEventNotificationService)
+			appointmentService := services.NewAppointmentService(mockAppointmentRepo, mockBookingRepo, mockUserRepo, mockEventBus, mockEventNotificationService, nil)
 
 			// Act
 			appointment, err := appointmentService.CreateAppointment(tc.request, userID)
@@ -93,6 +160,7 @@ func TestCreateAppointment(t *testing.T) {
 				assert.Equal(t, tc.expectedError, err.Error())
 			}
 			mockAppointmentRepo.AssertExpectations(t)
+			mockEventBus.AssertExpectations(t)
 			mockEventNotificationService.AssertExpectations(t)
 		})
 	}
@@ -110,7 +178,8 @@ func TestCancelAppointment(t *testing.T) {
 	mockAppointmentRepo.On("UpdateStatus", ctx, appointmentID, entities.AppointmentStatusCanceled).Return(nil).Once()
 	mockEventNotificationService.On("CreateEventNotification", ownerID, "APPOINTMENT_CANCELED", mock.AnythingOfType("string"), appointmentID).Return(nil).Once()
 
-	svc := services.NewAppointmentService(mockAppointmentRepo, mockEventNotificationService)
+	mockEventBus := new(MockEventBus)
+	svc := services.NewAppointmentService(mockAppointmentRepo, new(repomocks.BookingRepository), new(repomocks.UserRepository), mockEventBus, mockEventNotificationService, nil)
 
 	result, err := svc.CancelAppointment(ctx, appointmentID, ownerID)
 
@@ -128,15 +197,14 @@ func TestRefreshStatuses(t *testing.T) {
 	mockEventNotificationService := new(servicemocks.EventNotificationService)
 	mockAppointmentRepo.On("MarkAppointmentsOngoing", ctx, now).Return(int64(2), nil).Once()
 	mockAppointmentRepo.On("MarkAppointmentsCompleted", ctx, now).Return(int64(1), nil).Once()
-	mockAppointmentRepo.On("MarkAppointmentsExpired", ctx, now).Return(int64(3), nil).Once()
 
-	svc := services.NewAppointmentService(mockAppointmentRepo, mockEventNotificationService)
+	mockEventBus := new(MockEventBus)
+	svc := services.NewAppointmentService(mockAppointmentRepo, new(repomocks.BookingRepository), new(repomocks.UserRepository), mockEventBus, mockEventNotificationService, nil)
 
 	summary, err := svc.RefreshStatuses(ctx, now)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), summary.PendingToOngoing)
 	assert.Equal(t, int64(1), summary.Completed)
-	assert.Equal(t, int64(3), summary.Expired)
 	mockAppointmentRepo.AssertExpectations(t)
 }

@@ -20,6 +20,11 @@ var (
 	refreshTokenExpiration = time.Hour * 24 * 7
 )
 
+func init() {
+	tokenExpiration = parseDurationEnv("JWT_ACCESS_TTL", tokenExpiration)
+	refreshTokenExpiration = parseDurationEnv("JWT_REFRESH_TTL", refreshTokenExpiration)
+}
+
 type Claims struct {
 	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
@@ -202,6 +207,18 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": newToken})
+}
+
+func parseDurationEnv(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 // --- Device Token Logic ---

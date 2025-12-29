@@ -47,10 +47,13 @@ func RegisterRoutes(r *gin.Engine, userService services.UserService, appointment
 	r.GET("/bookings/:booking_code", h.GetBookingByCodeHandler)
 	r.PUT("/bookings/:booking_code", h.UpdateBookingByCodeHandler)
 	r.DELETE("/bookings/:booking_code", h.CancelBookingByCodeHandler)
+	r.POST("/bookings/:booking_code/confirm", middleware.AuthMiddleware(), h.ConfirmBookingHandler)
 	r.POST("/bookings/:booking_code/reject", middleware.AuthMiddleware(), h.RejectBookingHandler)
 
 	// Protected routes with authentication middleware
 	r.POST("/appointments", middleware.AuthMiddleware(), h.CreateAppointment)
+	r.PATCH("/appointments/:id", middleware.AuthMiddleware(), h.UpdateAppointment)
+	r.DELETE("/appointments/:id", middleware.AuthMiddleware(), h.DeleteAppointment)
 	r.GET("/appointments/my", middleware.AuthMiddleware(), h.GetAppointmentsCreatedByUser)
 	r.GET("/appointments/registered", middleware.AuthMiddleware(), h.GetUserRegisteredBookings)
 	r.GET("/appointments/users/:app_code", middleware.AuthMiddleware(), h.GetUsersRegisteredForAppointment)

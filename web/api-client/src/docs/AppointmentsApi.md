@@ -5,9 +5,11 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**createAppointment**](AppointmentsApi.md#createappointment) | **POST** /appointments | Create a new appointment |
+| [**deleteAppointment**](AppointmentsApi.md#deleteappointment) | **DELETE** /appointments/{id} | Delete an appointment |
 | [**getAppointmentByAppCode**](AppointmentsApi.md#getappointmentbyappcode) | **GET** /appointments/code/{app_code} | Get appointment by app code |
 | [**getMyAppointments**](AppointmentsApi.md#getmyappointments) | **GET** /appointments/my | Get appointments created by the user |
 | [**getUsersRegisteredForAppointment**](AppointmentsApi.md#getusersregisteredforappointment) | **GET** /appointments/users/{app_code} | Get all bookings for an appointment |
+| [**updateAppointment**](AppointmentsApi.md#updateappointment) | **PATCH** /appointments/{id} | Update an appointment |
 
 
 
@@ -81,6 +83,80 @@ example().catch(console.error);
 | **400** | Invalid request payload or validation error |  -  |
 | **401** | Authentication required |  -  |
 | **500** | Failed to create appointment |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## deleteAppointment
+
+> EntitiesAppointment deleteAppointment(id)
+
+Delete an appointment
+
+Deletes an appointment and cancels all active bookings.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AppointmentsApi,
+} from '';
+import type { DeleteAppointmentRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: BearerAuth
+    apiKey: "YOUR API KEY",
+  });
+  const api = new AppointmentsApi(config);
+
+  const body = {
+    // string | Appointment ID
+    id: id_example,
+  } satisfies DeleteAppointmentRequest;
+
+  try {
+    const data = await api.deleteAppointment(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` | Appointment ID | [Defaults to `undefined`] |
+
+### Return type
+
+[**EntitiesAppointment**](EntitiesAppointment.md)
+
+### Authorization
+
+[BearerAuth](../README.md#BearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Invalid appointment id |  -  |
+| **401** | Authentication required |  -  |
+| **403** | Not allowed to delete appointment |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -308,6 +384,84 @@ example().catch(console.error);
 | **400** | Missing appointment code parameter |  -  |
 | **401** | Unauthorized |  -  |
 | **500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateAppointment
+
+> EntitiesAppointment updateAppointment(id, appointment)
+
+Update an appointment
+
+Update an appointment. Updates are blocked if any slot has been booked.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AppointmentsApi,
+} from '';
+import type { UpdateAppointmentRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // To configure API key authorization: BearerAuth
+    apiKey: "YOUR API KEY",
+  });
+  const api = new AppointmentsApi(config);
+
+  const body = {
+    // string | Appointment ID
+    id: id_example,
+    // RequestsAppointmentRequest | Appointment Details
+    appointment: ...,
+  } satisfies UpdateAppointmentRequest;
+
+  try {
+    const data = await api.updateAppointment(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` | Appointment ID | [Defaults to `undefined`] |
+| **appointment** | [RequestsAppointmentRequest](RequestsAppointmentRequest.md) | Appointment Details | |
+
+### Return type
+
+[**EntitiesAppointment**](EntitiesAppointment.md)
+
+### Authorization
+
+[BearerAuth](../README.md#BearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+| **400** | Invalid request payload or validation error |  -  |
+| **401** | Authentication required |  -  |
+| **403** | Not allowed to update appointment |  -  |
+| **409** | Appointment has booked slots |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

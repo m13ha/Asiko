@@ -54,6 +54,15 @@ export function BookByCodePage() {
   const bookReg = useBookRegistered();
   const generateDeviceToken = useDeviceToken();
   const [showBurst, setShowBurst] = useState(false);
+  const resetFlow = () => {
+    setStep(1);
+    setLastSuccessfulStep(1);
+    setDate('');
+    setSlot(null);
+    setRegisteredCount(1);
+    setDeviceToken(null);
+    setAppCode(prefill || '');
+  };
 
   const proceedToSummary = () => setStep(4);
 
@@ -192,6 +201,7 @@ export function BookByCodePage() {
           setLastSuccessfulStep(4);
           setShowBurst(true);
           setTimeout(() => setShowBurst(false), 700);
+          setTimeout(() => resetFlow(), 400);
         },
         onError: () => setStep(lastSuccessfulStep),
       }
@@ -221,6 +231,7 @@ export function BookByCodePage() {
           setLastSuccessfulStep(4);
           setShowBurst(true);
           setTimeout(() => setShowBurst(false), 700);
+          setTimeout(() => resetFlow(), 400);
         },
         onError: () => setStep(lastSuccessfulStep),
       }
@@ -358,6 +369,7 @@ export function BookByCodePage() {
                         setSlot(s);
                         setLastSuccessfulStep(3);
                       }}
+                      appointmentType={appointmentDetails.data?.type}
                     />
                   )}
                 </Field>

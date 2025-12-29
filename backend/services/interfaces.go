@@ -34,6 +34,7 @@ type BookingService interface {
 	GetBookingByCode(bookingCode string) (*entities.Booking, error)
 	UpdateBookingByCode(bookingCode string, req requests.BookingRequest) (*entities.Booking, error)
 	CancelBookingByCode(bookingCode string) (*entities.Booking, error)
+	ConfirmBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error)
 	RejectBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error)
 	RefreshBookingStatuses(ctx context.Context, now time.Time) (BookingStatusRefreshSummary, error)
 }
@@ -41,6 +42,8 @@ type BookingService interface {
 type AppointmentService interface {
 	CreateAppointment(req requests.AppointmentRequest, userId uuid.UUID) (*entities.Appointment, error)
 	GetAllAppointmentsCreatedByUser(userID string, r *http.Request, statuses []entities.AppointmentStatus) paginate.Page
+	UpdateAppointment(ctx context.Context, appointmentID uuid.UUID, ownerID uuid.UUID, req requests.AppointmentRequest) (*entities.Appointment, error)
+	DeleteAppointment(ctx context.Context, appointmentID uuid.UUID, ownerID uuid.UUID) (*entities.Appointment, error)
 	CancelAppointment(ctx context.Context, appointmentID uuid.UUID, ownerID uuid.UUID) (*entities.Appointment, error)
 	RefreshStatuses(ctx context.Context, now time.Time) (StatusRefreshSummary, error)
 	GetAppointmentByAppCode(appCode string) (*entities.Appointment, error)

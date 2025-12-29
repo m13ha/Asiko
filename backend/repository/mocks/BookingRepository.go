@@ -104,6 +104,112 @@ func (_m *BookingRepository) FindActiveBookingByEmail(appointmentID uuid.UUID, e
 	return r0, r1
 }
 
+// FindActiveBookingByPhone provides a mock function with given fields: appointmentID, phone
+func (_m *BookingRepository) FindActiveBookingByPhone(appointmentID uuid.UUID, phone string) (*entities.Booking, error) {
+	ret := _m.Called(appointmentID, phone)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindActiveBookingByPhone")
+	}
+
+	var r0 *entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string) (*entities.Booking, error)); ok {
+		return rf(appointmentID, phone)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID, string) *entities.Booking); ok {
+		r0 = rf(appointmentID, phone)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID, string) error); ok {
+		r1 = rf(appointmentID, phone)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// HasActiveBookings provides a mock function with given fields: appointmentID
+func (_m *BookingRepository) HasActiveBookings(appointmentID uuid.UUID) (bool, error) {
+	ret := _m.Called(appointmentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasActiveBookings")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID) (bool, error)); ok {
+		return rf(appointmentID)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID) bool); ok {
+		r0 = rf(appointmentID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok {
+		r1 = rf(appointmentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetActiveBookingsForAppointment provides a mock function with given fields: appointmentID
+func (_m *BookingRepository) GetActiveBookingsForAppointment(appointmentID uuid.UUID) ([]entities.Booking, error) {
+	ret := _m.Called(appointmentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveBookingsForAppointment")
+	}
+
+	var r0 []entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID) ([]entities.Booking, error)); ok {
+		return rf(appointmentID)
+	}
+	if rf, ok := ret.Get(0).(func(uuid.UUID) []entities.Booking); ok {
+		r0 = rf(appointmentID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok {
+		r1 = rf(appointmentID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteSlotsByAppointmentID provides a mock function with given fields: appointmentID
+func (_m *BookingRepository) DeleteSlotsByAppointmentID(appointmentID uuid.UUID) error {
+	ret := _m.Called(appointmentID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteSlotsByAppointmentID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID) error); ok {
+		r0 = rf(appointmentID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // FindAndLockAvailableSlot provides a mock function with given fields: appCode, date, startTime
 func (_m *BookingRepository) FindAndLockAvailableSlot(appCode string, date time.Time, startTime time.Time) (*entities.Booking, error) {
 	ret := _m.Called(appCode, date, startTime)
@@ -386,6 +492,36 @@ func (_m *BookingRepository) UpdateNotificationStatus(id uuid.UUID, status strin
 	}
 
 	return r0
+}
+
+// GetAvailableDates provides a mock function with given fields: ctx, appCode
+func (_m *BookingRepository) GetAvailableDates(ctx context.Context, appCode string) ([]time.Time, error) {
+	ret := _m.Called(ctx, appCode)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvailableDates")
+	}
+
+	var r0 []time.Time
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]time.Time, error)); ok {
+		return rf(ctx, appCode)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []time.Time); ok {
+		r0 = rf(ctx, appCode)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]time.Time)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, appCode)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // WithTx provides a mock function with given fields: tx

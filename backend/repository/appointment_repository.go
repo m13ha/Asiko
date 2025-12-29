@@ -24,7 +24,6 @@ type AppointmentRepository interface {
 	UpdateStatus(ctx context.Context, appointmentID uuid.UUID, status entities.AppointmentStatus) error
 	MarkAppointmentsOngoing(ctx context.Context, now time.Time) (int64, error)
 	MarkAppointmentsCompleted(ctx context.Context, now time.Time) (int64, error)
-	MarkAppointmentsExpired(ctx context.Context, now time.Time) (int64, error)
 	WithTx(tx *gorm.DB) AppointmentRepository
 }
 
@@ -141,29 +140,12 @@ func (r *gormAppointmentRepository) MarkAppointmentsCompleted(ctx context.Contex
 	res := r.db.WithContext(ctx).Model(&entities.Appointment{}).
 		Where("status IN ?", []entities.AppointmentStatus{entities.AppointmentStatusPending, entities.AppointmentStatusOngoing}).
 		Where(deadlineExpr+" < ?", now).
-		Where("attendees_booked > 0").
 		Updates(map[string]interface{}{
 			"status":     entities.AppointmentStatusCompleted,
 			"updated_at": now,
 		})
 	if res.Error != nil {
 		return 0, repoerrors.InternalError("failed to mark appointments completed: " + res.Error.Error())
-	}
-	return res.RowsAffected, nil
-}
-
-func (r *gormAppointmentRepository) MarkAppointmentsExpired(ctx context.Context, now time.Time) (int64, error) {
-	deadlineExpr := "date_trunc('day', end_date) + (end_time - date_trunc('day', end_time))"
-	res := r.db.WithContext(ctx).Model(&entities.Appointment{}).
-		Where("status IN ?", []entities.AppointmentStatus{entities.AppointmentStatusPending, entities.AppointmentStatusOngoing}).
-		Where(deadlineExpr+" < ?", now).
-		Where("attendees_booked = 0").
-		Updates(map[string]interface{}{
-			"status":     entities.AppointmentStatusExpired,
-			"updated_at": now,
-		})
-	if res.Error != nil {
-		return 0, repoerrors.InternalError("failed to mark appointments expired: " + res.Error.Error())
 	}
 	return res.RowsAffected, nil
 }

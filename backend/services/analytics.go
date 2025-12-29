@@ -68,14 +68,14 @@ func (s *analyticsServiceImpl) GetUserAnalytics(userID uuid.UUID, startDate, end
 
 	// Build response
 	resp := &responses.AnalyticsResponse{
-		TotalAppointments:  int(appointmentCount),
-		TotalBookings:      int(bookingCount),
-		TotalCancellations: int(cancellationCount),
-		CancellationRate:   cancellationRate,
-		AvgBookingsPerDay:  avgBookingsPerDay,
-		StartDate:          timeRange.Start,
-		EndDate:            timeRange.End,
-		BookingsPerDay:     make([]responses.TimeSeriesPoint, 0, len(bookingsPerDay)),
+		TotalAppointments:   int(appointmentCount),
+		TotalBookings:       int(bookingCount),
+		TotalCancellations:  int(cancellationCount),
+		CancellationRate:    cancellationRate,
+		AvgBookingsPerDay:   avgBookingsPerDay,
+		StartDate:           timeRange.Start,
+		EndDate:             timeRange.End,
+		BookingsPerDay:      make([]responses.TimeSeriesPoint, 0, len(bookingsPerDay)),
 		CancellationsPerDay: make([]responses.TimeSeriesPoint, 0, len(cancellationsPerDay)),
 	}
 

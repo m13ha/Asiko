@@ -104,6 +104,8 @@ export function HomeInsightsPage() {
                 secondary={data?.cancellationsPerDay || []}
                 primaryLabel="Bookings"
                 secondaryLabel="Cancellations"
+                rangeStart={start}
+                rangeEnd={end}
               />
             </ChartArea>
             <ChartLegend>

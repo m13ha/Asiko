@@ -10,14 +10,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/m13ha/asiko/db"
 	_ "github.com/m13ha/asiko/docs"
+	"github.com/m13ha/asiko/middleware"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/joho/godotenv"
 	"github.com/m13ha/asiko/api"
-	"github.com/m13ha/asiko/db"
-	customMiddleware "github.com/m13ha/asiko/middleware"
+	"github.com/m13ha/asiko/events"
 	"github.com/m13ha/asiko/notifications"
 	"github.com/m13ha/asiko/repository"
 	"github.com/m13ha/asiko/services"
@@ -72,25 +73,35 @@ func main() {
 	pendingUserRepo := repository.NewGormPendingUserRepository(db.DB)
 	passwordResetRepo := repository.NewGormPasswordResetRepository(db.DB)
 
+	// Initialize Event Bus
+	eventBus := events.NewSyncEventBus()
+
 	// Initialize services
-	notificationService := notifications.NewSendGridService()
+	notificationService, err := notifications.NewAhaSendServiceFromEnv()
+	if err != nil {
+		log.Printf("Warning: AhaSend configuration invalid: %v", err)
+	}
 	eventNotificationService := services.NewEventNotificationService(notificationRepo)
+
+	// Register Subscribers
+	notifications.RegisterHandlers(eventBus, notificationService, bookingRepo)
+	services.RegisterInternalHandlers(eventBus, eventNotificationService)
+
 	userService := services.NewUserService(userRepo, pendingUserRepo, passwordResetRepo, notificationService)
-	appointmentService := services.NewAppointmentService(appointmentRepo, eventNotificationService)
-	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, notificationService, eventNotificationService, db.DB)
+	appointmentService := services.NewAppointmentService(appointmentRepo, bookingRepo, userRepo, eventBus, eventNotificationService, db.DB)
+	// BookingService now uses EventBus instead of direct notification services
+	bookingService := services.NewBookingService(bookingRepo, appointmentRepo, userRepo, banListRepo, eventBus, db.DB)
 	analyticsService := services.NewAnalyticsService(analyticsRepo)
 	banListService := services.NewBanListService(banListRepo)
-	appointmentStatusScheduler := services.NewAppointmentStatusScheduler(appointmentService, time.Minute)
-	appointmentStatusScheduler.Start(ctx)
-	bookingStatusScheduler := services.NewBookingStatusScheduler(bookingService, time.Minute)
-	bookingStatusScheduler.Start(ctx)
+	statusScheduler := services.NewStatusScheduler(appointmentService, bookingService, time.Minute)
+	statusScheduler.Start(ctx)
 
 	r := gin.Default()
-	r.Use(customMiddleware.RequestID())
-	r.Use(customMiddleware.RequestLogger())
+	r.Use(middleware.RequestID())
+	r.Use(middleware.RequestLogger())
 	r.Use(gin.Recovery())
-	r.Use(customMiddleware.CORS())
-	r.Use(customMiddleware.ErrorHandler())
+	r.Use(middleware.CORS())
+	r.Use(middleware.ErrorHandler())
 
 	// Basic endpoints for testing
 	r.GET("/", func(c *gin.Context) {

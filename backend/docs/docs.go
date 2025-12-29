@@ -358,7 +358,7 @@ const docTemplate = `{
                             "type": "string"
                         },
                         "collectionFormat": "csv",
-                        "description": "Filter by appointment status (pending, ongoing, completed, canceled, expired)",
+                        "description": "Filter by appointment status (pending, ongoing, completed, canceled)",
                         "name": "status",
                         "in": "query"
                     },
@@ -1773,15 +1773,13 @@ const docTemplate = `{
                 "pending",
                 "ongoing",
                 "completed",
-                "canceled",
-                "expired"
+                "canceled"
             ],
             "x-enum-varnames": [
                 "AppointmentStatusPending",
                 "AppointmentStatusOngoing",
                 "AppointmentStatusCompleted",
-                "AppointmentStatusCanceled",
-                "AppointmentStatusExpired"
+                "AppointmentStatusCanceled"
             ]
         },
         "entities.AppointmentType": {

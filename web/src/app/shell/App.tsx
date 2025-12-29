@@ -110,6 +110,34 @@ export function App() {
 
   // Auto-close mobile nav on route change
   useEffect(() => { setNavOpen(false); }, [location.pathname]);
+
+  // Global Auth Watchdog
+  useEffect(() => {
+    // If not authenticated, check if we need to redirect
+    if (!isAuthed) {
+      const publicRoutes = [
+        '/',
+        '/login',
+        '/signup',
+        '/book-by-code',
+        '/book-classic',
+        '/verify',
+        '/forgot-password',
+        '/reset-password',
+      ];
+      // Check if current path starts with any public route or matches exactly
+      // Also allow /bookings/:code which is public
+      const isPublic = publicRoutes.some(route => 
+        location.pathname === route || 
+        (route !== '/' && location.pathname.startsWith(route))
+      ) || location.pathname.startsWith('/bookings/');
+
+      if (!isPublic) {
+        // Redirect to login, remembering where they were
+        navigate('/login', { replace: true, state: { from: location } });
+      }
+    }
+  }, [isAuthed, location, navigate]);
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans antialiased">
       <a
@@ -154,7 +182,7 @@ export function App() {
       <main id="main" className="w-full max-w-5xl mx-auto px-4 py-6" role="main">
         <Outlet />
       </main>
-      <Toaster position="top-center" />
+      <Toaster position="bottom-center" />
     </div>
   );
 }

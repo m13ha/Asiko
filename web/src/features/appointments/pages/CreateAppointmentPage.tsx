@@ -2,7 +2,6 @@ import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { AppointmentForm, AppointmentFormValues } from '../components/AppointmentForm';
 import { useCreateAppointment } from '../hooks';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 const toIsoDate = (date: string) => new Date(`${date}T00:00:00Z`).toISOString();
 
@@ -23,7 +22,7 @@ export function CreateAppointmentPage() {
     const startDateIso = toIsoDate(v.startDate);
     const endDateIso = toIsoDate(v.endDate);
     const startTimeIso = toIsoTime(v.startDate, v.startTime);
-    const endTimeIso = toIsoTime(v.startDate, v.endTime);
+    const endTimeIso = toIsoTime(v.endDate, v.endTime);
 
     create.mutate(
       {
@@ -38,14 +37,20 @@ export function CreateAppointmentPage() {
         maxAttendees: v.maxAttendees ?? 1,
         antiScalpingLevel: v.antiScalpingLevel,
       },
-      { onSuccess: (res: any) => navigate(`/appointments/${res?.id}`, { state: { appointment: res } }) }
+      {
+        onSuccess: () => {
+          window.setTimeout(() => {
+            navigate('/appointments');
+          }, 400);
+        },
+      }
     );
   };
 
   return (
     <div className="px-0 sm:px-6">
       <Card className="p-0 sm:p-6">
-        <AppointmentForm onSubmit={onSubmit} pending={create.isPending} />
+        <AppointmentForm onSubmit={onSubmit} pending={create.isPending} submitLabel="Create appointment" />
       </Card>
     </div>
   );

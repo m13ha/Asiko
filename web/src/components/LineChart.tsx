@@ -14,7 +14,37 @@ type LineChartProps = {
   primaryLabel?: string;
   secondaryLabel?: string;
   height?: number;
+  rangeStart?: string;
+  rangeEnd?: string;
 };
+
+function parseDateKey(value?: string) {
+  if (!value) return null;
+  const parts = value.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  const [year, month, day] = parts;
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatDateKey(date: Date) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function buildRangeLabels(start?: string, end?: string) {
+  const startDate = parseDateKey(start);
+  const endDate = parseDateKey(end);
+  if (!startDate || !endDate || startDate > endDate) return [];
+  const labels: string[] = [];
+  const cursor = new Date(startDate.getTime());
+  while (cursor <= endDate) {
+    labels.push(formatDateKey(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return labels;
+}
 
 function normalizeSeries(points: ResponsesTimeSeriesPoint[] = []): SeriesPoint[] {
   return (points || [])
@@ -30,12 +60,15 @@ export function LineChart({
   primaryLabel = 'Primary',
   secondaryLabel = 'Secondary',
   height = 220,
+  rangeStart,
+  rangeEnd,
 }: LineChartProps) {
   const { labels, datasets } = useMemo(() => {
     const primary = normalizeSeries(series);
     const fallback = normalizeSeries(secondary);
     const base = primary.length ? primary : fallback;
-    const labelSet = base.map(point => point.date);
+    const rangeLabels = buildRangeLabels(rangeStart, rangeEnd);
+    const labelSet = rangeLabels.length ? rangeLabels : base.map(point => point.date);
     const primaryMap = new Map(primary.map(point => [point.date, point.count]));
     const secondaryMap = new Map(normalizeSeries(secondary).map(point => [point.date, point.count]));
 
@@ -73,7 +106,7 @@ export function LineChart({
     }
 
     return { labels: labelSet, datasets: ds };
-  }, [series, secondary, primaryLabel, secondaryLabel]);
+  }, [series, secondary, primaryLabel, secondaryLabel, rangeStart, rangeEnd]);
 
   if (!labels.length) {
     return (

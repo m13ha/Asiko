@@ -18,8 +18,6 @@ const statusOptions = [
   { label: 'Expired', value: 'expired' },
   { label: 'Pending', value: 'pending' },
   { label: 'Confirmed', value: 'confirmed' },
-  { label: 'Cancelled', value: 'cancelled' },
-  { label: 'Canceled', value: 'canceled' },
   { label: 'Rejected', value: 'rejected' },
 ];
 
@@ -56,7 +54,7 @@ function formatTime(value?: string | Date) {
 export function MyBookingsPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortValue>('updated_desc');
+  const [sort, setSort] = useState<SortValue>('date_asc');
   const pagination = usePagination(1, 10);
   const navigate = useNavigate();
   
@@ -78,7 +76,8 @@ export function MyBookingsPage() {
         })
       : items;
 
-    const sorted = searched.slice().sort((a, b) => {
+    const activeOnly = searched.filter((item) => !['cancelled', 'canceled', 'rejected'].includes(String(item?.status ?? '').toLowerCase()));
+    const sorted = activeOnly.slice().sort((a, b) => {
       switch (sort) {
         case 'created_desc':
           return safeDate(b?.createdAt) - safeDate(a?.createdAt);
@@ -105,7 +104,7 @@ export function MyBookingsPage() {
   const clearFilters = () => {
     setSelectedStatuses([]);
     setQuery('');
-    setSort('updated_desc');
+    setSort('date_asc');
     pagination.updatePage(1);
   };
   
@@ -212,10 +211,10 @@ export function MyBookingsPage() {
             </table>
           </div>
         )}
-        {derivedData?.totalPages && derivedData.totalPages > 1 && (
+        {(derivedData?.totalPages ?? 0) > 1 && (
           <Pagination
             currentPage={pagination.page}
-            totalPages={derivedData.totalPages ?? 1}
+            totalPages={derivedData?.totalPages ?? 1}
             onPageChange={pagination.updatePage}
           />
         )}

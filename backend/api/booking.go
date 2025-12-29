@@ -320,6 +320,41 @@ func (h *Handler) UpdateBookingByCodeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, booking)
 }
 
+// @Summary Confirm a booking
+// @Description Confirms a pending booking by its unique booking_code.
+// @Tags Bookings
+// @Produce  application/json
+// @Param   booking_code  path   string  true  "Unique Booking Code"
+// @Security BearerAuth
+// @Success 200 {object} entities.Booking
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request"
+// @Failure 401 {object} responses.APIErrorResponse "Unauthorized"
+// @Failure 403 {object} responses.APIErrorResponse "Forbidden"
+// @Failure 409 {object} responses.APIErrorResponse "Booking cannot be confirmed"
+// @Router /bookings/{booking_code}/confirm [post]
+// @ID confirmBookingByCode
+func (h *Handler) ConfirmBookingHandler(c *gin.Context) {
+	code := c.Param("booking_code")
+	if code == "" {
+		apierrors.BadRequestError(c, "Missing booking_code parameter")
+		return
+	}
+
+	ownerID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "Unauthorized")
+		return
+	}
+
+	booking, err := h.bookingService.ConfirmBooking(code, ownerID)
+	if err != nil {
+		apierrors.HandleAppError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, booking)
+}
+
 // @Summary Cancel a booking
 // @Description Cancels a booking by its unique booking_code. This is a soft delete.
 // @Tags Bookings

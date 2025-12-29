@@ -12,8 +12,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/morkid/paginate v1.1.10
 	github.com/rs/zerolog v1.34.0
-	github.com/sendgrid/rest v2.6.9+incompatible
-	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1

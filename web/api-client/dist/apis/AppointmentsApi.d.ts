@@ -14,6 +14,9 @@ import type { EntitiesAppointment, GetMyAppointments200Response, GetUserRegister
 export interface CreateAppointmentRequest {
     appointment: RequestsAppointmentRequest;
 }
+export interface DeleteAppointmentRequest {
+    id: string;
+}
 export interface GetAppointmentByAppCodeRequest {
     appCode: string;
 }
@@ -26,6 +29,10 @@ export interface GetUsersRegisteredForAppointmentRequest {
     appCode: string;
     page?: number;
     size?: number;
+}
+export interface UpdateAppointmentRequest {
+    id: string;
+    appointment: RequestsAppointmentRequest;
 }
 /**
  *
@@ -41,6 +48,16 @@ export declare class AppointmentsApi extends runtime.BaseAPI {
      * Create a new appointment
      */
     createAppointment(requestParameters: CreateAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesAppointment>;
+    /**
+     * Deletes an appointment and cancels all active bookings.
+     * Delete an appointment
+     */
+    deleteAppointmentRaw(requestParameters: DeleteAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EntitiesAppointment>>;
+    /**
+     * Deletes an appointment and cancels all active bookings.
+     * Delete an appointment
+     */
+    deleteAppointment(requestParameters: DeleteAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesAppointment>;
     /**
      * Retrieves appointment details by its unique app_code, public endpoint for booking flow
      * Get appointment by app code
@@ -71,5 +88,15 @@ export declare class AppointmentsApi extends runtime.BaseAPI {
      * Get all bookings for an appointment
      */
     getUsersRegisteredForAppointment(requestParameters: GetUsersRegisteredForAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetUserRegisteredBookings200Response>;
+    /**
+     * Update an appointment. Updates are blocked if any slot has been booked.
+     * Update an appointment
+     */
+    updateAppointmentRaw(requestParameters: UpdateAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EntitiesAppointment>>;
+    /**
+     * Update an appointment. Updates are blocked if any slot has been booked.
+     * Update an appointment
+     */
+    updateAppointment(requestParameters: UpdateAppointmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EntitiesAppointment>;
 }
 //# sourceMappingURL=AppointmentsApi.d.ts.map

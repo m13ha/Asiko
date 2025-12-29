@@ -82,6 +82,34 @@ func (_m *EventNotificationService) MarkAllNotificationsAsRead(userID string) er
 	return r0
 }
 
+// GetUserUnreadNotificationsCount provides a mock function with given fields: userID
+func (_m *EventNotificationService) GetUserUnreadNotificationsCount(userID string) (int64, error) {
+	ret := _m.Called(userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserUnreadNotificationsCount")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (int64, error)); ok {
+		return rf(userID)
+	}
+	if rf, ok := ret.Get(0).(func(string) int64); ok {
+		r0 = rf(userID)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NewEventNotificationService creates a new instance of EventNotificationService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewEventNotificationService(t interface {

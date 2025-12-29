@@ -50,6 +50,37 @@ export class AppointmentsApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
+     * Deletes an appointment and cancels all active bookings.
+     * Delete an appointment
+     */
+    async deleteAppointmentRaw(requestParameters, initOverrides) {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError('id', 'Required parameter "id" was null or undefined when calling deleteAppointment().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+        let urlPath = `/appointments/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response, (jsonValue) => EntitiesAppointmentFromJSON(jsonValue));
+    }
+    /**
+     * Deletes an appointment and cancels all active bookings.
+     * Delete an appointment
+     */
+    async deleteAppointment(requestParameters, initOverrides) {
+        const response = await this.deleteAppointmentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
      * Retrieves appointment details by its unique app_code, public endpoint for booking flow
      * Get appointment by app code
      */
@@ -148,6 +179,42 @@ export class AppointmentsApi extends runtime.BaseAPI {
      */
     async getUsersRegisteredForAppointment(requestParameters, initOverrides) {
         const response = await this.getUsersRegisteredForAppointmentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
+     * Update an appointment. Updates are blocked if any slot has been booked.
+     * Update an appointment
+     */
+    async updateAppointmentRaw(requestParameters, initOverrides) {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError('id', 'Required parameter "id" was null or undefined when calling updateAppointment().');
+        }
+        if (requestParameters['appointment'] == null) {
+            throw new runtime.RequiredError('appointment', 'Required parameter "appointment" was null or undefined when calling updateAppointment().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        headerParameters['Content-Type'] = 'application/json';
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+        let urlPath = `/appointments/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestsAppointmentRequestToJSON(requestParameters['appointment']),
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response, (jsonValue) => EntitiesAppointmentFromJSON(jsonValue));
+    }
+    /**
+     * Update an appointment. Updates are blocked if any slot has been booked.
+     * Update an appointment
+     */
+    async updateAppointment(requestParameters, initOverrides) {
+        const response = await this.updateAppointmentRaw(requestParameters, initOverrides);
         return await response.value();
     }
 }

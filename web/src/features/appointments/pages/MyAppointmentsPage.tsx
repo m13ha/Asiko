@@ -18,7 +18,6 @@ const statusOptions = [
   { label: 'Ongoing', value: API.EntitiesAppointmentStatus.AppointmentStatusOngoing },
   { label: 'Completed', value: API.EntitiesAppointmentStatus.AppointmentStatusCompleted },
   { label: 'Canceled', value: API.EntitiesAppointmentStatus.AppointmentStatusCanceled },
-  { label: 'Expired', value: API.EntitiesAppointmentStatus.AppointmentStatusExpired },
 ];
 
 const sortOptions = [
@@ -63,7 +62,7 @@ function formatTimeRange(startTime?: string, endTime?: string) {
 export function MyAppointmentsPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<API.EntitiesAppointmentStatus[]>([]);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortValue>('updated_desc');
+  const [sort, setSort] = useState<SortValue>('start_asc');
   const pagination = usePagination(1, 10);
   const { data, isLoading, error } = useMyAppointments({ 
     statuses: selectedStatuses,
@@ -109,7 +108,7 @@ export function MyAppointmentsPage() {
   const clearFilters = () => {
     setSelectedStatuses([]);
     setQuery('');
-    setSort('updated_desc');
+    setSort('start_asc');
     pagination.updatePage(1);
   };
 
@@ -211,7 +210,7 @@ export function MyAppointmentsPage() {
                     className="border-t border-[var(--border)] hover:bg-[color-mix(in_oklab,var(--primary)_6%,transparent)] cursor-pointer"
                     onClick={() => navigate(`/appointments/${item.id}`, { state: { appointment: item } })}
                   >
-                    <td className="px-4 py-3 font-semibold text-[var(--text)]">{item.title || 'Untitled appointment'}</td>
+                    <td className="px-4 py-3 font-semibold text-[var(--text)] whitespace-normal break-words">{item.title || 'Untitled appointment'}</td>
                     <td className="px-4 py-3 font-mono text-xs text-[var(--text-muted)]">{item.appCode || '—'}</td>
                     <td className="px-4 py-3 text-xs uppercase tracking-wide">{item.status || '—'}</td>
                     <td className="px-4 py-3">{formatDateRange(item.startDate, item.endDate)}</td>
@@ -224,10 +223,10 @@ export function MyAppointmentsPage() {
             </table>
           </div>
         )}
-        {derivedData?.totalPages && derivedData.totalPages > 1 && (
+        {(derivedData?.totalPages ?? 0) > 1 && (
           <Pagination
             currentPage={pagination.page}
-            totalPages={derivedData.totalPages ?? 1}
+            totalPages={derivedData?.totalPages ?? 1}
             onPageChange={pagination.updatePage}
           />
         )}

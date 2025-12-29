@@ -2,6 +2,7 @@ package entities
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,6 +45,15 @@ func (a *Booking) BeforeCreate(tx *gorm.DB) error {
 	if a.SeatsBooked < 0 {
 		a.SeatsBooked = 0
 	}
+	if !a.IsSlot {
+		a.Available = false
+	}
+	if a.IsSlot && strings.TrimSpace(a.Status) == "" {
+		a.Status = BookingStatusActive
+	}
+	if !a.IsSlot && strings.TrimSpace(a.Status) == "" {
+		a.Status = BookingStatusPending
+	}
 	if a.BookingCode == "" {
 		a.BookingCode = generateDeterministicBookingCode(a)
 	}
@@ -62,4 +72,23 @@ func generateDeterministicBookingCode(b *Booking) string {
 
 func shortUUID(id uuid.UUID) string {
 	return id.String()[:4]
+}
+
+func (b *Booking) NormalizeState() {
+	if b.Capacity < 1 {
+		b.Capacity = 1
+	}
+	if b.SeatsBooked < 0 {
+		b.SeatsBooked = 0
+	}
+	if b.SeatsBooked >= b.Capacity {
+		b.Available = false
+	} else {
+		b.Available = true
+	}
+	remaining := b.Capacity - b.SeatsBooked
+	if remaining < 0 {
+		remaining = 0
+	}
+	b.AttendeeCount = remaining
 }

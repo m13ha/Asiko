@@ -12,6 +12,7 @@ import { HomeInsightsPage } from '@/features/dashboard/pages/HomeInsightsPage';
 import { MyAppointmentsPage } from '@/features/appointments/pages/MyAppointmentsPage';
 import { CreateAppointmentPage } from '@/features/appointments/pages/CreateAppointmentPage';
 import { AppointmentDetailsPage } from '@/features/appointments/pages/AppointmentDetailsPage';
+import { EditAppointmentPage } from '@/features/appointments/pages/EditAppointmentPage';
 import { BookingManagePage } from '@/features/bookings/pages/BookingManagePage';
 import { MyBookingsPage } from '@/features/bookings/pages/MyBookingsPage';
 import { BanListPage } from '@/features/banlist/pages/BanListPage';
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: 'appointments', element: <MyAppointmentsPage /> },
           { path: 'appointments/new', element: <CreateAppointmentPage /> },
           { path: 'appointments/:id', element: <AppointmentDetailsPage /> },
+          { path: 'appointments/:id/edit', element: <EditAppointmentPage /> },
           { path: 'bookings', element: <MyBookingsPage /> },
           { path: 'ban-list', element: <BanListPage /> },
           { path: 'notifications', element: <NotificationsPage /> },

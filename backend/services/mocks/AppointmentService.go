@@ -104,6 +104,66 @@ func (_m *AppointmentService) GetAllAppointmentsCreatedByUser(userID string, r *
 	return r0
 }
 
+// UpdateAppointment provides a mock function with given fields: ctx, appointmentID, ownerID, req
+func (_m *AppointmentService) UpdateAppointment(ctx context.Context, appointmentID uuid.UUID, ownerID uuid.UUID, req requests.AppointmentRequest) (*entities.Appointment, error) {
+	ret := _m.Called(ctx, appointmentID, ownerID, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAppointment")
+	}
+
+	var r0 *entities.Appointment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, requests.AppointmentRequest) (*entities.Appointment, error)); ok {
+		return rf(ctx, appointmentID, ownerID, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, requests.AppointmentRequest) *entities.Appointment); ok {
+		r0 = rf(ctx, appointmentID, ownerID, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Appointment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, requests.AppointmentRequest) error); ok {
+		r1 = rf(ctx, appointmentID, ownerID, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteAppointment provides a mock function with given fields: ctx, appointmentID, ownerID
+func (_m *AppointmentService) DeleteAppointment(ctx context.Context, appointmentID uuid.UUID, ownerID uuid.UUID) (*entities.Appointment, error) {
+	ret := _m.Called(ctx, appointmentID, ownerID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAppointment")
+	}
+
+	var r0 *entities.Appointment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (*entities.Appointment, error)); ok {
+		return rf(ctx, appointmentID, ownerID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) *entities.Appointment); ok {
+		r0 = rf(ctx, appointmentID, ownerID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Appointment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, appointmentID, ownerID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAppointmentByAppCode provides a mock function with given fields: appCode
 func (_m *AppointmentService) GetAppointmentByAppCode(appCode string) (*entities.Appointment, error) {
 	ret := _m.Called(appCode)

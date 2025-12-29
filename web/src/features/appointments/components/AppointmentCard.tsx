@@ -41,8 +41,8 @@ function getStatusClasses(status?: string) {
   const value = (status || '').toLowerCase();
   if (['active', 'ongoing'].includes(value)) return { accent: 'var(--success)' };
   if (['pending', 'draft'].includes(value)) return { accent: 'var(--warning)' };
-  if (['completed'].includes(value)) return { accent: 'var(--primary)' };
-  if (['canceled', 'cancelled', 'expired'].includes(value)) return { accent: 'var(--danger)' };
+  if (['completed', 'expired'].includes(value)) return { accent: 'var(--primary)' };
+  if (['canceled', 'cancelled'].includes(value)) return { accent: 'var(--danger)' };
   return { accent: 'var(--text-muted)' };
 }
 
@@ -63,13 +63,15 @@ export function AppointmentCard({ item }: { item: any }) {
     color: statusClasses.accent,
     borderColor: `color-mix(in oklab, ${statusClasses.accent} 55%, transparent)`,
   };
+  const statusValue = String(item.status || '');
+  const statusLabel = statusValue.toLowerCase() === 'expired' ? 'Completed' : formatLabel(statusValue);
 
   const cardBody = (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text)] shadow-[var(--elev-1)] hover:shadow-[var(--elev-2)] transition-all duration-300 overflow-hidden" style={{ borderLeftWidth: 4, borderLeftColor: statusClasses.accent }}>
       <div className="p-4 sm:p-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-sm sm:text-base font-semibold text-[var(--text)] truncate">
+            <h2 className="text-sm sm:text-base font-semibold text-[var(--text)] whitespace-normal break-words">
               {item.title || 'Untitled appointment'}
             </h2>
             <div className="text-xs text-[var(--text-muted)] truncate">
@@ -110,7 +112,7 @@ export function AppointmentCard({ item }: { item: any }) {
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="px-2 py-0.5 rounded-full text-xs font-semibold border" style={statusStyle}>
-            {formatLabel(item.status)}
+            {statusLabel}
           </span>
           <span className="px-2 py-0.5 rounded-full text-xs font-semibold border" style={{ background: 'color-mix(in oklab, var(--primary) 12%, transparent)', color: 'var(--primary)', borderColor: 'color-mix(in oklab, var(--primary) 45%, transparent)' }}>
             {formatLabel(String(item.type))}

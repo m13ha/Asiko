@@ -1,5 +1,6 @@
 import { memo, useMemo, useCallback } from 'react';
 import type { EntitiesBooking } from '@appointment-master/api-client';
+import * as API from '@appointment-master/api-client';
 import { Badge } from '@/components/Badge';
 
 export interface InlineTimePickerProps {
@@ -7,6 +8,7 @@ export interface InlineTimePickerProps {
   selectedSlot: EntitiesBooking | null;
   onSelect: (slot: EntitiesBooking) => void;
   className?: string;
+  appointmentType?: API.EntitiesAppointmentType;
 }
 
 /** Calculate remaining spots for a slot */
@@ -35,6 +37,7 @@ interface TimeSlotButtonProps {
   slot: EntitiesBooking;
   isSelected: boolean;
   spots: number;
+  appointmentType?: API.EntitiesAppointmentType;
   onSelect: (slot: EntitiesBooking) => void;
 }
 
@@ -43,10 +46,12 @@ const TimeSlotButton = memo(function TimeSlotButton({
   slot,
   isSelected,
   spots,
+  appointmentType,
   onSelect,
 }: TimeSlotButtonProps) {
   const timeLabel = useMemo(() => formatTime(slot.startTime!), [slot.startTime]);
-  const isLowSpots = spots <= 2;
+  const capacity = slot.capacity ?? slot.attendeeCount ?? spots;
+  const isLowSpots = appointmentType !== API.EntitiesAppointmentType.Single && capacity > 1 && spots <= 2;
 
   const handleClick = useCallback(() => {
     onSelect(slot);
@@ -91,6 +96,7 @@ export const InlineTimePicker = memo(function InlineTimePicker({
   selectedSlot,
   onSelect,
   className = '',
+  appointmentType,
 }: InlineTimePickerProps) {
   // Filter to only available slots with remaining capacity
   const availableSlots = useMemo(
@@ -126,6 +132,7 @@ export const InlineTimePicker = memo(function InlineTimePicker({
             slot={slot}
             isSelected={slotKey(slot) === selectedKey}
             spots={remainingSpots(slot)}
+            appointmentType={appointmentType}
             onSelect={onSelect}
           />
         ))}

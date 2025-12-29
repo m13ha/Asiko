@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -114,10 +115,10 @@ func TestCancelBookingAPI(t *testing.T) {
 			name:        "Success",
 			bookingCode: "BK123XYZ",
 			setupMock: func(mockService *mocks.BookingService) {
-				mockService.On("CancelBookingByCode", "BK123XYZ").Return(&entities.Booking{Status: "cancelled"}, nil).Once()
+				mockService.On("CancelBookingByCode", "BK123XYZ").Return(&entities.Booking{Status: entities.BookingStatusCancelled}, nil).Once()
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedContains:   `"status":"cancelled"`,
+			expectedContains:   fmt.Sprintf(`"status":"%s"`, entities.BookingStatusCancelled),
 		},
 		{
 			name:        "Failure - Booking Not Found",
@@ -130,7 +131,7 @@ func TestCancelBookingAPI(t *testing.T) {
 			expectedError: &apiErrorPayload{
 				Status:  http.StatusNotFound,
 				Code:    "RESOURCE_NOT_FOUND",
-				Message: "Booking not found", // This message is from the updated API layer error handling
+				Message: "booking not found", // This message is from the updated API layer error handling
 			},
 		},
 	}

@@ -145,6 +145,36 @@ func (_m *BookingService) CancelBookingByCode(bookingCode string) (*entities.Boo
 	return r0, r1
 }
 
+// ConfirmBooking provides a mock function with given fields: bookingCode, ownerID
+func (_m *BookingService) ConfirmBooking(bookingCode string, ownerID uuid.UUID) (*entities.Booking, error) {
+	ret := _m.Called(bookingCode, ownerID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConfirmBooking")
+	}
+
+	var r0 *entities.Booking
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, uuid.UUID) (*entities.Booking, error)); ok {
+		return rf(bookingCode, ownerID)
+	}
+	if rf, ok := ret.Get(0).(func(string, uuid.UUID) *entities.Booking); ok {
+		r0 = rf(bookingCode, ownerID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Booking)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, uuid.UUID) error); ok {
+		r1 = rf(bookingCode, ownerID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAllBookingsForAppointment provides a mock function with given fields: ctx, req, appcode
 func (_m *BookingService) GetAllBookingsForAppointment(ctx context.Context, req *http.Request, appcode string) (paginate.Page, error) {
 	ret := _m.Called(ctx, req, appcode)
@@ -222,6 +252,36 @@ func (_m *BookingService) GetAvailableSlotsByDay(req *http.Request, appcode stri
 
 	if rf, ok := ret.Get(1).(func(*http.Request, string, string) error); ok {
 		r1 = rf(req, appcode, dateStr)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetAvailableDates provides a mock function with given fields: ctx, appcode
+func (_m *BookingService) GetAvailableDates(ctx context.Context, appcode string) ([]string, error) {
+	ret := _m.Called(ctx, appcode)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvailableDates")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]string, error)); ok {
+		return rf(ctx, appcode)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = rf(ctx, appcode)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, appcode)
 	} else {
 		r1 = ret.Error(1)
 	}

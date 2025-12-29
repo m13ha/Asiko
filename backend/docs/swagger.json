@@ -1768,15 +1768,13 @@
                 "pending",
                 "ongoing",
                 "completed",
-                "canceled",
-                "expired"
+                "canceled"
             ],
             "x-enum-varnames": [
                 "AppointmentStatusPending",
                 "AppointmentStatusOngoing",
                 "AppointmentStatusCompleted",
-                "AppointmentStatusCanceled",
-                "AppointmentStatusExpired"
+                "AppointmentStatusCanceled"
             ]
         },
         "entities.AppointmentType": {

@@ -708,6 +708,128 @@ const docTemplate = `{
                 }
             }
         },
+        "/appointments/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes an appointment and cancels all active bookings.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Delete an appointment",
+                "operationId": "deleteAppointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Appointment"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid appointment id",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed to delete appointment",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an appointment. Updates are blocked if any slot has been booked.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Update an appointment",
+                "operationId": "updateAppointment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Appointment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Appointment Details",
+                        "name": "appointment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.AppointmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Appointment"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not allowed to update appointment",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Appointment has booked slots",
+                        "schema": {
+                            "$ref": "#/definitions/responses.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/change-password": {
             "post": {
                 "description": "Change password for authenticated user.",

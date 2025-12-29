@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"regexp"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ func TestGetUserAppointmentCount(t *testing.T) {
 	start := time.Now().Add(-24 * time.Hour)
 	end := time.Now()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "appointments"`)).
+	mock.ExpectQuery(`(?s)SELECT count\(\*\) FROM "appointments".*status (<>|!=)`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(5))
 
 	count, err := repo.GetUserAppointmentCount(userID, start, end)
@@ -49,7 +48,7 @@ func TestGetBookingsPerDay(t *testing.T) {
 	start := time.Now().Add(-24 * time.Hour)
 	end := time.Now()
 
-	mock.ExpectQuery(`(?s)SELECT.*TO_CHAR.*FROM bookings.*JOIN appointments.*bookings\.status IN \('active', 'expired'\).*GROUP BY.*ORDER BY`).
+	mock.ExpectQuery(`(?s)SELECT.*TO_CHAR.*FROM bookings.*JOIN appointments.*LOWER\(bookings\.status\) IN.*GROUP BY.*ORDER BY`).
 		WillReturnRows(sqlmock.NewRows([]string{"date", "count"}).AddRow("2025-01-01", 2).AddRow("2025-01-02", 1))
 
 	rows, err := repo.GetBookingsPerDay(userID, start, end)

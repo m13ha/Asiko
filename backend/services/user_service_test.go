@@ -78,7 +78,8 @@ func TestCreateUser(t *testing.T) {
 			mockNotificationSvc := new(mocks.NotificationService)
 			waitFn := tc.setupMocks(mockUserRepo, mockPendingRepo, mockNotificationSvc)
 
-			userService := services.NewUserService(mockUserRepo, mockPendingRepo, mockNotificationSvc)
+			mockPasswordResetRepo := new(repoMocks.PasswordResetRepository)
+			userService := services.NewUserService(mockUserRepo, mockPendingRepo, mockPasswordResetRepo, mockNotificationSvc)
 			resp, err := userService.CreateUser(tc.request)
 
 			if waitFn != nil {
@@ -165,7 +166,8 @@ func TestAuthenticateUser(t *testing.T) {
 			mockPendingRepo := new(repoMocks.PendingUserRepository)
 			tc.setupMocks(mockUserRepo, mockPendingRepo)
 
-			userService := services.NewUserService(mockUserRepo, mockPendingRepo, nil)
+			mockPasswordResetRepo := new(repoMocks.PasswordResetRepository)
+			userService := services.NewUserService(mockUserRepo, mockPendingRepo, mockPasswordResetRepo, nil)
 			_, err := userService.AuthenticateUser(tc.email, tc.password)
 
 			if tc.expectedError != "" {
@@ -266,7 +268,8 @@ func TestVerifyRegistration(t *testing.T) {
 			mockPendingRepo := new(repoMocks.PendingUserRepository)
 			tc.setupMocks(mockUserRepo, mockPendingRepo)
 
-			userService := services.NewUserService(mockUserRepo, mockPendingRepo, nil)
+			mockPasswordResetRepo := new(repoMocks.PasswordResetRepository)
+			userService := services.NewUserService(mockUserRepo, mockPendingRepo, mockPasswordResetRepo, nil)
 			_, err := userService.VerifyRegistration(tc.email, tc.code)
 
 			if tc.expectedError != "" {
@@ -343,7 +346,8 @@ func TestResendVerificationCode(t *testing.T) {
 			notificationSvc := new(mocks.NotificationService)
 			waitFn := tc.setupMocks(userRepo, pendingRepo, notificationSvc)
 
-			service := services.NewUserService(userRepo, pendingRepo, notificationSvc)
+			passwordResetRepo := new(repoMocks.PasswordResetRepository)
+			service := services.NewUserService(userRepo, pendingRepo, passwordResetRepo, notificationSvc)
 			err := service.ResendVerificationCode(tc.email)
 
 			if waitFn != nil {

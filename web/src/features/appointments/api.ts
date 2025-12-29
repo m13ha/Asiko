@@ -5,6 +5,7 @@ import type {
   GetMyAppointments200Response,
   RequestsAppointmentRequest,
 } from '@appointment-master/api-client';
+import { EntitiesAppointmentFromJSON } from '@appointment-master/api-client';
 import { appointmentsApi } from '@/services/api';
 
 export type AppointmentType = string;
@@ -38,4 +39,15 @@ export function getUsersForAppointment(appCode: string, params?: { page?: number
 
 export function getAppointmentByAppCode(appCode: string): Promise<EntitiesAppointment> {
   return appointmentsClient.getAppointmentByAppCode({ appCode });
+}
+
+export function updateAppointment(id: string, input: RequestsAppointmentRequest): Promise<EntitiesAppointment> {
+  return appointmentsClient.updateAppointment({
+    id,
+    appointment: input,
+  });
+}
+
+export function deleteAppointment(id: string): Promise<EntitiesAppointment> {
+  return appointmentsClient.deleteAppointment({ id });
 }

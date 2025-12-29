@@ -18,7 +18,10 @@ export function computeRange(value: string) {
   const fallback = RANGE_OPTIONS[0];
   const match = RANGE_OPTIONS.find((option) => option.value === value) ?? fallback;
   const now = new Date();
-  const start = new Date(now.getTime() - match.durationMs);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const days = Math.max(1, Math.round(match.durationMs / dayMs));
+  const start = new Date(now.getTime());
+  start.setDate(now.getDate() - (days - 1));
   return {
     startDate: formatDate(start),
     endDate: formatDate(now),

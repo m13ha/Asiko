@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	apierrors "github.com/m13ha/asiko/errors/apierrors"
 	"github.com/m13ha/asiko/middleware"
 	"github.com/m13ha/asiko/models/entities"
@@ -22,8 +23,7 @@ func parseStatusFilters(raw []string) []entities.AppointmentStatus {
 		case string(entities.AppointmentStatusPending),
 			string(entities.AppointmentStatusOngoing),
 			string(entities.AppointmentStatusCompleted),
-			string(entities.AppointmentStatusCanceled),
-			string(entities.AppointmentStatusExpired):
+			string(entities.AppointmentStatusCanceled):
 			status := entities.AppointmentStatus(token)
 			if _, ok := seen[status]; !ok {
 				seen[status] = struct{}{}
@@ -86,12 +86,94 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 	c.JSON(http.StatusCreated, appointment)
 }
 
+// @Summary Update an appointment
+// @Description Update an appointment. Updates are blocked if any slot has been booked.
+// @Tags Appointments
+// @Accept  application/json
+// @Produce  application/json
+// @Param   id  path  string  true  "Appointment ID"
+// @Param   appointment  body   requests.AppointmentRequest  true  "Appointment Details"
+// @Security BearerAuth
+// @Success 200 {object} entities.Appointment
+// @Failure 400 {object} responses.APIErrorResponse "Invalid request payload or validation error"
+// @Failure 401 {object} responses.APIErrorResponse "Authentication required"
+// @Failure 403 {object} responses.APIErrorResponse "Not allowed to update appointment"
+// @Failure 409 {object} responses.APIErrorResponse "Appointment has booked slots"
+// @Router /appointments/{id} [patch]
+// @ID updateAppointment
+func (h *Handler) UpdateAppointment(c *gin.Context) {
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "authentication required")
+		return
+	}
+
+	appointmentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		apierrors.BadRequestError(c, "invalid appointment id")
+		return
+	}
+
+	var req requests.AppointmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apierrors.BadRequestError(c, "invalid request payload: "+err.Error())
+		return
+	}
+
+	if err := utils.Validate(req); err != nil {
+		apierrors.ValidationError(c, "validation failed")
+		return
+	}
+
+	appointment, err := h.appointmentService.UpdateAppointment(c.Request.Context(), appointmentID, userID, req)
+	if err != nil {
+		apierrors.HandleAppError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, appointment)
+}
+
+// @Summary Delete an appointment
+// @Description Deletes an appointment and cancels all active bookings.
+// @Tags Appointments
+// @Produce  application/json
+// @Param   id  path  string  true  "Appointment ID"
+// @Security BearerAuth
+// @Success 200 {object} entities.Appointment
+// @Failure 400 {object} responses.APIErrorResponse "Invalid appointment id"
+// @Failure 401 {object} responses.APIErrorResponse "Authentication required"
+// @Failure 403 {object} responses.APIErrorResponse "Not allowed to delete appointment"
+// @Router /appointments/{id} [delete]
+// @ID deleteAppointment
+func (h *Handler) DeleteAppointment(c *gin.Context) {
+	userID, ok := middleware.GetUUIDFromContext(c)
+	if !ok {
+		apierrors.UnauthorizedError(c, "authentication required")
+		return
+	}
+
+	appointmentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		apierrors.BadRequestError(c, "invalid appointment id")
+		return
+	}
+
+	appointment, err := h.appointmentService.DeleteAppointment(c.Request.Context(), appointmentID, userID)
+	if err != nil {
+		apierrors.HandleAppError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, appointment)
+}
+
 // @Summary Get appointments created by the user
 // @Description Retrieves a paginated list of appointments created by the currently authenticated user.
 // @Tags Appointments
 // @Produce  application/json
 // @Security BearerAuth
-// @Param status query []string false "Filter by appointment status (pending, ongoing, completed, canceled, expired)"
+// @Param status query []string false "Filter by appointment status (pending, ongoing, completed, canceled)"
 // @Param page query int false "Page number (default: 1)"
 // @Param size query int false "Page size (default: 10)"
 // @Success 200 {object} responses.PaginatedResponse{items=[]responses.AppointmentResponse}

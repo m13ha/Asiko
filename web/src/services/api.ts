@@ -96,9 +96,32 @@ export const apiConfig = new API.Configuration({
   middleware: [authMiddleware],
 });
 
+class RawApi extends API.BaseAPI {
+  async jsonRequest<T>(opts: API.RequestOpts, mapper?: (payload: any) => T): Promise<T> {
+    const authHeader = await buildAuthHeader();
+    const response = await this.request({
+      ...opts,
+      headers: {
+        ...authHeader,
+        ...opts.headers,
+      },
+    });
+    const payload = await response.json();
+    return mapper ? mapper(payload) : (payload as T);
+  }
+}
+
+async function buildAuthHeader(): Promise<API.HTTPHeaders> {
+  if (!apiConfig.apiKey) return {};
+  const token = await apiConfig.apiKey('Authorization');
+  if (!token) return {};
+  return { Authorization: token };
+}
+
 export const authApi = new API.AuthenticationApi(apiConfig);
 export const appointmentsApi = new API.AppointmentsApi(apiConfig);
 export const bookingsApi = new API.BookingsApi(apiConfig);
 export const analyticsApi = new API.AnalyticsApi(apiConfig);
 export const notificationsApi = new API.NotificationsApi(apiConfig);
 export const banListApi = new API.BanListApi(apiConfig);
+export const rawApi = new RawApi(apiConfig);

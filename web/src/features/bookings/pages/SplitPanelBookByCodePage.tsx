@@ -183,6 +183,14 @@ export function SplitPanelBookByCodePage() {
   }, []);
 
   const normalizedDateIso = selectedDate ? `${selectedDate}T00:00:00Z` : '';
+  const resetFlow = useCallback(() => {
+    setStep('code');
+    setSelectedDate(null);
+    setSelectedSlot(null);
+    setRegisteredCount(1);
+    setDeviceToken(null);
+    setAppCode(search.get('code') || '');
+  }, [search]);
 
   const handleGuestSubmit = useCallback(
     (v: BookingFormValues) => {
@@ -206,11 +214,12 @@ export function SplitPanelBookByCodePage() {
           onSuccess: () => {
             setShowBurst(true);
             setTimeout(() => setShowBurst(false), 700);
+            setTimeout(() => resetFlow(), 400);
           },
         }
       );
     },
-    [appCode, normalizedDateIso, selectedSlot, deviceToken, appointmentDetails.data, bookGuest]
+    [appCode, normalizedDateIso, selectedSlot, deviceToken, appointmentDetails.data, bookGuest, resetFlow]
   );
 
   const handleRegisteredSubmit = useCallback(() => {
@@ -230,10 +239,11 @@ export function SplitPanelBookByCodePage() {
         onSuccess: () => {
           setShowBurst(true);
           setTimeout(() => setShowBurst(false), 700);
+          setTimeout(() => resetFlow(), 400);
         },
       }
     );
-  }, [appCode, normalizedDateIso, selectedSlot, registeredCount, deviceToken, appointmentDetails.data, bookReg]);
+  }, [appCode, normalizedDateIso, selectedSlot, registeredCount, deviceToken, appointmentDetails.data, bookReg, resetFlow]);
 
   // Render
   return (

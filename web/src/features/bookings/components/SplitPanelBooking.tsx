@@ -257,6 +257,7 @@ export const SplitPanelBooking = memo(function SplitPanelBooking({
                 slots={slots}
                 selectedSlot={selectedSlot}
                 onSelect={onSlotSelect}
+                appointmentType={appointment?.type}
               />
             )}
           </Card>

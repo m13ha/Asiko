@@ -1,7 +1,14 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as API from '@appointment-master/api-client';
 import toast from 'react-hot-toast';
-import { createAppointment, getAppointmentByAppCode, getUsersForAppointment, listMyAppointments } from './api';
+import {
+  createAppointment,
+  deleteAppointment,
+  getAppointmentByAppCode,
+  getUsersForAppointment,
+  listMyAppointments,
+  updateAppointment,
+} from './api';
 
 async function parseError(e: unknown): Promise<string> {
   if (e instanceof API.ResponseError) {
@@ -27,9 +34,38 @@ export function useMyAppointments(filters?: {
 }
 
 export function useCreateAppointment() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createAppointment,
-    onSuccess: () => toast.success('Appointment created'),
+    onSuccess: () => {
+      toast.success('Appointment created');
+      queryClient.invalidateQueries({ queryKey: ['my-appointments'] });
+    },
+    onError: async (e) => toast.error(await parseError(e)),
+  });
+}
+
+export function useUpdateAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: API.RequestsAppointmentRequest }) =>
+      updateAppointment(id, input),
+    onSuccess: () => {
+      toast.success('Appointment updated');
+      queryClient.invalidateQueries({ queryKey: ['my-appointments'] });
+    },
+    onError: async (e) => toast.error(await parseError(e)),
+  });
+}
+
+export function useDeleteAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteAppointment(id),
+    onSuccess: () => {
+      toast.success('Appointment deleted');
+      queryClient.invalidateQueries({ queryKey: ['my-appointments'] });
+    },
     onError: async (e) => toast.error(await parseError(e)),
   });
 }

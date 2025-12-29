@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import * as API from '@appointment-master/api-client';
 import type { RequestsBookingRequest } from '@appointment-master/api-client';
 import toast from 'react-hot-toast';
-import { bookGuest, bookRegistered, cancelBookingByCode, getAvailableSlots, getAvailableSlotsByDay, getBookingByCode, getMyRegisteredBookings, updateBookingByCode, rejectBookingByCode, getAvailableDates } from './api';
+import { bookGuest, bookRegistered, cancelBookingByCode, getAvailableSlots, getAvailableSlotsByDay, getBookingByCode, getMyRegisteredBookings, updateBookingByCode, rejectBookingByCode, getAvailableDates, confirmBookingByCode } from './api';
 import { useQueryClient } from '@tanstack/react-query';
 
 async function parseError(e: unknown): Promise<string> {
@@ -135,6 +135,21 @@ export function useRejectBooking(appCode?: string) {
       await Promise.all([
         // We cannot know which exact booking query keys exist; invalidate broad lists
         qc.invalidateQueries({ queryKey: ['appointment-users', appCode] }),
+      ]);
+    },
+    onError: async (e) => toast.error(await parseError(e)),
+  });
+}
+
+export function useConfirmBooking(appCode?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bookingCode: string) => confirmBookingByCode(bookingCode),
+    onSuccess: async () => {
+      toast.success('Booking confirmed');
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['appointment-users', appCode] }),
+        qc.invalidateQueries({ queryKey: ['my-bookings'] }),
       ]);
     },
     onError: async (e) => toast.error(await parseError(e)),

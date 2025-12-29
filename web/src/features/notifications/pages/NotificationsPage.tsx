@@ -10,6 +10,7 @@ export function NotificationsPage() {
   const pagination = usePagination(1, 10);
   const { data, isLoading, error } = useNotifications(pagination.params);
   const markAll = useMarkAllRead();
+  const allRead = data?.items?.every((n: any) => n?.isRead ?? n?.is_read) ?? true;
 
   return (
     <div className="mx-auto py-8 px-4 max-w-4xl">
@@ -20,7 +21,7 @@ export function NotificationsPage() {
         </div>
         <Button 
           onClick={() => markAll.mutate()} 
-          disabled={markAll.isPending || (data?.items?.every(n => n.is_read) ?? true)}
+          disabled={markAll.isPending || allRead}
           variant="outline"
           size="sm"
           className="flex items-center gap-2"
@@ -35,34 +36,37 @@ export function NotificationsPage() {
         isLoading={isLoading}
         error={error}
         onPageChange={pagination.updatePage}
-        renderItem={(notification: any) => (
+        renderItem={(notification: any) => {
+          const isRead = notification?.isRead ?? notification?.is_read ?? false;
+          const createdAt = notification?.createdAt ?? notification?.created_at;
+          return (
           <div 
             key={notification.id} 
             className={`
               relative p-4 transition-colors border-b border-[var(--border)] last:border-b-0
-              ${notification.is_read 
+              ${isRead 
                 ? 'bg-[var(--bg-elevated)]' 
                 : 'bg-[color-mix(in_oklab,var(--primary)_3%,var(--bg-elevated))] border-l-4 border-l-[var(--primary)]'}
               hover:bg-[color-mix(in_oklab,var(--primary)_5%,var(--bg-elevated))]
             `}
           >
             <div className="flex gap-4">
-              <div className={`p-2 rounded-full h-fit ${notification.is_read ? 'bg-[var(--bg)] text-[var(--text-muted)]' : 'bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-[var(--primary)]'}`}>
+              <div className={`p-2 rounded-full h-fit ${isRead ? 'bg-[var(--bg)] text-[var(--text-muted)]' : 'bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-[var(--primary)]'}`}>
                 <Bell size={18} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center min-w-0">
-                    {!notification.is_read && (
+                    {!isRead && (
                       <div className="w-2 h-2 rounded-full bg-[var(--primary)] mr-2 shrink-0" />
                     )}
-                    <h3 className={`font-semibold truncate text-sm sm:text-base ${notification.is_read ? 'text-[var(--text)]' : 'text-[var(--primary)]'}`}>
+                    <h3 className={`font-semibold truncate text-sm sm:text-base ${isRead ? 'text-[var(--text)]' : 'text-[var(--primary)]'}`}>
                       {notification.title || 'Notification'}
                     </h3>
                   </div>
                   <span className="text-[10px] sm:text-xs text-[var(--text-muted)] flex items-center gap-1 shrink-0">
                     <Clock size={12} />
-                    {notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true }) : ''}
+                    {createdAt ? formatDistanceToNow(new Date(createdAt), { addSuffix: true }) : ''}
                   </span>
                 </div>
                 <p className="text-[var(--text-muted)] text-sm leading-relaxed line-clamp-2">
@@ -71,7 +75,7 @@ export function NotificationsPage() {
               </div>
             </div>
           </div>
-        )}
+        )}}
         emptyState={
           <EmptyState>
             <div className="p-4 bg-[var(--bg-elevated)] rounded-full mb-4">
