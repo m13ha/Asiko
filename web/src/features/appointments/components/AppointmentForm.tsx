@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { addDays, differenceInCalendarDays, differenceInMinutes, format } from 'date-fns';
+import { addDays, differenceInCalendarDays, differenceInMinutes, format, isBefore, startOfDay } from 'date-fns';
 import { Stepper } from '@/components/Stepper';
 import { Input } from '@/components/Input';
 import { Textarea } from '@/components/Textarea';
@@ -36,7 +36,7 @@ const SummaryBox = ({ children }: { children: React.ReactNode }) => (
 
 const parseDateOnly = (value?: string) => {
   if (!value) return null;
-  const d = new Date(`${value}T00:00:00Z`);
+  const d = new Date(`${value}T00:00:00`);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
@@ -94,6 +94,14 @@ const schema = z
 
     const startDate = parseDateOnly(value.startDate);
     const endDate = parseDateOnly(value.endDate);
+    const today = startOfDay(new Date());
+    if (startDate && isBefore(startDate, today)) {
+      ctx.addIssue({
+        path: ['startDate'],
+        code: z.ZodIssueCode.custom,
+        message: 'Start date cannot be in the past',
+      });
+    }
     if (startDate && endDate && endDate < startDate) {
       ctx.addIssue({
         path: ['endDate'],
@@ -107,6 +115,14 @@ const schema = z
     if (startDate && endDate && startTime && endTime) {
       const startDateTime = combineDateTime(startDate, startTime);
       const endDateTime = combineDateTime(endDate, endTime);
+      const now = new Date();
+      if (startDateTime < now) {
+        ctx.addIssue({
+          path: ['startTime'],
+          code: z.ZodIssueCode.custom,
+          message: 'Start time cannot be in the past',
+        });
+      }
 
       if (endDateTime <= startDateTime) {
         ctx.addIssue({
@@ -386,6 +402,7 @@ export function AppointmentForm({
                         value={field.value}
                         onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
                         placeholder="Select start date"
+                        minDate={new Date()}
                         className="w-full"
                       />
                     )}

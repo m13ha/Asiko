@@ -40,6 +40,15 @@ func (req *AppointmentRequest) Validate() error {
 		req.EndTime.Hour(), req.EndTime.Minute(), req.EndTime.Second(), req.EndTime.Nanosecond(),
 		req.EndDate.Location(),
 	)
+	now := time.Now().In(req.StartDate.Location())
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	if req.StartDate.Before(todayStart) {
+		return serviceerrors.ValidationError("Start date cannot be in the past.")
+	}
+	if startDateTime.Before(now) {
+		return serviceerrors.ValidationError("Start time cannot be in the past.")
+	}
 
 	if !endDateTime.After(startDateTime) {
 		return serviceerrors.ValidationError("End time must be after start time.")

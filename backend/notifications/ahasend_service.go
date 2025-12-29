@@ -21,6 +21,23 @@ type AhaSendService struct {
 	enabled   bool
 }
 
+type emailTemplate struct {
+	subject      string
+	templatePath string
+}
+
+var emailTemplates = map[string]emailTemplate{
+	"booking.confirmation": {subject: "Booking Confirmation", templatePath: "templates/booking_success.html"},
+	"booking.cancellation": {subject: "Booking Cancellation", templatePath: "templates/booking_cancelled.html"},
+	"booking.rejection":    {subject: "Booking Rejected", templatePath: "templates/booking_rejected.html"},
+	"booking.updated":      {subject: "Booking Updated", templatePath: "templates/booking_updated.html"},
+	"appointment.created":  {subject: "Appointment Created", templatePath: "templates/appointment_created.html"},
+	"appointment.updated":  {subject: "Appointment Updated", templatePath: "templates/appointment_updated.html"},
+	"appointment.deleted":  {subject: "Appointment Deleted", templatePath: "templates/appointment_deleted.html"},
+	"auth.verification":    {subject: "Verify Your Email", templatePath: "templates/verification_code.html"},
+	"auth.reset":           {subject: "Password Reset Request", templatePath: "templates/verification_code.html"},
+}
+
 func NewAhaSendServiceFromEnv() (*AhaSendService, error) {
 	config := ahasend.DefaultConfig()
 	config.BaseURL = getEnv("AHASEND_BASE_URL", config.BaseURL)
@@ -65,33 +82,48 @@ func NewAhaSendService(config ahasend.Config, fromEmail, fromName string) (*AhaS
 	return &AhaSendService{publisher: publisher, fromEmail: fromEmail, fromName: fromName, enabled: config.Enabled}, nil
 }
 
+func (s *AhaSendService) sendTemplate(kind, toEmail, toName string, data interface{}) error {
+	cfg, ok := emailTemplates[kind]
+	if !ok {
+		return fmt.Errorf("ahasend: unknown email template %q", kind)
+	}
+	return s.sendEmail(toEmail, toName, cfg.subject, cfg.templatePath, data)
+}
+
 func (s *AhaSendService) SendBookingConfirmation(booking *entities.Booking) error {
-	subject := "Booking Confirmation"
-	templatePath := "templates/booking_success.html"
-	return s.sendEmail(booking.Email, booking.Name, subject, templatePath, booking)
+	return s.sendTemplate("booking.confirmation", booking.Email, booking.Name, booking)
 }
 
 func (s *AhaSendService) SendBookingCancellation(booking *entities.Booking) error {
-	subject := "Booking Cancellation"
-	templatePath := "templates/booking_cancelled.html"
-	return s.sendEmail(booking.Email, booking.Name, subject, templatePath, booking)
+	return s.sendTemplate("booking.cancellation", booking.Email, booking.Name, booking)
 }
 
 func (s *AhaSendService) SendBookingRejection(booking *entities.Booking) error {
-	subject := "Booking Rejected"
-	templatePath := "templates/booking_rejected.html"
-	return s.sendEmail(booking.Email, booking.Name, subject, templatePath, booking)
+	return s.sendTemplate("booking.rejection", booking.Email, booking.Name, booking)
+}
+
+func (s *AhaSendService) SendBookingUpdated(booking *entities.Booking) error {
+	return s.sendTemplate("booking.updated", booking.Email, booking.Name, booking)
+}
+
+func (s *AhaSendService) SendAppointmentCreated(appointment *entities.Appointment, recipientEmail, recipientName string) error {
+	return s.sendTemplate("appointment.created", recipientEmail, recipientName, appointment)
+}
+
+func (s *AhaSendService) SendAppointmentUpdated(appointment *entities.Appointment, recipientEmail, recipientName string) error {
+	return s.sendTemplate("appointment.updated", recipientEmail, recipientName, appointment)
+}
+
+func (s *AhaSendService) SendAppointmentDeleted(appointment *entities.Appointment, recipientEmail, recipientName string) error {
+	return s.sendTemplate("appointment.deleted", recipientEmail, recipientName, appointment)
 }
 
 func (s *AhaSendService) SendVerificationCode(email, code string) error {
-	subject := "Verify Your Email"
-	templatePath := "templates/verification_code.html"
-	data := map[string]string{"Code": code}
-	return s.sendEmail(email, "", subject, templatePath, data)
+	return s.sendTemplate("auth.verification", email, "", map[string]string{"Code": code})
 }
 
 func (s *AhaSendService) SendPasswordResetEmail(email, code string) error {
-	return s.sendEmail(email, "", "Password Reset Request", "templates/verification_code.html", map[string]string{"Code": code})
+	return s.sendTemplate("auth.reset", email, "", map[string]string{"Code": code})
 }
 
 func (s *AhaSendService) sendEmail(toEmail, toName, subject, templatePath string, data interface{}) error {

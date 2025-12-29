@@ -1,7 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { App } from './shell/App';
 import { SplitPanelBookByCodePage } from '@/features/bookings/pages/SplitPanelBookByCodePage';
-import { BookByCodePage } from '@/features/bookings/pages/BookByCodePage';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
 import { VerifyPage } from '@/features/auth/pages/VerifyPage';
@@ -26,7 +25,6 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <SplitPanelBookByCodePage /> },
       { path: 'book-by-code', element: <SplitPanelBookByCodePage /> },
-      { path: 'book-classic', element: <BookByCodePage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
       { path: 'verify', element: <VerifyPage /> },

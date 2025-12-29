@@ -7,7 +7,19 @@ import { Button } from '@/components/Button';
 import { AppointmentForm, AppointmentFormValues } from '../components/AppointmentForm';
 import { useAppointmentUsers, useMyAppointments, useUpdateAppointment } from '../hooks';
 
-const toIsoDate = (date: string) => new Date(`${date}T00:00:00Z`).toISOString();
+const formatOffset = (date: Date) => {
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const abs = Math.abs(offsetMinutes);
+  const hours = String(Math.floor(abs / 60)).padStart(2, '0');
+  const minutes = String(abs % 60).padStart(2, '0');
+  return `${sign}${hours}:${minutes}`;
+};
+
+const toIsoDate = (date: string) => {
+  const base = new Date(`${date}T00:00:00`);
+  return `${date}T00:00:00${formatOffset(base)}`;
+};
 
 const normalizeTime = (time: string) => {
   if (!time.includes(':')) return `${time}:00`;
@@ -16,7 +28,11 @@ const normalizeTime = (time: string) => {
   return `${segments[0]}:${segments[1]}:${segments[2] || '00'}`;
 };
 
-const toIsoTime = (date: string, time: string) => new Date(`${date}T${normalizeTime(time)}Z`).toISOString();
+const toIsoTime = (date: string, time: string) => {
+  const normalized = normalizeTime(time);
+  const base = new Date(`${date}T${normalized}`);
+  return `${date}T${normalized}${formatOffset(base)}`;
+};
 
 const toDateInput = (value?: string) => {
   if (!value) return '';

@@ -36,6 +36,7 @@ export function NotificationsPage() {
         isLoading={isLoading}
         error={error}
         onPageChange={pagination.updatePage}
+        className="min-h-0 bg-transparent"
         renderItem={(notification: any) => {
           const isRead = notification?.isRead ?? notification?.is_read ?? false;
           const createdAt = notification?.createdAt ?? notification?.created_at;

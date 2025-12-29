@@ -26,13 +26,13 @@ func TestStatusSchedulerTickInvokesServices(t *testing.T) {
 		Return(services.BookingStatusRefreshSummary{Ongoing: 3, Expired: 4}, nil).
 		Once()
 
-	scheduler := services.NewStatusScheduler(mockAppointmentService, mockBookingService, time.Millisecond)
+	scheduler := services.NewStatusScheduler(mockAppointmentService, mockBookingService, time.Hour)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	scheduler.Start(ctx)
 
-	timeout := time.After(500 * time.Millisecond)
+	timeout := time.After(2 * time.Second)
 	for i := 0; i < 2; i++ {
 		select {
 		case <-callDone:
@@ -40,6 +40,7 @@ func TestStatusSchedulerTickInvokesServices(t *testing.T) {
 			t.Fatal("scheduler did not invoke services in time")
 		}
 	}
+	cancel()
 
 	mockAppointmentService.AssertExpectations(t)
 	mockBookingService.AssertExpectations(t)

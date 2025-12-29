@@ -13,12 +13,10 @@ import { Button } from '@/components/Button';
 import { StatusFilter } from '@/components/StatusFilter';
 
 const statusOptions = [
-  { label: 'Active', value: 'active' },
   { label: 'Ongoing', value: 'ongoing' },
   { label: 'Expired', value: 'expired' },
   { label: 'Pending', value: 'pending' },
   { label: 'Confirmed', value: 'confirmed' },
-  { label: 'Rejected', value: 'rejected' },
 ];
 
 const sortOptions = [
@@ -118,6 +116,7 @@ export function MyBookingsPage() {
               Manage your appointment bookings and schedules.
             </div>
           </div>
+          <Button onClick={() => navigate('/book-by-code')}>Book appointment</Button>
         </div>
 
         <div className="mt-5 grid gap-3">

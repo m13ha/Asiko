@@ -66,6 +66,78 @@ func (_m *NotificationService) SendBookingRejection(booking *entities.Booking) e
 	return r0
 }
 
+// SendBookingUpdated provides a mock function with given fields: booking
+func (_m *NotificationService) SendBookingUpdated(booking *entities.Booking) error {
+	ret := _m.Called(booking)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendBookingUpdated")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*entities.Booking) error); ok {
+		r0 = rf(booking)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SendAppointmentCreated provides a mock function with given fields: appointment, recipientEmail, recipientName
+func (_m *NotificationService) SendAppointmentCreated(appointment *entities.Appointment, recipientEmail string, recipientName string) error {
+	ret := _m.Called(appointment, recipientEmail, recipientName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendAppointmentCreated")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*entities.Appointment, string, string) error); ok {
+		r0 = rf(appointment, recipientEmail, recipientName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SendAppointmentUpdated provides a mock function with given fields: appointment, recipientEmail, recipientName
+func (_m *NotificationService) SendAppointmentUpdated(appointment *entities.Appointment, recipientEmail string, recipientName string) error {
+	ret := _m.Called(appointment, recipientEmail, recipientName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendAppointmentUpdated")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*entities.Appointment, string, string) error); ok {
+		r0 = rf(appointment, recipientEmail, recipientName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SendAppointmentDeleted provides a mock function with given fields: appointment, recipientEmail, recipientName
+func (_m *NotificationService) SendAppointmentDeleted(appointment *entities.Appointment, recipientEmail string, recipientName string) error {
+	ret := _m.Called(appointment, recipientEmail, recipientName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendAppointmentDeleted")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*entities.Appointment, string, string) error); ok {
+		r0 = rf(appointment, recipientEmail, recipientName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SendPasswordResetEmail provides a mock function with given fields: email, code
 func (_m *NotificationService) SendPasswordResetEmail(email string, code string) error {
 	ret := _m.Called(email, code)

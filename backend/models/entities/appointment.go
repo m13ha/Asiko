@@ -213,7 +213,7 @@ func (a *Appointment) IsBookable() (bool, string) {
 	case AppointmentStatusCanceled:
 		return false, "appointment has been canceled"
 	case AppointmentStatusCompleted:
-		return false, "appointment is no longer active"
+		return false, "appointment is completed and closed"
 	default:
 		return true, ""
 	}

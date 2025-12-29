@@ -17,7 +17,6 @@ const statusOptions = [
   { label: 'Pending', value: API.EntitiesAppointmentStatus.AppointmentStatusPending },
   { label: 'Ongoing', value: API.EntitiesAppointmentStatus.AppointmentStatusOngoing },
   { label: 'Completed', value: API.EntitiesAppointmentStatus.AppointmentStatusCompleted },
-  { label: 'Canceled', value: API.EntitiesAppointmentStatus.AppointmentStatusCanceled },
 ];
 
 const sortOptions = [

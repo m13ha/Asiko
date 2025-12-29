@@ -120,7 +120,6 @@ export function App() {
         '/login',
         '/signup',
         '/book-by-code',
-        '/book-classic',
         '/verify',
         '/forgot-password',
         '/reset-password',

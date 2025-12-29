@@ -77,7 +77,7 @@ func main() {
 	eventBus := events.NewSyncEventBus()
 
 	// Initialize services
-	notificationService, err := notifications.NewAhaSendServiceFromEnv()
+	notificationService, err := notifications.NewNotificationServiceFromEnv()
 	if err != nil {
 		log.Printf("Warning: AhaSend configuration invalid: %v", err)
 	}

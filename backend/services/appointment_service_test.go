@@ -88,10 +88,11 @@ func TestCreateAppointment(t *testing.T) {
 		{
 			name: "Success - Overnight Group Appointment",
 			request: func() requests.AppointmentRequest {
-				startDate := time.Date(2025, time.January, 10, 0, 0, 0, 0, time.UTC)
+				startDate := time.Now().UTC().AddDate(0, 0, 1)
+				startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
 				endDate := startDate.AddDate(0, 0, 1)
-				startTime := time.Date(2025, time.January, 10, 22, 0, 0, 0, time.UTC)
-				endTime := time.Date(2025, time.January, 11, 2, 0, 0, 0, time.UTC)
+				startTime := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 22, 0, 0, 0, time.UTC)
+				endTime := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 2, 0, 0, 0, time.UTC)
 				return requests.AppointmentRequest{
 					Title:           "Overnight Group",
 					StartTime:       startTime,
@@ -114,10 +115,11 @@ func TestCreateAppointment(t *testing.T) {
 		{
 			name: "Failure - Party More Than One Day",
 			request: func() requests.AppointmentRequest {
-				startDate := time.Date(2025, time.February, 1, 0, 0, 0, 0, time.UTC)
+				startDate := time.Now().UTC().AddDate(0, 0, 2)
+				startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
 				endDate := startDate.AddDate(0, 0, 2)
-				startTime := time.Date(2025, time.February, 1, 20, 0, 0, 0, time.UTC)
-				endTime := time.Date(2025, time.February, 3, 2, 0, 0, 0, time.UTC)
+				startTime := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 20, 0, 0, 0, time.UTC)
+				endTime := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 2, 0, 0, 0, time.UTC)
 				return requests.AppointmentRequest{
 					Title:           "Long Party",
 					StartTime:       startTime,

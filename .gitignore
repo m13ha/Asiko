@@ -12,3 +12,7 @@ web/.env.local.example
 .gocache
 .gofmt
 vendor
+.cache/
+.idea/
+.vscode/
+.DS_Store   

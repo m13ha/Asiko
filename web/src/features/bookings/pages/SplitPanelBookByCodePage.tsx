@@ -247,10 +247,10 @@ export function SplitPanelBookByCodePage() {
 
   // Render
   return (
-    <div className="max-w-5xl mx-auto my-6 px-4">
+    <div className="ww-full mx-auto my-6 px-4">
       {/* Step 1: Code Entry */}
       {step === 'code' && (
-        <Card className="max-w-lg mx-auto">
+        <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>Book an Appointment</CardTitle>
           </CardHeader>
